@@ -81,7 +81,8 @@ const st_D = computed(()=>{
 
 <template>
 <div class="flex-all-c w-100">
-    <p class="notice"><span style="color: red">NOTE: </span>This analytics is based on SEMESTER {{userAuthStore.activeTerm}} of the {{userAuthStore.activeAcademicYear}} academic year.</p>
+    <p v-if="userAuthStore.userData && userAuthStore.userData['school']['semesters']" class="notice"><span style="color: red">NOTE: </span>This analytics is based on SEMESTER {{userAuthStore.activeTerm}} of the {{userAuthStore.activeAcademicYear}} academic year.</p>
+    <p v-if="userAuthStore.userData && !userAuthStore.userData['school']['semesters']" class="notice"><span style="color: red">NOTE: </span>This analytics is based on TRIMESTER {{userAuthStore.activeTerm}} of the {{userAuthStore.activeAcademicYear}} academic year.</p>
     <Bar
         class="chart"
         :options="chartOptions"
@@ -158,7 +159,7 @@ const st_D = computed(()=>{
 @import url('../assets/css/tables.css');
 
 .chart{
-    max-width: 700px !important;
+    max-width: 800px !important;
     max-height: 300px !important;
     margin-top: 1em;
 

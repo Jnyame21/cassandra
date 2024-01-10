@@ -59,9 +59,10 @@ const closeBtn = ()=>{
       </div>
     </div>
   </div>
-<section class="d-flex flex-column h-100 w-100">
-  <TheLoader v-if="userAuthStore.studentData && !userAuthStore.studentData['subjects']" />
-  <div v-if="userAuthStore.studentData && userAuthStore.studentData['subjects']"  class="subject-container">
+<section class="d-flex flex-column h-100 w-100 justify-center align-center">
+  <TheLoader v-if="userAuthStore.studentData === 4 && !userAuthStore.studentData['subjects']" />
+  <p class="notice" v-if="userAuthStore.userData && userAuthStore.userData['current_yr'] === 'COMPLETED'">YOU HAVE COMPLETED SCHOOL</p>
+  <div v-if="userAuthStore.studentData && userAuthStore.userData['current_yr'] !== 'COMPLETED' && userAuthStore.studentData['subjects']"  class="subject-container">
     <v-card v-for="(subject, index) in userAuthStore.studentData.subjects" @click="subjectInfo(subject['name'], subject['teacher'], subject['teacher_img'], subject['teacher_gender'], subject['teacher_email'], subject['teacher_contact'], subject['teacher_department'])" class="subject-card" :key="index">
       <img class="subject-img" src="/login_logo.jpg" alt="subject image">
       <p class="subject-title">{{subject['name']}}</p>
@@ -82,6 +83,12 @@ const closeBtn = ()=>{
   border-radius: .3em;
   max-width: 500px;
 }
+
+.notice{
+  color: green;
+  font-size: .6rem;
+}
+
 .close-btn{
   position: absolute;
   right: 0;
@@ -173,6 +180,9 @@ const closeBtn = ()=>{
   .subject-card{
     height: 100px;
     width: 150px;
+  }
+  .notice{
+    font-size: .7rem;
   }
 }
 

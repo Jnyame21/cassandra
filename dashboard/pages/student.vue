@@ -73,9 +73,9 @@ const changePage = (page: string)=>{
   <main class="main">
     <div class="pages-container">
       <div class="page-nav-container">
-        <button class="nav-btn" @click="changePage('page1')" :class="{'nav-btn-active': activePage==='page1'}"><v-icon icon="mdi-book-open-outline"/>MY CLASS</button>
-        <button class="nav-btn" @click="changePage('page2')" :class="{'nav-btn-active': activePage==='page2'}"><v-icon icon="mdi-account-group-outline"/>RESULTS</button>
-        <button class="nav-btn" @click="changePage('page3')" :class="{'nav-btn-active': activePage==='page3'}"><v-icon icon="mdi-book-open-outline"/>TRANSCRIPT</button>
+        <button class="nav-btn" @click="changePage('page1')" :class="{'nav-btn-active': activePage==='page1'}"><v-icon icon="mdi-account-group-outline"/>MY CLASS</button>
+        <button class="nav-btn" @click="changePage('page2')" :class="{'nav-btn-active': activePage==='page2'}"><v-icon icon="mdi-book-open-outline"/>MY RESULTS</button>
+        <button class="nav-btn" @click="changePage('page3')" :class="{'nav-btn-active': activePage==='page3'}"><v-icon icon="mdi-book-account"/>TRANSCRIPT</button>
         <button class="nav-btn" @click="changePage('page4')" :class="{'nav-btn-active': activePage==='page4'}"><v-icon icon="mdi-help"/>HELP</button>
       </div>
   

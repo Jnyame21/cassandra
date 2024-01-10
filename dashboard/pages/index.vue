@@ -46,29 +46,30 @@ const authenticate = async ()=>{
   data.loading = true
   data.lockField = true
   await userAuthStore.userLogin(data.username, data.password)
-  if (userAuthStore.isAuthenticated && userAuthStore.userData['role']==='staff' || userAuthStore.isAuthenticated && userAuthStore.userData['role']==='head' ){
-    data.password = ''
-    data.loading = false;
-    setTimeout(()=>{
-      router.push('/staff')
-    },2000)
-  }
+  .then(response =>{
+    if (userAuthStore.isAuthenticated && userAuthStore.userData['role']==='staff' || userAuthStore.isAuthenticated && userAuthStore.userData['role']==='head' ){
+      data.password = ''
+      data.loading = false;
+      setTimeout(()=>{
+        router.push('/staff')
+      },2000)
+    }
 
-  else if (userAuthStore.isAuthenticated===true && userAuthStore.userData['role']==='student' ){
-    data.password = ''
-    data.loading = false;
-    setTimeout(()=>{
-      router.push('/student')
-    },2000)
-  }
-
-  else {
+    else if (userAuthStore.isAuthenticated===true && userAuthStore.userData['role']==='student' ){
+      data.password = ''
+      data.loading = false;
+      setTimeout(()=>{
+        router.push('/student')
+      },2000)
+    }
+  })
+  .catch(e =>{
     data.loading = false
     data.lockField = false
     setTimeout(()=>{
       userAuthStore.message = ''
     },6000)
-  }
+  })
 }
 
 

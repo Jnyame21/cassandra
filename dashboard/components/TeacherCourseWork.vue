@@ -14,10 +14,16 @@ const changeTerm = (term: number)=>{
 </script>
 
 <template>
-  <div class="section-nav-container">
+  <!-- semester -->
+  <div class="section-nav-container" v-if="userAuthStore.userData && userAuthStore.userData['school']['semesters']">
     <button class="nav-btn-1 btn-1" @click="changeTerm(1)" :class="{'nav-btn-1-active': sectionPage===1}">SEMESTER 1</button>
     <button class="nav-btn-1 btn-2" @click="changeTerm(2)" :class="{'nav-btn-1-active': sectionPage===2}">SEMESTER 2</button>
-    <button v-if="userAuthStore.userData && userAuthStore.userData['academic_year']['sem_3_start_date']" class="nav-btn-1 btn-3" @click="changeTerm(3)" :class="{'nav-btn-1-active': sectionPage===3}">SEMESTER 3</button>
+  </div>
+  <!-- trimester -->
+  <div class="section-nav-container" v-if="userAuthStore.userData && !userAuthStore.userData['school']['semesters']">
+    <button class="nav-btn-1 btn-1" @click="changeTerm(1)" :class="{'nav-btn-1-active': sectionPage===1}">TRIMESTER 1</button>
+    <button class="nav-btn-1 btn-2" @click="changeTerm(2)" :class="{'nav-btn-1-active': sectionPage===2}">TRIMESTER 2</button>
+    <button class="nav-btn-1 btn-3" @click="changeTerm(3)" :class="{'nav-btn-1-active': sectionPage===3}">TRIMESTER 3</button>
   </div>
 
   <div class="sections">
@@ -28,7 +34,7 @@ const changeTerm = (term: number)=>{
       <TeacherTermCourseWork :term="'termTwo'" :term-number="2" />
     </div>
     <div class="h-100" :style="sectionPage===3 ? {'display': 'flex'}: {'display': 'none'}"
-    v-if="userAuthStore.userData && userAuthStore.userData['academic_year']['sem_3_start_date']"
+    v-if="userAuthStore.userData && !userAuthStore.userData['school']['semesters']"
     >
       <TeacherTermCourseWork :term="'termThree'" :term-number="3" />
     </div>

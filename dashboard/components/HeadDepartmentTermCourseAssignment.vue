@@ -7,12 +7,13 @@ interface Props {
 
 const { term } = defineProps<Props>()
 
+
 </script>
 
 <template>
     <div style="width: 100%; position: relative; height: 100%">
       <TheLoader v-if="!term || term.length ===0 " />
-      <v-table fixed-header height="45dvh" v-if="term.length >0" >
+      <v-table fixed-header height="45dvh" v-if="term && term.length >0" >
         <thead>
         <tr>
             <th class="table-head">TEACHER</th>
@@ -36,6 +37,7 @@ const { term } = defineProps<Props>()
       </v-table>
     </div>
 </template>
+
 
 <style scoped>
 

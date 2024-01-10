@@ -14,7 +14,8 @@ const userAuthStore = useUserAuthStore()
     <div style="width: 100%; position: relative; height: 100%">
       <TheLoader v-if="!userAuthStore.studentData.results[term]" />
       <h4 class="no-data flex-all" v-if="userAuthStore.studentData.results[term] && userAuthStore.studentData.results[term].length === 0">
-        <p>No results for semester {{ termNumber }} yet</p>
+        <p v-if="userAuthStore.userData && userAuthStore.userData['school']['semesters']">No results for semester {{ termNumber }} yet</p>
+        <p v-if="userAuthStore.userData && !userAuthStore.userData['school']['semesters']">No results for trimester {{ termNumber }} yet</p>
       </h4>
       <v-table fixed-header height="60dvh" v-if="userAuthStore.studentData.results[term] && userAuthStore.studentData.results[term].length > 0">
         <thead>

@@ -146,11 +146,17 @@ const changePage = (page: string)=>{
         <!-- Admin -->
         <button class="nav-btn" @click="changePage('page1')" :class="{'nav-btn-active': activePage==='page1'}"
         v-if="userAuthStore.userData && userAuthStore.userData['staff_role']=== 'admin'"
+        ><v-icon icon="mdi-calendar"/>
+          CALENDAR
+        </button>
+
+        <button class="nav-btn" @click="changePage('page2')" :class="{'nav-btn-active': activePage==='page2'}"
+        v-if="userAuthStore.userData && userAuthStore.userData['staff_role']=== 'admin'"
         ><v-icon icon="mdi-account-group-outline"/>
           STUDENTS
         </button>
 
-        <button class="nav-btn" @click="changePage('page2')" :class="{'nav-btn-active': activePage==='page2'}"
+        <button class="nav-btn" @click="changePage('page3')" :class="{'nav-btn-active': activePage==='page3'}"
         v-if="userAuthStore.userData && userAuthStore.userData['staff_role']=== 'admin' "
         ><v-icon icon="mdi-account-multiple"/>
           TEACHERS
@@ -223,10 +229,15 @@ const changePage = (page: string)=>{
       <!-- Admin -->
       <div class="pages" :style="activePage==='page1' ? {'display': 'flex'}: {'display': 'none'}"
       v-if="userAuthStore.userData && userAuthStore.userData['staff_role']=== 'admin' "
-      ><AdminStudents />
+      ><AdminCalendar />
       </div>
 
       <div class="pages" :style="activePage==='page2' ? {'display': 'flex'}: {'display': 'none'}"
+      v-if="userAuthStore.userData && userAuthStore.userData['staff_role']=== 'admin' "
+      ><AdminStudents />
+      </div>
+
+      <div class="pages" :style="activePage==='page3' ? {'display': 'flex'}: {'display': 'none'}"
       v-if="userAuthStore.userData && userAuthStore.userData['staff_role']=== 'admin' "
       ><AdminStaff />
       </div>

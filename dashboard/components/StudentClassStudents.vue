@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import TheLoader from '@/components/TheLoader.vue'
 
 const userAuthStore = useUserAuthStore()
 const elementsStore = useElementsStore()

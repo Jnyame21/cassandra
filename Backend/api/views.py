@@ -45,181 +45,158 @@ class UserAuthSerializer(TokenObtainPairSerializer):
         token = super().get_token(user)
 
         # Add custom claims
-        token['username'] = user.username
-        token['first_name'] = user.first_name
-        token['last_name'] = user.last_name
-        if user.email:
-            token['email'] = user.email
-        else:
-            token['email'] = 'null'
-
-        try:
-            staff = user.staff
-            # Check current academic year and semester
-            academic_years = AcademicYear.objects.filter(school=staff.school).order_by('-start_date')
-            current_date = timezone.now().date()
-            current_academic_year = None
-            for year in academic_years:
-                if year.start_date <= current_date <= year.end_date:
-                    if not current_date > year.sem_1_end_date:
-                        token['current_sem'] = 1
-                    elif not current_date > year.sem_2_end_date:
-                        token['current_sem'] = 2
-                    elif year.sem_3_start_date:
-                        token['current_sem'] = 3
-                    else:
-                        return Response({'ms': 'No current semester, contact you school administrator'}, status=201)
-
-                    token['academic_year'] = AcademicYearSerializer(year).data
-                    current_academic_year = True
-                    break
-
-            if not current_academic_year:
-                return Response({'ms': 'No current academic year, contact you school administrator'}, status=201)
-
-            serializer = StaffSerializer(staff)
-            token['role'] = 'staff'
-            if serializer.data['user']['last_login']:
-                last_login = serializer.data['user']['last_login']
-                token['last_login'] = format_relative_date_time(last_login, False, True)
-            token['img'] = serializer.data['img']
-            token['school'] = serializer.data['school']
-            token['staff_id'] = serializer.data['staff_id']
-            try:
-                department = Department.objects.get(teachers=staff)
-                if department and department.hod == staff:
-                    token['staff_role'] = 'hod'
-                else:
-                    token['staff_role'] = 'teacher'
-            except Department.DoesNotExist:
-                token['staff_role'] = serializer.data['role']
-
-            token['subjects'] = serializer.data['subjects']
-            token['gender'] = serializer.data['gender']
-            token['dob'] = serializer.data['dob']
-            token['address'] = serializer.data['address']
-            token['contact'] = serializer.data['contact']
-            token['ms'] = 'Login successful'
-            token['pob'] = serializer.data['pob']
-            token['region'] = serializer.data['region']
-            token['nationality'] = serializer.data['nationality']
-            return token
-
-        except User.staff.RelatedObjectDoesNotExist:
-            try:
-                student = user.student
-
-                # Check current academic year and semester
-                academic_years = AcademicYear.objects.filter(school=student.school).order_by('-start_date')
-                current_date = timezone.now().date()
-                current_academic_year = None
-                for year in academic_years:
-                    if year.start_date <= current_date <= year.end_date:
-                        if not current_date > year.sem_1_end_date:
-                            token['current_sem'] = 1
-                        elif not current_date > year.sem_2_end_date:
-                            token['current_sem'] = 2
-                        elif year.sem_3_start_date:
-                            token['current_sem'] = 3
-                        else:
-                            return Response({'ms': 'No current semester, contact you school administrator'}, status=201)
-
-                        token['academic_year'] = AcademicYearSerializer(year).data
-                        current_academic_year = True
-                        break
-
-                if not current_academic_year:
-                    return Response({'ms': 'No current academic year, contact you school administrator'}, status=201)
-
-                serializer = StudentSerializer(student)
-                token['role'] = 'student'
-                if serializer.data['user']['last_login']:
-                    last_login = serializer.data['user']['last_login']
-                    token['last_login'] = format_relative_date_time(last_login, False, True)
-
-                token['img'] = serializer.data['img']
-                token['ms'] = 'Login successful'
-                token['program'] = serializer.data['program']['name']
-                clas = ClasseSerializer(Classe.objects.get(students=student)).data
-
-                token['st_class'] = clas['name']
-                token['school'] = serializer.data['school']
-                token['st_id'] = serializer.data['st_id']
-                if serializer.data['index_no']:
-                    token['index_no'] = serializer.data['index_no']
-                else:
-                    token['index_no'] = 'not assigned yet'
-                token['contact'] = serializer.data['contact']
-                token['dob'] = serializer.data['dob']
-                if serializer.data['has_completed']:
-                    token['current_yr'] = 'COMPLETED'
-                else:
-                    token['current_yr'] = serializer.data['current_year']
-                token['gender'] = serializer.data['gender']
-                token['pob'] = serializer.data['pob']
-                token['region'] = serializer.data['region']
-                token['address'] = serializer.data['address']
-                token['religion'] = serializer.data['religion']
-                token['nationality'] = serializer.data['nationality']
-                token['guardian'] = serializer.data['guardian']
-                token['guardian_gender'] = serializer.data['guardian_gender']
-                token['guardian_occupation'] = serializer.data['guardian_occupation']
-                token['guardian_nationality'] = serializer.data['guardian_nationality']
-                if serializer.data['guardian_email']:
-                    token['guardian_email'] = serializer.data['guardian_email']
-                else:
-                    token['guardian_email'] = 'null'
-                token['guardian_contact'] = serializer.data['guardian_contact']
-                token['guardian_address'] = serializer.data['guardian_address']
-                return token
-
-            except User.student.RelatedObjectDoesNotExist:
-                head = user.head
-                # Check current academic year and semester
-                academic_years = AcademicYear.objects.filter(school=head.school).order_by('-start_date')
-                current_date = timezone.now().date()
-                current_academic_year = None
-                for year in academic_years:
-                    if year.start_date <= current_date <= year.end_date:
-                        if not current_date > year.sem_1_end_date:
-                            token['current_sem'] = 1
-                        elif not current_date > year.sem_2_end_date:
-                            token['current_sem'] = 2
-                        elif year.sem_3_start_date:
-                            token['current_sem'] = 3
-                        else:
-                            return Response({'ms': 'No current semester, contact you school administrator'}, status=201)
-
-                        token['academic_year'] = AcademicYearSerializer(year).data
-                        current_academic_year = True
-                        break
-
-                if not current_academic_year:
-                    return Response({'ms': 'No current academic year, contact you school administrator'}, status=201)
-
-                serializer = HeadSerializer(head)
-                token['role'] = 'head'
-                if serializer.data['user']['last_login']:
-                    last_login = serializer.data['user']['last_login']
-                    token['last_login'] = format_relative_date_time(last_login, False, True)
-
-                token['img'] = serializer.data['img']
-                token['school'] = serializer.data['school']
-                token['head_id'] = serializer.data['head_id']
-                token['head_role'] = serializer.data['role']
-                token['gender'] = serializer.data['gender']
-                token['dob'] = serializer.data['dob']
-                token['address'] = serializer.data['address']
-                token['contact'] = serializer.data['contact']
-                token['ms'] = 'Login successful'
-                token['pob'] = serializer.data['pob']
-                token['region'] = serializer.data['region']
-                token['nationality'] = serializer.data['nationality']
-                return token
+        return token
 
 
 class UserAuthView(TokenObtainPairView):
     serializer_class = UserAuthSerializer
+
+
+# User Data
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_user_data(request):
+    user = request.user
+    user_info = UserSerializer(user).data
+    user_data = {
+        'username': user_info['username'],
+        'first_name': user_info['first_name'],
+        'last_name': user_info['last_name']
+    }
+    if user_info['email']:
+        user_data['email'] = user_info['email']
+    else:
+        user_data['email'] = 'null'
+
+    try:
+        staff = user.staff
+        # Get current academic year
+        get_current_academic_year(staff, user_data)
+
+        staff_data = StaffSerializer(staff).data
+        user_data['role'] = 'staff'
+        if staff_data['user']['last_login']:
+            last_login = staff_data['user']['last_login']
+            user_data['last_login'] = format_relative_date_time(last_login, False, True)
+        user_data['img'] = staff_data['img']
+        user_data['school'] = staff_data['school']
+        user_data['staff_id'] = staff_data['staff_id']
+        try:
+            department = Department.objects.get(teachers=staff)
+            user_data['department'] = DepartmentNameSerializer(department).data['name']
+            if department.hod == staff:
+                user_data['staff_role'] = 'hod'
+            else:
+                user_data['staff_role'] = 'teacher'
+
+        except Department.DoesNotExist:
+            user_data['staff_role'] = staff_data['role']
+
+        user_data['subjects'] = staff_data['subjects']
+        user_data['gender'] = staff_data['gender']
+        user_data['dob'] = staff_data['dob']
+        user_data['address'] = staff_data['address']
+        user_data['contact'] = staff_data['contact']
+        user_data['ms'] = 'Login successful'
+        user_data['pob'] = staff_data['pob']
+        user_data['region'] = staff_data['region']
+        user_data['nationality'] = staff_data['nationality']
+
+        return Response(user_data)
+
+    except User.staff.RelatedObjectDoesNotExist:
+        try:
+            student = user.student
+
+            # Get current academic year
+            get_current_academic_year(student, user_data)
+
+            student_data = StudentSerializer(student).data
+            user_data['role'] = 'student'
+            if student_data['user']['last_login']:
+                last_login = student_data['user']['last_login']
+                user_data['last_login'] = format_relative_date_time(last_login, False, True)
+
+            user_data['img'] = student_data['img']
+            user_data['ms'] = 'Login successful'
+            user_data['program'] = student_data['program']['name']
+            user_data['school'] = student_data['school']
+            user_data['st_id'] = student_data['st_id']
+
+            if student_data['index_no']:
+                user_data['index_no'] = student_data['index_no']
+            else:
+                user_data['index_no'] = 'not assigned yet'
+
+            try:
+                clas = Classe.objects.get(school=student.school, students=student)
+                class_name = ClasseWithoutStudentsSerializer(clas).data
+                user_data['st_class'] = class_name['name']
+
+                if student_data['has_completed']:
+                    user_data['current_yr'] = 'COMPLETED'
+                else:
+                    current_date = timezone.now().date()
+                    if current_date >= clas.completion_date:
+                        student.has_completed = True
+                        student.current_year = clas.students_year
+                        student.save()
+                        user_data['current_yr'] = 'COMPLETED'
+
+                    else:
+                        user_data['current_yr'] = student_data['current_year']
+
+            except Classe.DoesNotExist:
+                pass
+
+            user_data['contact'] = student_data['contact']
+            user_data['dob'] = student_data['dob']
+            user_data['gender'] = student_data['gender']
+            user_data['pob'] = student_data['pob']
+            user_data['region'] = student_data['region']
+            user_data['address'] = student_data['address']
+            user_data['religion'] = student_data['religion']
+            user_data['nationality'] = student_data['nationality']
+            user_data['guardian'] = student_data['guardian']
+            user_data['guardian_gender'] = student_data['guardian_gender']
+            user_data['guardian_occupation'] = student_data['guardian_occupation']
+            user_data['guardian_nationality'] = student_data['guardian_nationality']
+
+            if student_data['guardian_email']:
+                user_data['guardian_email'] = student_data['guardian_email']
+            else:
+                user_data['guardian_email'] = 'null'
+
+            user_data['guardian_contact'] = student_data['guardian_contact']
+            user_data['guardian_address'] = student_data['guardian_address']
+
+            return Response(user_data)
+
+        except User.student.RelatedObjectDoesNotExist:
+            head = user.head
+            # Get current academic year
+            get_current_academic_year(head, user_data)
+
+            head_data = HeadSerializer(head).data
+            user_data['role'] = 'head'
+            if head_data['user']['last_login']:
+                last_login = head_data['user']['last_login']
+                user_data['last_login'] = format_relative_date_time(last_login, False, True)
+
+            user_data['img'] = head_data['img']
+            user_data['school'] = head_data['school']
+            user_data['head_id'] = head_data['head_id']
+            user_data['head_role'] = head_data['role']
+            user_data['gender'] = head_data['gender']
+            user_data['dob'] = head_data['dob']
+            user_data['address'] = head_data['address']
+            user_data['contact'] = head_data['contact']
+            user_data['ms'] = 'Login successful'
+            user_data['pob'] = head_data['pob']
+            user_data['region'] = head_data['region']
+            user_data['nationality'] = head_data['nationality']
+
+            return Response(user_data)
 
 
 # STUDENT
@@ -474,6 +451,7 @@ def teacher_student_results(request):
                                         subject=st_subject,
                                         teacher=teacher,
                                         score=st_score,
+                                        student_year=st.current_year,
                                         academic_year=academic_year,
                                         academic_term=term,
                                         school=sch
@@ -546,6 +524,7 @@ def teacher_student_results(request):
                             new_result = Result.objects.create(
                                 student=student,
                                 subject=subject_obj,
+                                student_year=student.current_year,
                                 teacher=teacher,
                                 score=score,
                                 academic_year=academic_year,
@@ -570,6 +549,7 @@ def teacher_student_results(request):
                             subject=subject_obj,
                             teacher=teacher,
                             score=score,
+                            student_year=student.current_year,
                             academic_year=academic_year,
                             academic_term=term,
                             school=sch
@@ -599,7 +579,7 @@ def teacher_student_results(request):
 # HOD
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
-def hod_data(request):
+def get_hod_data(request):
     staff = request.user.staff
     # Hod crate subject assignments
     if request.method == 'POST' and request.data['type'] == 'create':
@@ -668,13 +648,13 @@ def hod_data(request):
 def hod_students_performance(request):
     staff = request.user.staff
     department = DepartmentSerializer(Department.objects.get(school=staff.school, teachers=staff)).data
-    years = AcademicYearSerializer(AcademicYear.objects.filter(school=staff.school).order_by('-start_date'), many=True).data
-    current_year = AcademicYearSerializer(AcademicYear.objects.get(school=staff.school, name=request.GET.get('year'))).data
-    current_year_index = years.index(current_year)
-
-    academic_year_one = AcademicYear.objects.filter(school=staff.school).order_by('-start_date')[current_year_index]
-    academic_year_two = AcademicYear.objects.filter(school=staff.school).order_by('-start_date')[current_year_index+1]
-    academic_year_three = AcademicYear.objects.filter(school=staff.school).order_by('-start_date')[current_year_index+2]
+    academic_year = AcademicYear.objects.get(school=staff.school, name=request.GET.get('year'))
+    # current_year = AcademicYearSerializer(AcademicYear.objects.get(school=staff.school, name=request.GET.get('year'))).data
+    # current_year_index = years.index(current_year)
+    #
+    # academic_year_one = AcademicYear.objects.filter(school=staff.school).order_by('-start_date')[current_year_index]
+    # academic_year_two = AcademicYear.objects.filter(school=staff.school).order_by('-start_date')[current_year_index+1]
+    # academic_year_three = AcademicYear.objects.filter(school=staff.school).order_by('-start_date')[current_year_index+2]
 
     data = []
     if department:
@@ -687,7 +667,13 @@ def hod_students_performance(request):
 
             # Year One Student Results
             result_one_one = ResultsSerializer(
-                Result.objects.filter(school=staff.school, academic_year=academic_year_one, subject=subject_obj, academic_term=1),
+                Result.objects.filter(
+                    school=staff.school,
+                    academic_year=academic_year,
+                    subject=subject_obj,
+                    academic_term=1,
+                    student_year=1,
+                ),
                 many=True).data
             if result_one_one:
                 for result in result_one_one:
@@ -700,7 +686,13 @@ def hod_students_performance(request):
                 first_year['term_one'] = sorted(first_year['term_one'], key=lambda x: x['score'], reverse=True)
 
             result_one_two = ResultsSerializer(
-                Result.objects.filter(school=staff.school, academic_year=academic_year_one, subject=subject_obj, academic_term=2),
+                Result.objects.filter(
+                    school=staff.school,
+                    academic_year=academic_year,
+                    subject=subject_obj,
+                    academic_term=2,
+                    student_year=1,
+                ),
                 many=True).data
             if result_one_two:
                 for result in result_one_two:
@@ -713,7 +705,13 @@ def hod_students_performance(request):
                 first_year['term_two'] = sorted(first_year['term_two'], key=lambda x: x['score'], reverse=True)
 
             result_one_three = ResultsSerializer(
-                Result.objects.filter(school=staff.school, academic_year=academic_year_one, subject=subject_obj, academic_term=3),
+                Result.objects.filter(
+                    school=staff.school,
+                    academic_year=academic_year,
+                    subject=subject_obj,
+                    academic_term=3,
+                    student_year=1,
+                ),
                 many=True).data
             if result_one_three:
                 for result in result_one_three:
@@ -727,7 +725,13 @@ def hod_students_performance(request):
 
             # Year Two Students Results
             result_two_one = ResultsSerializer(
-                Result.objects.filter(school=staff.school, academic_year=academic_year_two, subject=subject_obj, academic_term=1),
+                Result.objects.filter(
+                    school=staff.school,
+                    academic_year=academic_year,
+                    subject=subject_obj,
+                    academic_term=1,
+                    student_year=2,
+                ),
                 many=True).data
             if result_two_one:
                 for result in result_two_one:
@@ -740,7 +744,13 @@ def hod_students_performance(request):
                 second_year['term_one'] = sorted(second_year['term_one'], key=lambda x: x['score'], reverse=True)
 
             result_two_two = ResultsSerializer(
-                Result.objects.filter(school=staff.school, academic_year=academic_year_two, subject=subject_obj, academic_term=2),
+                Result.objects.filter(
+                    school=staff.school,
+                    academic_year=academic_year,
+                    subject=subject_obj,
+                    academic_term=2,
+                    student_year=2,
+                ),
                 many=True).data
             if result_two_two:
                 for result in result_two_two:
@@ -753,7 +763,13 @@ def hod_students_performance(request):
                 second_year['term_two'] = sorted(second_year['term_two'], key=lambda x: x['score'], reverse=True)
 
             result_two_three = ResultsSerializer(
-                Result.objects.filter(school=staff.school, academic_year=academic_year_two, subject=subject_obj, academic_term=3),
+                Result.objects.filter(
+                    school=staff.school,
+                    academic_year=academic_year,
+                    subject=subject_obj,
+                    academic_term=3,
+                    student_year=2,
+                ),
                 many=True).data
             if result_two_three:
                 for result in result_two_three:
@@ -767,7 +783,13 @@ def hod_students_performance(request):
 
             # Year Three Students Results
             result_three_one = ResultsSerializer(
-                Result.objects.filter(school=staff.school, academic_year=academic_year_three, subject=subject_obj, academic_term=1),
+                Result.objects.filter(
+                    school=staff.school,
+                    academic_year=academic_year,
+                    subject=subject_obj,
+                    academic_term=1,
+                    student_year=3,
+                ),
                 many=True).data
             if result_three_one:
                 for result in result_three_one:
@@ -781,7 +803,13 @@ def hod_students_performance(request):
                                                 reverse=True)
 
             result_three_two = ResultsSerializer(
-                Result.objects.filter(school=staff.school, academic_year=academic_year_three, subject=subject_obj, academic_term=2),
+                Result.objects.filter(
+                    school=staff.school,
+                    academic_year=academic_year,
+                    subject=subject_obj,
+                    academic_term=2,
+                    student_year=3,
+                ),
                 many=True).data
             if result_three_two:
                 for result in result_three_two:
@@ -795,7 +823,13 @@ def hod_students_performance(request):
                                                 reverse=True)
 
             result_three_three = ResultsSerializer(
-                Result.objects.filter(school=staff.school, academic_year=academic_year_three, subject=subject_obj, academic_term=3),
+                Result.objects.filter(
+                    school=staff.school,
+                    academic_year=academic_year,
+                    subject=subject_obj,
+                    academic_term=3,
+                    student_year=3,
+                ),
                 many=True).data
             if result_three_three:
                 for result in result_three_three:
@@ -824,7 +858,7 @@ def hod_students_performance(request):
 # HEAD
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
-def head_data(request):
+def get_head_data(request):
     head = request.user.head
     try:
         data = []
@@ -865,7 +899,7 @@ def head_data(request):
                         serialized_data = SubjectAssignmentWithoutStudentsSerializer(term_two_subject_assignments,
                                                                                      many=True).data
                         if len(serialized_data) == 1:
-                            subject_assignments['term_two'].append(serialized_data)
+                            subject_assignments['term_two'].append(serialized_data[0])
                         elif len(serialized_data) > 1:
                             subject_assignments['term_two'].extend(serialized_data)
 
@@ -881,7 +915,7 @@ def head_data(request):
                         serialized_data = SubjectAssignmentWithoutStudentsSerializer(term_three_subject_assignments,
                                                                                      many=True).data
                         if len(serialized_data) == 1:
-                            subject_assignments['term_three'].append(serialized_data)
+                            subject_assignments['term_three'].append(serialized_data[0])
                         elif len(serialized_data) > 1:
                             subject_assignments['term_three'].extend(serialized_data)
 
@@ -917,15 +951,16 @@ def head_data(request):
 def head_students_performance(request):
     head = request.user.head
     departments = DepartmentSerializer(Department.objects.filter(school=head.school, ), many=True).data
-    years = AcademicYearSerializer(AcademicYear.objects.filter(school=head.school).order_by('-start_date'),
-                                   many=True).data
-    current_year = AcademicYearSerializer(AcademicYear.objects.get(school=head.school, name=request.GET.get('year'))).data
-    current_year_index = years.index(current_year)
-
-    academic_year_one = AcademicYear.objects.filter(school=head.school).order_by('-start_date')[current_year_index]
-    academic_year_two = AcademicYear.objects.filter(school=head.school).order_by('-start_date')[current_year_index + 1]
-    academic_year_three = AcademicYear.objects.filter(school=head.school).order_by('-start_date')[
-        current_year_index + 2]
+    academic_year = AcademicYear.objects.get(school=head.school, name=request.GET.get('year'))
+    # years = AcademicYearSerializer(AcademicYear.objects.filter(school=head.school).order_by('-start_date'),
+    #                                many=True).data
+    # current_year = AcademicYearSerializer(AcademicYear.objects.get(school=head.school, name=request.GET.get('year'))).data
+    # current_year_index = years.index(current_year)
+    #
+    # academic_year_one = AcademicYear.objects.filter(school=head.school).order_by('-start_date')[current_year_index]
+    # academic_year_two = AcademicYear.objects.filter(school=head.school).order_by('-start_date')[current_year_index + 1]
+    # academic_year_three = AcademicYear.objects.filter(school=head.school).order_by('-start_date')[
+    #     current_year_index + 2]
 
     data = []
     if departments:
@@ -939,7 +974,13 @@ def head_students_performance(request):
 
                 # Year One Student Results
                 result_one_one = ResultsSerializer(
-                    Result.objects.filter(school=head.school, academic_year=academic_year_one, subject=subject_obj, academic_term=1),
+                    Result.objects.filter(
+                        school=head.school,
+                        academic_year=academic_year,
+                        subject=subject_obj,
+                        academic_term=1,
+                        student_year=1,
+                    ),
                     many=True).data
                 if result_one_one:
                     for result in result_one_one:
@@ -952,7 +993,13 @@ def head_students_performance(request):
                     first_year['term_one'] = sorted(first_year['term_one'], key=lambda x: float(x['score']), reverse=True)
 
                 result_one_two = ResultsSerializer(
-                    Result.objects.filter(school=head.school, academic_year=academic_year_one, subject=subject_obj, academic_term=2),
+                    Result.objects.filter(
+                        school=head.school,
+                        academic_year=academic_year,
+                        subject=subject_obj,
+                        academic_term=2,
+                        student_year=1,
+                    ),
                     many=True).data
                 if result_one_two:
                     for result in result_one_two:
@@ -965,7 +1012,13 @@ def head_students_performance(request):
                     first_year['term_two'] = sorted(first_year['term_two'], key=lambda x: float(x['score']), reverse=True)
 
                 result_one_three = ResultsSerializer(
-                    Result.objects.filter(school=head.school, academic_year=academic_year_one, subject=subject_obj, academic_term=3),
+                    Result.objects.filter(
+                        school=head.school,
+                        academic_year=academic_year,
+                        subject=subject_obj,
+                        academic_term=3,
+                        student_year = 1,
+                    ),
                     many=True).data
                 if result_one_three:
                     for result in result_one_three:
@@ -979,7 +1032,13 @@ def head_students_performance(request):
 
                 # Year Two Students Results
                 result_two_one = ResultsSerializer(
-                    Result.objects.filter(school=head.school, academic_year=academic_year_two, subject=subject_obj, academic_term=1),
+                    Result.objects.filter(
+                        school=head.school,
+                        academic_year=academic_year,
+                        subject=subject_obj,
+                        academic_term=1,
+                        student_year=2,
+                    ),
                     many=True).data
                 if result_two_one:
                     for result in result_two_one:
@@ -992,7 +1051,13 @@ def head_students_performance(request):
                     second_year['term_one'] = sorted(second_year['term_one'], key=lambda x: float(x['score']), reverse=True)
 
                 result_two_two = ResultsSerializer(
-                    Result.objects.filter(school=head.school, academic_year=academic_year_two, subject=subject_obj, academic_term=2),
+                    Result.objects.filter(
+                        school=head.school,
+                        academic_year=academic_year,
+                        subject=subject_obj,
+                        academic_term=2,
+                        student_year=2,
+                    ),
                     many=True).data
                 if result_two_two:
                     for result in result_two_two:
@@ -1005,7 +1070,13 @@ def head_students_performance(request):
                     second_year['term_two'] = sorted(second_year['term_two'], key=lambda x: float(x['score']), reverse=True)
 
                 result_two_three = ResultsSerializer(
-                    Result.objects.filter(school=head.school, academic_year=academic_year_two, subject=subject_obj, academic_term=3),
+                    Result.objects.filter(
+                        school=head.school,
+                        academic_year=academic_year,
+                        subject=subject_obj,
+                        academic_term=3,
+                        student_year=2,
+                    ),
                     many=True).data
                 if result_two_three:
                     for result in result_two_three:
@@ -1019,7 +1090,13 @@ def head_students_performance(request):
 
                     # Year Three Students Results
                     result_three_one = ResultsSerializer(
-                        Result.objects.filter(school=head.school, academic_year=academic_year_three, subject=subject_obj, academic_term=1),
+                        Result.objects.filter(
+                            school=head.school,
+                            academic_year=academic_year,
+                            subject=subject_obj,
+                            academic_term=1,
+                            student_year=3,
+                        ),
                         many=True).data
                     if result_three_one:
                         for result in result_three_one:
@@ -1033,7 +1110,13 @@ def head_students_performance(request):
                                                          reverse=True)
 
                     result_three_two = ResultsSerializer(
-                        Result.objects.filter(school=head.school, academic_year=academic_year_three, subject=subject_obj, academic_term=2),
+                        Result.objects.filter(
+                            school=head.school,
+                            academic_year=academic_year,
+                            subject=subject_obj,
+                            academic_term=2,
+                            student_year=3,
+                        ),
                         many=True).data
                     if result_three_two:
                         for result in result_three_two:
@@ -1047,7 +1130,13 @@ def head_students_performance(request):
                                                          reverse=True)
 
                     result_three_three = ResultsSerializer(
-                        Result.objects.filter(school=head.school, academic_year=academic_year_three, subject=subject_obj, academic_term=3),
+                        Result.objects.filter(
+                            school=head.school,
+                            academic_year=academic_year,
+                            subject=subject_obj,
+                            academic_term=3,
+                            student_year=3,
+                        ),
                         many=True).data
                     if result_three_three:
                         for result in result_three_three:
@@ -1074,43 +1163,226 @@ def head_students_performance(request):
 
 
 # Admin
-@api_view(['GET'])
+@api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 def get_sch_admin_data(request):
     staff = request.user.staff
 
-    # Students Data
-    classes = ClasseSerializer(Classe.objects.filter(school=staff.school, is_active=True), many=True).data
-    year_one = [x for x in classes if x['students_year'] == 1]
-    year_two = [x for x in classes if x['students_year'] == 2]
-    year_three = [x for x in classes if x['students_year'] == 3]
-    clas_items = [class_item for class_item in sorted(classes, key=lambda y: y['students_year'])]
-    class_names_data = []
-    for item in clas_items:
-        class_names_data.append(f"{item['name']} FORM-{item['students_year']}")
+    if request.method == 'GET':
+        # Students Data
+        classes = ClasseWithSubjectsSerializer(Classe.objects.filter(school=staff.school, is_active=True), many=True).data
+        year_one_unsort = [x for x in classes if x['students_year'] == 1]
+        year_one = sorted(year_one_unsort, key=lambda x: x['created_at'], reverse=True)
+        year_two_unsort = [x for x in classes if x['students_year'] == 2]
+        year_two = sorted(year_two_unsort, key=lambda x: x['created_at'], reverse=True)
+        year_three_unsort = [x for x in classes if x['students_year'] == 3]
+        year_three = sorted(year_three_unsort, key=lambda x: x['created_at'], reverse=True)
 
-    # Staff Data
-    department_names = []
-    subject_names = []
-    departments = DepartmentSerializer(Department.objects.filter(school=staff.school), many=True).data
-    for department in departments:
-        department_names.append(department['name'])
+        clas_items = [class_item for class_item in sorted(classes, key=lambda y: y['created_at'], reverse=True)]
+        class_names_data = []
+        for item in clas_items:
+            class_names_data.append(f"{item['name']} FORM-{item['students_year']}")
 
-    subjects = SubjectsSerializer(Subject.objects.filter(schools=staff.school), many=True).data
-    for subject in subjects:
-        subject_names.append(subject['name'])
+        # Staff Data
+        departments = DepartmentSerializer(Department.objects.filter(school=staff.school), many=True).data
+        programs = ProgramSerializer(Program.objects.filter(schools=staff.school), many=True).data
+        department_names = [x['name'] for x in departments]
+        programs_names = [x['name'] for x in programs]
+        academic_years = AcademicYearSerializer(AcademicYear.objects.filter(school=staff.school).order_by('-start_date'), many=True).data
+        subject_names = []
+        for program in programs:
+            for subject in program['subjects']:
+                if subject['name'] not in subject_names:
+                    subject_names.append(subject['name'])
 
-    return Response({
-        'classes': {
-            'year_one': year_one,
-            'year_two': year_two,
-            'year_three': year_three
-        },
-        'class_names': class_names_data,
-        'departments': departments,
-        'department_names': department_names,
-        'subjects': subject_names
-    })
+        return Response({
+            'classes': {
+                'year_one': year_one,
+                'year_two': year_two,
+                'year_three': year_three
+            },
+            'class_names': class_names_data,
+            'departments': departments,
+            'department_names': department_names,
+            'subjects': subject_names,
+            'programs': programs_names,
+            'academic_years': academic_years,
+        })
+
+    else:
+        data = request.data
+        if data['type'] == 'create-year':
+            current_year = AcademicYear.objects.get(school=staff.school, name=data['year'])
+            start_date = datetime.strptime(data['startDate'], "%Y-%m-%d").date()
+            end_date = datetime.strptime(data['endDate'], "%Y-%m-%d").date()
+            sem_1_end_date = datetime.strptime(data['sem1EndDate'], "%Y-%m-%d").date()
+            sem_2_start_date = datetime.strptime(data['sem2StartDate'], "%Y-%m-%d").date()
+            sem_2_end_date = datetime.strptime(data['sem2EndDate'], "%Y-%m-%d").date()
+            current_date = timezone.now().date()
+
+            duration = end_date - start_date
+
+            if current_year.end_date >= current_date:
+                return Response({
+                    'ms': f"You cannot create a new academic year when the current academic year is still in progress"
+                }, status=201)
+
+            if current_year.end_date >= start_date:
+                return Response({
+                    'ms': f"The academic year start date must be greater than the current academic year end date"
+                }, status=201)
+
+            if duration.days < 6 * 30:
+                return Response({
+                    'ms': f"The duration between the academic year's start and end dates must be more than 6 months"
+                }, status=201)
+
+            try:
+                AcademicYear.objects.get(school=staff.school, name=data['yearName'])
+                return Response({'ms': f"Academic year with name {data['yearName']} already exists"}, status=201)
+
+            except AcademicYear.DoesNotExist:
+                if start_date >= end_date:
+                    return Response({
+                        'ms': "The academic year end date must be greater than the start date"
+                    }, status=201)
+
+                elif sem_1_end_date >= sem_2_start_date:
+                    return Response({
+                        'ms': "Second semester/term start date must be greater than first semester/term end date"
+                    }, status=201)
+
+                elif sem_2_start_date >= sem_2_end_date:
+                    return Response({'ms': "Second semester/term end date must be greater than its start date"},
+                                    status=201)
+
+                elif not data['sem3StartDate'] and sem_2_end_date > end_date:
+                    return Response({
+                        'ms': "The academic year end date must be greater or equal to second semester/term end date"
+                    }, status=201)
+
+                if not data['sem3StartDate'] and data['sem3EndDate']:
+                    return Response(
+                        {'ms': "Third semester/term start date cannot be empty when you specify its end date"},
+                        status=201)
+
+                if data['sem3StartDate'] and data['sem3StartDate'] != 'null':
+                    if not data['sem3EndDate']:
+                        return Response(
+                            {'ms': "Third semester/term end date cannot be empty when you specify its start date"},
+                            status=201)
+
+                    sem_3_start_date = datetime.strptime(data['sem3StartDate'], "%Y-%m-%d").date()
+                    sem_3_end_date = datetime.strptime(data['sem3EndDate'], "%Y-%m-%d").date()
+
+                    if sem_2_end_date >= sem_3_start_date:
+                        return Response({
+                            'ms': "Third semester/term start date must be greater than second semester/term end date"
+                        }, status=201)
+
+                    elif sem_3_start_date >= sem_3_end_date:
+                        return Response({'ms': "Third semester/term end date must be greater than its end date"},
+                                        status=201)
+
+                    elif sem_3_end_date > end_date:
+                        return Response({
+                            'ms': "The academic year end date must be greater or equal to third semester/term end date"
+                        }, status=201)
+
+                with transaction.atomic():
+                    if data['sem3StartDate'] and data['sem3StartDate'] != 'null' and data['sem3EndDate']:
+                        academic_year = AcademicYear.objects.create(
+                            name=data['yearName'],
+                            school=staff.school,
+                            start_date=data['startDate'],
+                            end_date=data['endDate'],
+                            sem_1_end_date=data['sem1EndDate'],
+                            sem_2_start_date=data['sem2StartDate'],
+                            sem_2_end_date=data['sem2EndDate'],
+                            sem_3_start_date=data['sem3StartDate'],
+                            sem_3_end_date=data['sem3EndDate'],
+                        )
+                        academic_year.save()
+
+                        new_academic_year = AcademicYear.objects.get(school=staff.school, name=data['yearName'])
+                        classes = Classe.objects.select_related('academic_year').prefetch_related('students').filter(
+                            school=staff.school,
+                            is_active=True,
+                        )
+
+                        if classes.exists():
+                            for clas in classes:
+                                if clas.students_year == 3:
+                                    clas.students_year = 4
+                                    for student in clas.students.all():
+                                        student.current_year = 4
+                                        student.has_completed = True
+                                        student.save()
+
+                                    clas.is_active = False
+                                    clas.save()
+
+                                else:
+                                    clas.students_year += 1
+                                    clas.academic_years.add(new_academic_year)
+                                    for student in clas.students.all():
+                                        student.current_year += 1
+                                        student.save()
+
+                                    clas.save()
+
+                        new_academic_data = AcademicYearSerializer(new_academic_year).data
+
+                        return Response({
+                            'ms': 'Academic year saved successfully',
+                            'new_year': new_academic_data,
+                        })
+
+                    else:
+                        academic_year = AcademicYear.objects.create(
+                            name=data['yearName'],
+                            school=staff.school,
+                            start_date=data['startDate'],
+                            end_date=data['endDate'],
+                            sem_1_end_date=data['sem1EndDate'],
+                            sem_2_start_date=data['sem2StartDate'],
+                            sem_2_end_date=data['sem2EndDate'],
+                        )
+                        academic_year.save()
+
+                        new_academic_year = AcademicYear.objects.get(school=staff.school, name=data['yearName'])
+                        classes = Classe.objects.select_related('academic_year').prefetch_related('students').filter(
+                            school=staff.school,
+                            is_active=True,
+                        )
+
+                        if classes.exists():
+                            for clas in classes:
+                                if clas.students_year == 3:
+                                    clas.students_year = 4
+                                    for student in clas.students.all():
+                                        student.current_year = 4
+                                        student.has_completed = True
+                                        student.save()
+
+                                    clas.is_active = False
+                                    clas.save()
+
+                                else:
+                                    clas.students_year += 1
+                                    clas.academic_years.add(new_academic_year)
+                                    for student in clas.students.all():
+                                        student.current_year += 1
+                                        student.save()
+
+                                    clas.save()
+
+                        new_academic_data = AcademicYearSerializer(new_academic_year).data
+
+                        return Response({
+                            'ms': 'Academic year saved successfully',
+                            'new_year': new_academic_data,
+                        })
 
 
 @api_view(['POST'])
@@ -1318,6 +1590,49 @@ def admin_staff(request):
 def admin_students(request):
     staff = request.user.staff
     data = request.data
+    if data['type'] == 'create-class':
+        program = Program.objects.get(name=data['program'])
+        academic_year = AcademicYear.objects.get(school=staff.school, name=data['year'])
+        class_name = f"{data['year'].split('-')[0]}-{data['className'].replace(' ', '-')}"
+        program_data = ProgramSerializer(program).data
+        program_subjects = [sub['name'] for sub in program_data['subjects']]
+        subjects = data['subjects'].split(',')
+
+        try:
+            Classe.objects.get(school=staff.school, name=class_name.upper())
+            return Response({'ms': 'Class with this name already exists'}, status=201)
+
+        except Classe.DoesNotExist:
+            for subject in subjects:
+                if subject not in program_subjects:
+                    return Response({'ms': f"Students enrolled in {data['program']} do not study {subject}"},
+                                    status=201)
+
+            with transaction.atomic():
+                clas = Classe.objects.create(
+                    school=staff.school,
+                    program=program,
+                    name=class_name.upper(),
+                    students_year=1,
+                    date_enrolled=data['enrollmentDate'],
+                    completion_date=data['completionDate']
+                )
+
+                clas.academic_years.add(academic_year)
+                for subject in subjects:
+                    if subject != '':
+                        subject_obj = Subject.objects.get(schools=staff.school, name=subject)
+                        clas.subjects.add(subject_obj)
+
+                clas.save()
+
+                new_class = ClasseWithSubjectsSerializer(Classe.objects.get(school=staff.school, name=class_name.upper())).data
+                return Response({
+                    'ms': "Class successfully saved",
+                    'new_class': new_class,
+                    'class_name': class_name.upper()
+                })
+
     if data['type'] == 'input-student':
         class_name = data['className'].split()[0]
         clas = Classe.objects.select_related('program').get(school=staff.school, name=class_name)
@@ -1476,6 +1791,31 @@ def admin_students(request):
             'year': 'yearOne' if class_data['students_year'] == 1 else (
                 'yearTwo' if class_data['students_year'] == 2 else 'yearThree'),
         })
+
+    elif data['type'] == 'delete-subject':
+        subject = Subject.objects.get(name=data['subject'])
+        clas = Classe.objects.get(school=staff.school, name=data['className'])
+        class_data = ClasseWithoutStudentsSerializer(clas).data
+
+        with transaction.atomic():
+            # remove subject from class
+            clas.subjects.remove(subject)
+            clas.save()
+
+        return Response({
+            'class_name': class_data['name'],
+            'year': 'yearOne' if class_data['students_year'] == 1 else (
+                'yearTwo' if class_data['students_year'] == 2 else 'yearThree'),
+        })
+
+    elif data['type'] == 'delete-class':
+        clas = Classe.objects.get(school=staff.school, name=data['className'])
+
+        with transaction.atomic():
+            # remove subject from class
+            clas.delete()
+
+        return Response(status=200)
 
 
 # TEACHER, HOD, HEAD

@@ -12,7 +12,7 @@ const stId:any = ref(null)
 const gender:any = ref(null)
 const getFileLoading = ref(false)
 const dob:any = ref(null)
-const selectGender:any = ref(['Male', 'Female'])
+const selectGender:any = ref(['MALE', 'FEMALE'])
 const loading:any = ref(false)
 const fileToUpload: any = ref(null)
 
@@ -110,10 +110,10 @@ const inputUpload = async()=>{
     formSuccessMessage.value = ''
 
     const formData = new FormData()
-    formData.append('className', className.value)
-    formData.append('firstName', firstName.value)
-    formData.append('lastName', lastName.value)
-    formData.append('stId', stId.value)
+    formData.append('className', className.value.trim())
+    formData.append('firstName', firstName.value.trim())
+    formData.append('lastName', lastName.value.trim())
+    formData.append('stId', stId.value.toString().trim())
     formData.append('gender', gender.value)
     formData.append('dob', dob.value)
     formData.append('type', 'input-student')
@@ -155,16 +155,6 @@ const checkInput = computed(()=>{
     )
 })
 
-// const validatePhoneNumber = (value: any)=> {
-//       const phoneNumberRegex = /^[0-9]{10}$/;
-//       if (!value) {
-//         return 'Phone number is required';
-//       }
-//       if (!phoneNumberRegex.test(value)) {
-//         return 'Invalid phone number. Please enter a 10-digit number.';
-//       }
-//       return true;
-//     }
 
 const closeOverlay = (element: string)=>{
     const overlay = document.getElementById(element)

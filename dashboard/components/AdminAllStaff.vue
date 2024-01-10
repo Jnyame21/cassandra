@@ -26,7 +26,7 @@ const changeSection = (term: string)=>{
   
     <div v-if="userAuthStore.adminStaff.departments && userAuthStore.adminStaff.departments.length >0 "  class="sections">
       <div class="h-100" v-for="(department, index) in userAuthStore.adminStaff.departments" :key="index" :style="sectionPage===`section${index+1}` ? {'display': 'flex'}: {'display': 'none'}">
-        <AdminDepartmentStaff :staff="department['teachers']"/>
+        <AdminDepartmentStaff :staff="department['teachers']" :overlayIndex="index"/>
       </div>
     </div>
   </div>

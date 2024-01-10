@@ -77,7 +77,6 @@ class SpecificProgramSerializer(serializers.ModelSerializer):
 class StudentSerializer(serializers.ModelSerializer):
     school = SchoolSerializer()
     user = UserSerializer()
-    # batch = BatchSerializer()
     st_class = 'ClassSerializer'
     program = SpecificProgramSerializer()
 

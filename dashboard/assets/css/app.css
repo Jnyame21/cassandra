@@ -269,14 +269,15 @@ wd-5{
 
 .nav-btn{
   font-size: .6rem !important;
-  color: green !important;
+  color: white !important;
   font-family: monospace;
- 
+  padding: .1em .5em;
+  width: 100px;
+  background-color: lightseagreen;
 }
 .nav-btn:hover, .nav-btn-active{
-  border-bottom: 2px solid green !important;
-  border-top: 2px solid green !important;
-  color: green !important;
+  color: yellow !important;
+  background-color: seagreen;
 }
 
 .nav-btn-1{
@@ -333,7 +334,7 @@ div:hover{
 @media screen and (min-width: 576px) {
   .nav-btn{
     font-size: .65rem !important;
-    padding: 0em 1em;
+    padding: .1em 1em;
   }
   .page-nav-container,
   .section-nav-container,
@@ -344,7 +345,7 @@ div:hover{
 
 @media screen and (min-width: 991px) {
   .nav-btn{
-    font-size: .75rem !important;
+    font-size: .7rem !important;
   }
   .nav-btn-1{
     font-size: .6rem !important;

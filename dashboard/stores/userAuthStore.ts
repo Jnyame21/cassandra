@@ -50,11 +50,14 @@ interface states {
         yearTwo: any;
         yearThree: any;
         names: any;
+        subjects: any;
+        programs: any
     };
     adminStaff: {
         departmentNames: any;
         subjects: any;
         departments: any;
+        academicYears: any;
     }
 }
 
@@ -106,11 +109,14 @@ export const useUserAuthStore = defineStore('userAuth',{
                 yearTwo: null,
                 yearThree: null,
                 names: null,
+                subjects: null,
+                programs: null,
             },
             adminStaff: {
                 departmentNames: null,
                 subjects: null,
                 departments: null,
+                academicYears: null,
             },
         }
 
@@ -174,11 +180,14 @@ export const useUserAuthStore = defineStore('userAuth',{
                 yearTwo: null,
                 yearThree: null,
                 names: null,
+                subjects: null,
+                programs: null,
             }
             this.adminStaff = {
                 departmentNames: null,
                 subjects: null,
                 departments: null,
+                academicYears: null,
             }
 
         },
@@ -256,9 +265,11 @@ export const useUserAuthStore = defineStore('userAuth',{
                     this.adminClasses.yearTwo = response.data['classes']['year_two']
                     this.adminClasses.yearThree = response.data['classes']['year_three']
                     this.adminClasses.names = response.data['class_names']
+                    this.adminClasses.programs = response.data['programs']
                     this.adminStaff.departmentNames = response.data['department_names']
                     this.adminStaff.departments = response.data['departments']
                     this.adminStaff.subjects = response.data['subjects']
+                    this.adminStaff.academicYears = response.data['academic_years']
                 })
                 .catch(e =>{
                     return Promise.reject()
@@ -325,6 +336,24 @@ export const useUserAuthStore = defineStore('userAuth',{
                 })
         },
 
+        async getUserData(){
+            await axiosInstance.get('user/data')
+                    .then(response =>{
+                        const userInfo = response.data
+                        this.userData = userInfo
+                        this.activeAcademicYear = userInfo['academic_year']['name']
+                        this.activeTerm = userInfo['current_sem']
+
+                        if (userInfo.last_login){
+                            localStorage.setItem('RozmachAuth', JSON.stringify({'last_login': true}))
+                        }else {
+                            localStorage.setItem('RozmachAuth', JSON.stringify({'last_login': false}))
+                        }
+                    })
+                    .catch(e =>{
+                        return Promise.reject(e)
+                    })
+        },
 
         async userLogin(username: string, password: string){
             const formData = new FormData()
@@ -333,35 +362,32 @@ export const useUserAuthStore = defineStore('userAuth',{
             try {
                 const response = await defaultAxiosInstance.post('login', formData)
                 if (response.status === 200){
-                    const userInfo: any = jwtDecode(response.data.access)
                     this.authTokens = response.data
-                    this.userData = userInfo
-                    this.activeAcademicYear = userInfo['academic_year']['name']
-                    this.activeTerm = userInfo['current_sem']
+                    await this.getUserData()
+                    .then(secondResponse =>{
 
+                        // Tokens storage location
+                        localStorage.setItem('authTokens', JSON.stringify(response.data))
 
-                    // Tokens storage location
-                    localStorage.setItem('authTokens', JSON.stringify(response.data))
+                        this.isAuthenticated = true
+                        this.message = "Login successful"
+                    })
+                    .catch(e =>{
+                        return Promise.reject(e)
+                    })
 
-                    if (userInfo.last_login){
-                        localStorage.setItem('RozmachAuth', JSON.stringify({'last_login': true}))
-                    }else {
-                        localStorage.setItem('RozmachAuth', JSON.stringify({'last_login': false}))
-                    }
-
-                    this.isAuthenticated = true
-                    this.message = userInfo.ms
                 }
                 else if (response.status === 401){
                     this.message = "Oops! your username or password is wrong. Try again"
+                    return Promise.reject()
                 }
             }
             catch {
                 this.message = "Oops! something went wrong. Try again later"
+                return Promise.reject()
             }
 
         },
-
 
         async UpdateToken(){
             if (this.authTokens && this.authTokens['refresh']){

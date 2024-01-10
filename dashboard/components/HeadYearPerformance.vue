@@ -175,7 +175,7 @@ const chartData2 = ref({
     labels: labels.value,
     datasets: [
     {
-      label: 'Semester 1 Rate(%)',
+      label: 'Trimester 1 Rate(%)',
       data: termOnePoints.value,
       borderColor: 'green',
       backgroundColor: 'green',
@@ -183,7 +183,7 @@ const chartData2 = ref({
       fill: false,
     },
     {
-      label: 'Semester 2 Rate(%)',
+      label: 'Trimester 2 Rate(%)',
       data: termTwoPoints.value,
       borderColor: 'blue',
       backgroundColor: 'blue',
@@ -191,7 +191,7 @@ const chartData2 = ref({
       fill: false,
     },
     {
-      label: 'Semester 3 Rate(%)',
+      label: 'Trimester 3 Rate(%)',
       data: termThreePoints.value,
       borderColor: 'indigo',
       backgroundColor: 'indigo',
@@ -293,7 +293,7 @@ const termThreeFail = computed(()=>{
     <TheLoader v-if="!year || year && year['term_one'].length ===0" />
 
     <Bar
-    v-if="year && !userAuthStore.userData['academic_year']['sem_3_start_date']  && year['term_one'].length >0 || year && !userAuthStore.userData['academic_year']['sem_3_start_date'] && year['term_two'].length >0 "
+    v-if="year && userAuthStore.userData['school']['semesters']  && year['term_one'].length >0 || year && !userAuthStore.userData['academic_year']['sem_3_start_date'] && year['term_two'].length >0 "
     class="chart"
     :options="chartOptions"
     :data="chartData1"
@@ -301,7 +301,7 @@ const termThreeFail = computed(()=>{
     />
 
     <Bar
-    v-if="year && userAuthStore.userData['academic_year']['sem_3_start_date']  && year['term_one'].length >0 || year && userAuthStore.userData['academic_year']['sem_3_start_date'] && year['term_two'].length >0 || year && userAuthStore.userData['academic_year']['sem_3_start_date'] && year['term_three'].length >0"
+    v-if="year && !userAuthStore.userData['school']['semesters']  && year['term_one'].length >0 || year && userAuthStore.userData['academic_year']['sem_3_start_date'] && year['term_two'].length >0 || year && userAuthStore.userData['academic_year']['sem_3_start_date'] && year['term_three'].length >0"
     class="chart"
     :options="chartOptions"
     :data="chartData2"
@@ -316,7 +316,7 @@ const termThreeFail = computed(()=>{
                 <tbody >
                     <tr class="term-three table-title-container" style="position: relative">
                         <td>Justice</td>
-                        <td class="table-title term-three">semester 3</td>
+                        <td class="table-title term-three" v-if="!userAuthStore.userData['school']['semesters']">trimester 3</td>
                     </tr>
                     <tr class="term-three">
                         <td class="table-data">Highest Score</td>
@@ -358,7 +358,8 @@ const termThreeFail = computed(()=>{
                 <tbody >
                     <tr class="term-two table-title-container" style="position: relative">
                         <td>Justice</td>
-                        <td class="table-title term-two">semester 2</td>
+                        <td class="table-title term-two" v-if="userAuthStore.userData['school']['semesters']">semester 2</td>
+                        <td class="table-title term-two" v-if="!userAuthStore.userData['school']['semesters']">trimester 2</td>
                     </tr>
                     <tr class="term-two">
                         <td class="table-data">Highest Score</td>
@@ -400,7 +401,8 @@ const termThreeFail = computed(()=>{
                 <tbody >
                     <tr class="term-one table-title-container" style="position: relative">
                         <td>Justice</td>
-                        <td class="table-title term-one">semester 1</td>
+                        <td class="table-title term-one" v-if="userAuthStore.userData['school']['semesters']">semester 1</td>
+                        <td class="table-title term-one" v-if="!userAuthStore.userData['school']['semesters']">trimester 1</td>
                     </tr>
                     <tr class="term-one">
                         <td class="table-data">Highest Score</td>
@@ -444,7 +446,7 @@ const termThreeFail = computed(()=>{
 @import url('../assets/css/tables.css');
 
 .chart{
-    max-width: 700px !important;
+    max-width: 800px !important;
     max-height: 300px !important;
 }
 .table-container{

@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 from api.serializer import *
+from rest_framework.response import Response
 
 # Document Manipulation
 from docx import Document
@@ -712,6 +713,50 @@ def get_student_transcript(student_username):
     os.makedirs(f"staticfiles/{get_school_folder(student_data['school']['name'])}/students/{student_data['user']['username']}",
                 exist_ok=True)
     doc.save(f"staticfiles/{get_school_folder(student_data['school']['name'])}/students/{student_username}/{student_data['user']['first_name']}_{student_data['user']['last_name']}_transcript.docx")
+
+
+# Get current academic year
+def get_current_academic_year(school_user, user_data):
+    academic_years = AcademicYear.objects.filter(school=school_user.school).order_by('-start_date')
+    current_date = timezone.now().date()
+    if academic_years.exists():
+        current_year = academic_years[0]
+        if current_year.start_date <= current_date:
+            if not current_date > current_year.sem_1_end_date:
+                user_data['current_sem'] = 1
+
+            elif not current_date > current_year.sem_2_end_date:
+                user_data['current_sem'] = 2
+
+            elif not current_year.sem_3_start_date:
+                user_data['current_sem'] = 2
+
+            elif current_year.sem_3_start_date:
+                user_data['current_sem'] = 3
+
+            user_data['academic_year'] = AcademicYearSerializer(current_year).data
+
+        elif academic_years.count() > 1:
+            previous_year = academic_years[1]
+            if not current_date > previous_year.sem_1_end_date:
+                user_data['current_sem'] = 1
+
+            elif not current_date > previous_year.sem_2_end_date:
+                user_data['current_sem'] = 2
+
+            elif not previous_year.sem_3_start_date:
+                user_data['current_sem'] = 2
+
+            elif previous_year.sem_3_start_date:
+                user_data['current_sem'] = 3
+
+            user_data['academic_year'] = AcademicYearSerializer(previous_year).data
+
+        else:
+            return Response({'ms': 'No current academic year, contact you school administrator'}, status=201)
+
+    else:
+        return Response({'ms': 'No current academic year, contact you school administrator'}, status=201)
 
 
 # Hod subject Assignments Data

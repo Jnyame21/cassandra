@@ -4,7 +4,6 @@ import axiosInstance from '../utils/axiosInstance';
 
 const userAuthStore = useUserAuthStore()
 const loading = ref(false)
-const formSuccessMessage = ref('')
 const formErrorMessage = ref('')
 const subject = ref('')
 const studentsClass = ref('')
@@ -18,10 +17,9 @@ interface Props {
 const { term, data } = defineProps<Props>()
 
 const hidOverlay = ()=>{
-  const overlay = document.getElementById('delete')
+  const overlay = document.getElementById(`delete${term}`)
   overlay ? overlay.style.display = "none" : null
   formErrorMessage.value = ''
-  formSuccessMessage.value = ''
   subject.value = ''
   studentsClass.value = ''
   teacherID.value = ''
@@ -54,11 +52,8 @@ const continueDeletion = async()=>{
       }
 
       await userAuthStore.getTeacherStudentResults()
-      formSuccessMessage.value = "Deletion Successful"
-      setTimeout(()=>{
-        hidOverlay()
-        loading.value = false
-      }, 1000)
+      hidOverlay()
+      loading.value = false
     }
   }
 
@@ -70,7 +65,7 @@ const continueDeletion = async()=>{
 
 
 const deletesubjectAssignment = async(subjectName: string, studentsClassName: string, teacherId: string)=>{
-  const overlay = document.getElementById('delete')
+  const overlay = document.getElementById(`delete${term}`)
   subject.value = subjectName
   studentsClass.value = studentsClassName
   teacherID.value = teacherId
@@ -82,11 +77,10 @@ const deletesubjectAssignment = async(subjectName: string, studentsClassName: st
 </script>
 
 <template>
-  <div id="delete" class="overlay">
+  <div :id="`delete${term}`" class="overlay">
     <v-card class="d-flex flex-column align-center">
       <v-card-text style="font-size: .8rem; font-family: sans-serif; text-align: left; line-height: 1.2; font-weight: bold">
         <p>Continue to delete ?</p>
-        <p v-if="formSuccessMessage" class="mt-5" style="color: seagreen">{{ formSuccessMessage }}</p>
         <p v-if="formErrorMessage" class="mt-5" style="color: red">{{ formErrorMessage }}</p>
       </v-card-text>
       <v-card-actions>
@@ -97,7 +91,8 @@ const deletesubjectAssignment = async(subjectName: string, studentsClassName: st
   </div>
     <div style="width: 100%; position: relative; height: 100%">
       <h4 class="no-data flex-all" v-if="userAuthStore.hodSubjectAssignment[data] && userAuthStore.hodSubjectAssignment[data].length === 0">
-        <p>You have not uploaded any subject-assignment for semester {{ term }} yet</p>
+        <p v-if="userAuthStore.userData && userAuthStore.userData['school']['semesters']">You have not uploaded any subject-assignment for semester {{ term }} yet</p>
+        <p v-if="userAuthStore.userData && !userAuthStore.userData['school']['semesters']">You have not uploaded any subject-assignment for trimester {{ term }} yet</p>
       </h4>
       <v-table fixed-header height="320px" v-if="userAuthStore.hodSubjectAssignment[data] && userAuthStore.hodSubjectAssignment[data].length > 0">
         <thead>

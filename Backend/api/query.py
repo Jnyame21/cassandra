@@ -9,9 +9,11 @@ import pandas as pd
 
 # Other
 def query(request):
-    name = "ST.AUGUSTINE'S SENIOR HIGH SCHOOL"
-    new_name = name.replace(".", "_").replace("'", "").replace(" ", "_").lower()
-    print(new_name)
+    classes = Classe.objects.filter(is_active=True)
+    for clas in classes:
+        for st in clas.students.all():
+            st.current_year = clas.students_year
+            st.save()
 
     return HttpResponse('Operation success')
 # # Student Objects Creation

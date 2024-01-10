@@ -123,8 +123,13 @@ const inputUpload = async()=>{
             const department = userAuthStore.adminStaff.departments.find(item =>item['name']===data['department_name'])
             if (department){
                 const department_index = userAuthStore.adminStaff.departments.indexOf(department)
-                userAuthStore.adminStaff.departments[department_index]['teachers'].push(data['staff'])
+                userAuthStore.adminStaff.departments[department_index]['teachers'].unshift(data['staff'])
             }
+            firstName.value = null
+            lastName.value = null
+            staffId.value = null
+            subjects.value = null
+            dob.value = null
             formSuccessMessage.value = response.data['ms']
         }
         else if (response.status === 201){

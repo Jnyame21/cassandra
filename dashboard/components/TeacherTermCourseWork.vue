@@ -17,7 +17,8 @@ const { term, termNumber } = defineProps<Props>()
     <div style="width: 100%; position: relatve; height: 100%">
       <TheLoader v-if="!userAuthStore.staffSubjectAssignment[term]" />
       <h4 class="no-data flex-all" v-if="userAuthStore.staffSubjectAssignment[term] && userAuthStore.staffSubjectAssignment[term].length === 0">
-        <p>No coursework for semester {{ termNumber }} yet</p>
+        <p v-if="userAuthStore.userData['school']['semesters']">No coursework for semester {{ termNumber }} yet</p>
+        <p v-if="userAuthStore.userData && !userAuthStore.userData['school']['semesters']">No coursework for trimester {{ termNumber }} yet</p>
       </h4>
       <v-table fixed-header class="table-1" v-if="userAuthStore.staffSubjectAssignment[term] && userAuthStore.staffSubjectAssignment[term].length > 0">
         <thead>

@@ -215,7 +215,7 @@ const showForm = (subject: string, className: string, students: [], index: numbe
         })
     }
     else{
-        formErrorMessage.value = `You have already uploaded results for students in ${studentsClass.value} ${studentsYear.value} for the ${userAuthStore.activeAcademicYear} academic year term ${userAuthStore.activeTerm}`
+        formErrorMessage.value = `You have already uploaded results for students in this class`
         show.value = false
     }
 

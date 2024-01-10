@@ -3,7 +3,7 @@ import {ref} from "vue";
 
 
 const userAuthStore = useUserAuthStore()
-const sectionPage = ref(userAuthStore.activeTerm)
+const sectionPage = ref(1)
 
 
 const changeTerm = (page: number)=>{

@@ -24,11 +24,19 @@ const changeTerm = (term: number)=>{
 
 <template>
   <div class="subsections-container">
-    <div class="subsection-nav-container">
+    <!-- semesters -->
+    <div class="subsection-nav-container" v-if="userAuthStore.userData && userAuthStore.userData['school']['semesters']">
       <button class="nav-btn-2" @click="changeTerm(1)" :class="{'nav-btn-2-active': sectionPage===1}">SEMESTER 1</button>
       <button class="nav-btn-2" @click="changeTerm(2)" :class="{'nav-btn-2-active': sectionPage===2}">SEMESTER 2</button>
-      <button v-if="userAuthStore.userData && userAuthStore.userData['academic_year']['sem_3_start_date']" class="nav-btn-2" @click="changeTerm(3)" :class="{'nav-btn-2-active': sectionPage===3}">SEMESTER 3</button>
     </div>
+
+      <!-- trimesters -->
+    <div class="subsection-nav-container" v-if="userAuthStore.userData && !userAuthStore.userData['school']['semesters']">
+      <button class="nav-btn-2" @click="changeTerm(1)" :class="{'nav-btn-2-active': sectionPage===1}">TRIMESTER 1</button>
+      <button class="nav-btn-2" @click="changeTerm(2)" :class="{'nav-btn-2-active': sectionPage===2}">TRIMESTER 2</button>
+      <button class="nav-btn-2" @click="changeTerm(3)" :class="{'nav-btn-2-active': sectionPage===3}">TRIMESTER 3</button>
+    </div>
+
     <div class="subsections">
       <div class="h-100" :style="sectionPage===1 ? {'display': 'flex'}: {'display': 'none'}">
         <HeadDepartmentTermCourseAssignment  :term="subjectAssignment.term_one"/>
@@ -37,7 +45,7 @@ const changeTerm = (term: number)=>{
         <HeadDepartmentTermCourseAssignment :term="subjectAssignment.term_two"/>
       </div>
       <div class="h-100" :style="sectionPage===3 ? {'display': 'flex'}: {'display': 'none'}"
-      v-if="userAuthStore.userData && userAuthStore.userData['academic_year']['sem_3_start_date']"
+      v-if="userAuthStore.userData && !userAuthStore.userData['school']['semesters']"
       >
         <HeadDepartmentTermCourseAssignment :term="subjectAssignment.term_three"/>
       </div>

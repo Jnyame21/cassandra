@@ -4,31 +4,37 @@ from django.db.models.signals import pre_delete
 from django.dispatch import receiver
 from django.contrib.auth.models import User
 from pathlib import Path
+from django.utils import timezone
 
 
 # Create your models here.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
+def get_school_folder(school_name: str):
+    name = school_name.replace(".", "_").replace(" ", "_").replace("'", "").lower()
+    return name
+
+
 def students_file_path(instance, filename):
     # Construct the folder path based on the user's username
     # user_folder = instance.user.username
     # Combine the folder path and filename
-    return os.path.join(BASE_DIR, 'staticfiles', 'students', 'img', filename)
+    return os.path.join(BASE_DIR, 'staticfiles', f"{get_school_folder(instance.school.name)}", 'students', 'img', filename)
 
 
 def staff_file_path(instance, filename):
     # Construct the folder path based on the user's username
     # user_folder = instance.user.username
     # Combine the folder path and filename
-    return os.path.join(BASE_DIR, 'staticfiles', 'staff', 'img', filename)
+    return os.path.join(BASE_DIR, 'staticfiles', f"{get_school_folder(instance.school.name)}", 'staff', 'img', filename)
 
 
 def head_file_path(instance, filename):
     # Construct the folder path based on the user's username
     user_folder = instance.user.username
     # Combine the folder path and filename
-    return os.path.join(BASE_DIR, 'staticfiles', 'head', user_folder, filename)
+    return os.path.join(BASE_DIR, 'staticfiles', f"{get_school_folder(instance.school.name)}" , 'head', user_folder, filename)
 
 
 class File(models.Model):
@@ -50,10 +56,13 @@ def delete_file(sender, instance, **kwargs):
 class School(models.Model):
     name = models.CharField(max_length=100, verbose_name="School Name", blank=False, unique=True, null=False)
     code = models.CharField(max_length=10, verbose_name="School Code", blank=True, null=True)
+    semesters = models.BooleanField(verbose_name="Semester System", default=True, blank=False, null=False)
     address = models.CharField(max_length=100, verbose_name="School Address", blank=False, default="not set")
     short_name = models.CharField(max_length=50, verbose_name="School Short Name", blank=True, null=True)
     contact = models.CharField(max_length=20, verbose_name="Phone Number", blank=True, null=True)
     email = models.EmailField(max_length=100, verbose_name="Email", blank=True, null=True)
+    delete_staff = models.BooleanField(verbose_name="Admin To Delete Staff", default=True, blank=False, null=False)
+    delete_class = models.BooleanField(verbose_name="Admin To Delete Class", default=True, blank=False, null=False)
 
     def __str__(self):
         return self.name
@@ -64,7 +73,6 @@ class AcademicYear(models.Model):
     start_date = models.DateField(verbose_name='Start Date')
     end_date = models.DateField(verbose_name='End Date')
     school = models.ForeignKey(School, verbose_name="School", on_delete=models.SET_NULL, null=True)
-    sem_1_start_date = models.DateField(verbose_name="First Semester Start Date", blank=False, null=True)
     sem_1_end_date = models.DateField(verbose_name="First Semester End Date", blank=False, null=True)
     sem_2_start_date = models.DateField(verbose_name="Second Semester Start Date", blank=False, null=True)
     sem_2_end_date = models.DateField(verbose_name="Second Semester End Date", blank=False, null=True)
@@ -92,24 +100,12 @@ class Subject(models.Model):
         return self.name
 
 
-# class Batch(models.Model):
-#     name = models.CharField(max_length=100, verbose_name='Batch Name', blank=False, unique=True)
-#     start_date = models.DateField(verbose_name='Start date', blank=False)
-#     end_date = models.DateField(verbose_name='End date', blank=True)
-#     is_active = models.BooleanField(verbose_name='Is active', default=True)
-#     school = models.ForeignKey(School, verbose_name="School", blank=False, on_delete=models.SET_NULL, null=True)
-#
-#     def __str__(self):
-#         return f"{self.school} {self.name}"
-
-
 class Student(models.Model):
     user = models.OneToOneField(User, on_delete=models.SET_NULL, null=True)
     school = models.ForeignKey(School, verbose_name="School", blank=False, on_delete=models.SET_NULL, null=True)
     program = models.ForeignKey(Program, verbose_name='Program', on_delete=models.SET_NULL, null=True)
     st_class = models.ForeignKey('Classe', verbose_name='Class', null=True, on_delete=models.SET_NULL)
     current_year = models.IntegerField(verbose_name='Current Year', default=1)
-    # batch = models.ForeignKey(Batch, on_delete=models.SET_NULL, null=True, verbose_name='Batch', blank=True)
     date_enrolled = models.DateField(verbose_name='Enrollment Date', blank=False)
     has_completed = models.BooleanField(verbose_name='Has Completed', default=False)
     st_id = models.CharField(max_length=50, verbose_name="Student ID.", blank=False, null=True)
@@ -207,14 +203,14 @@ class Classe(models.Model):
     subjects = models.ManyToManyField('Subject', verbose_name='Subjects', blank=True)
     academic_years = models.ManyToManyField(AcademicYear, verbose_name='Academic Years')
     date_enrolled = models.DateField(verbose_name='Enrollment Date', blank=False, null=True)
-    # batch = models.ForeignKey('Batch', verbose_name='Students Batch', null=True, on_delete=models.SET_NULL)
+    created_at = models.DateTimeField(verbose_name="Created At", default=timezone.now())
     is_active = models.BooleanField(verbose_name='Class is Active', default=True)
 
     def __str__(self):
         return f"{self.school} {self.name}"
 
     class Meta:
-        unique_together = ('name', 'students_year', 'program')
+        unique_together = ('name', 'students_year', 'program', 'school')
 
 
 class SubjectAssignment(models.Model):
@@ -239,6 +235,7 @@ class Result(models.Model):
     subject = models.ForeignKey(Subject, verbose_name='Subject', on_delete=models.SET_NULL, null=True)
     academic_year = models.ForeignKey(AcademicYear, verbose_name='Academic Year', on_delete=models.SET_NULL, null=True)
     academic_term = models.IntegerField(verbose_name='Term', blank=False)
+    student_year = models.IntegerField(verbose_name='Student Year', blank=True, null=True)
     score = models.DecimalField(verbose_name="Student's Score", max_digits=5, decimal_places=2)
     teacher = models.ForeignKey(Staff, verbose_name="Uploaded By", on_delete=models.SET_NULL, null=True)
     

@@ -9,7 +9,7 @@ const elementsStore = useElementsStore()
 
 <template>
     <section>
-      <v-navigation-drawer style="background-color: yellow; width: max-content; height: max-content"  v-model="elementsStore.drawer" temporary>
+      <v-navigation-drawer style="background-color: yellow; width: max-content; height: 100dvh;"  v-model="elementsStore.drawer" temporary>
         <v-list class="pa-0 ma-0" v-if="userAuthStore.userData">
           <v-card-title class="title-head">IDENTITY</v-card-title>
           <v-list-item >
@@ -39,10 +39,92 @@ const elementsStore = useElementsStore()
             <template v-slot:prepend>
               <v-icon icon="mdi-book-open-outline" />
             </template>
+            <v-list-item-title class="title">DEPARTMENT</v-list-item-title>
+            <v-list-item-subtitle class="subtitle">{{ userAuthStore.userData['department'] }}</v-list-item-subtitle>
+          </v-list-item>
+          <v-list-item v-if="userAuthStore.userData['role']=='staff' && userAuthStore.userData['staff_role'] !=='admin' " >
+            <template v-slot:prepend>
+              <v-icon icon="mdi-book-open-outline" />
+            </template>
             <v-list-item-title class="title">SUBJECT(S)</v-list-item-title>
             <v-list-item-title class="subtitle">
               <p class="subjects" v-for="(subject, i) in userAuthStore.userData['subjects']" :key="i">{{subject['name']}}</p>
             </v-list-item-title>
+          </v-list-item>
+          <v-card-title class="title-head">ACADEMIC CALENDAR INFO</v-card-title>
+          <v-list-item>
+            <template v-slot:prepend>
+              <v-icon icon="mdi-calendar" />
+            </template>
+            <v-list-item-title class="title">START DATE</v-list-item-title>
+            <v-list-item-subtitle class="subtitle">{{ userAuthStore.userData['academic_year']['start_date'] }}</v-list-item-subtitle>
+          </v-list-item>
+          <v-list-item >
+            <template v-slot:prepend>
+              <v-icon icon="mdi-calendar" />
+            </template>
+            <v-list-item-title class="title">EXPECTED END DATE</v-list-item-title>
+            <v-list-item-subtitle class="subtitle">{{ userAuthStore.userData['academic_year']['end_date'] }}</v-list-item-subtitle>
+          </v-list-item>
+
+            <!-- semester -->
+          <v-list-item v-if="userAuthStore.userData['school']['semesters']">
+            <template v-slot:prepend>
+              <v-icon icon="mdi-calendar" />
+            </template>
+            <v-list-item-title class="title">1st SEMESTER END DATE</v-list-item-title>
+            <v-list-item-subtitle class="subtitle">{{ userAuthStore.userData['academic_year']['sem_1_end_date'] }}</v-list-item-subtitle>
+          </v-list-item>
+          <v-list-item v-if="userAuthStore.userData['school']['semesters']">
+            <template v-slot:prepend>
+              <v-icon icon="mdi-calendar" />
+            </template>
+            <v-list-item-title class="title">2nd SEMESTER START DATE</v-list-item-title>
+            <v-list-item-subtitle class="subtitle">{{ userAuthStore.userData['academic_year']['sem_2_start_date'] }}</v-list-item-subtitle>
+          </v-list-item>
+          <v-list-item v-if="userAuthStore.userData['school']['semesters']">
+            <template v-slot:prepend>
+              <v-icon icon="mdi-calendar" />
+            </template>
+            <v-list-item-title class="title">2nd SEMESTER END DATE</v-list-item-title>
+            <v-list-item-subtitle class="subtitle">{{ userAuthStore.userData['academic_year']['sem_2_end_date'] }}</v-list-item-subtitle>
+          </v-list-item>
+
+          <!-- trimester -->
+          <v-list-item v-if="userAuthStore.userData && !userAuthStore.userData['school']['semesters']">
+            <template v-slot:prepend>
+              <v-icon icon="mdi-calendar" />
+            </template>
+            <v-list-item-title class="title">1st TRIMESTER END DATE</v-list-item-title>
+            <v-list-item-subtitle class="subtitle">{{ userAuthStore.userData['academic_year']['sem_1_end_date'] }}</v-list-item-subtitle>
+          </v-list-item>
+          <v-list-item v-if="userAuthStore.userData && !userAuthStore.userData['school']['semesters']">
+            <template v-slot:prepend>
+              <v-icon icon="mdi-calendar" />
+            </template>
+            <v-list-item-title class="title">2nd TRIMESTER START DATE</v-list-item-title>
+            <v-list-item-subtitle class="subtitle">{{ userAuthStore.userData['academic_year']['sem_2_start_date'] }}</v-list-item-subtitle>
+          </v-list-item>
+          <v-list-item v-if="userAuthStore.userData && !userAuthStore.userData['school']['semesters']">
+            <template v-slot:prepend>
+              <v-icon icon="mdi-calendar" />
+            </template>
+            <v-list-item-title class="title">2nd TRIMESTER END DATE</v-list-item-title>
+            <v-list-item-subtitle class="subtitle">{{ userAuthStore.userData['academic_year']['sem_2_end_date'] }}</v-list-item-subtitle>
+          </v-list-item>
+          <v-list-item v-if="userAuthStore.userData && !userAuthStore.userData['school']['semesters']">
+            <template v-slot:prepend>
+              <v-icon icon="mdi-calendar" />
+            </template>
+            <v-list-item-title class="title">3rd TRIMESTER START DATE</v-list-item-title>
+            <v-list-item-subtitle class="subtitle">{{ userAuthStore.userData['academic_year']['sem_3_start_date'] }}</v-list-item-subtitle>
+          </v-list-item>
+          <v-list-item v-if="userAuthStore.userData && !userAuthStore.userData['school']['semesters']">
+            <template v-slot:prepend>
+              <v-icon icon="mdi-calendar" />
+            </template>
+            <v-list-item-title class="title">3rd TRIMESTER END DATE</v-list-item-title>
+            <v-list-item-subtitle class="subtitle">{{ userAuthStore.userData['academic_year']['sem_3_end_date'] }}</v-list-item-subtitle>
           </v-list-item>
           <v-card-title class="title-head">PERSONAL INFORMATION</v-card-title>
           <v-list-item>

@@ -14,11 +14,17 @@ const changeSection = (term: number)=>{
 </script>
 
 <template>
-  <div class="subsections-container">
-    <div class="subsection-nav-container flex-all">
+  <div class="subsections-container" >
+    <!-- semesters -->
+    <div class="subsection-nav-container flex-all" v-if="userAuthStore.userData && userAuthStore.userData['school']['semesters']">
         <button class="nav-btn-2 btn-1" @click="changeSection(1)" :class="{'nav-btn-2-active': sectionPage===1}">SEMESTER 1</button>
         <button class="nav-btn-2 btn-2" @click="changeSection(2)" :class="{'nav-btn-2-active': sectionPage===2}">SEMESTER 2</button>
-        <button v-if="userAuthStore.userData && userAuthStore.userData['academic_year']['sem_3_start_date']" class="nav-btn-2 btn-3" @click="changeSection(3)" :class="{'nav-btn-2-active': sectionPage===3}">SEMESTER 3</button>
+    </div>
+      <!-- semesters -->
+    <div class="subsection-nav-container flex-all" v-if="userAuthStore.userData && !userAuthStore.userData['school']['semesters']">
+      <button class="nav-btn-2 btn-1" @click="changeSection(1)" :class="{'nav-btn-2-active': sectionPage===1}">TRIMESTER 1</button>
+      <button class="nav-btn-2 btn-2" @click="changeSection(2)" :class="{'nav-btn-2-active': sectionPage===2}">TRIMESTER 2</button>
+      <button class="nav-btn-2 btn-3" @click="changeSection(3)" :class="{'nav-btn-2-active': sectionPage===3}">TRIMESTER 3</button>
     </div>
     
       <div class="subsections">
@@ -29,7 +35,7 @@ const changeSection = (term: number)=>{
           <HodTermSubjectAssignment :data="'termTwo'" :term="2" :term-number="2" />
         </div>
         <div :style="sectionPage===3 ? {'display': 'flex'}: {'display': 'none'}"
-        v-if="userAuthStore.userData && userAuthStore.userData['academic_year']['sem_3_start_date']"
+        v-if="userAuthStore.userData && !userAuthStore.userData['school']['semesters']"
         >
           <HodTermSubjectAssignment :data="'termThree'" :term="3" :term-number="3" />
         </div>

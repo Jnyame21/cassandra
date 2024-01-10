@@ -33,7 +33,8 @@ const showOverlay = ()=>{
             </div>
           </div>
           <div class="flex-all">
-            <p class="year-info">ACADEMIC CALENDAR: {{userAuthStore.activeAcademicYear}} SEMESTER: {{userAuthStore.activeTerm}}</p>
+            <p v-if="userAuthStore.userData && userAuthStore.userData['school']['semesters']" class="year-info">ACADEMIC CALENDAR: {{userAuthStore.activeAcademicYear}} SEMESTER: {{userAuthStore.activeTerm}}</p>
+            <p v-if="userAuthStore.userData && !userAuthStore.userData['school']['semesters']" class="year-info">ACADEMIC CALENDAR: {{userAuthStore.activeAcademicYear}} TRIMESTER: {{userAuthStore.activeTerm}}</p>
           </div>
           <div v-if="userAuthStore.userData['role']=== 'staff' || userAuthStore.userData['role']=== 'head' " class="flex-all">
             <v-icon @click="showMessage" class="message" color="yellow" icon="mdi-bell"/>

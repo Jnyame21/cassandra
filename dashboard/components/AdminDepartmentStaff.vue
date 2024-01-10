@@ -2,39 +2,71 @@
 
 const props = defineProps({
   staff: null,
+  overlayIndex: null,
 })
+
 
 const elementsStore = useElementsStore()
 const userAuthStore = useUserAuthStore()
-const deleteLoading = ref(1000)
+const loading = ref(false)
+const formErrorMessage = ref('')
+const stfId = ref('')
 
-const deleteStaff = async(staffId: any, index: number)=>{
-    deleteLoading.value = index
-    const formData = new FormData()
-    formData.append('staffId', staffId)
-    formData.append('type', 'delete-staff')
 
-    await axiosInstance.post('sch-admin/staff', formData)
-    .then(response =>{
-        const data = response.data
-        const department = userAuthStore.adminStaff.departments.find(departmentItem => departmentItem['name']===data['department_name']);
-        if (department){
-            const department_index = userAuthStore.adminStaff.departments.indexOf(department);
-            const staffArray = userAuthStore.adminStaff.departments[department_index]['teachers'].filter(stf => stf['staff_id'] !== staffId)
-            userAuthStore.adminStaff.departments[department_index]['teachers'] = staffArray;
-        }
-        deleteLoading.value = 1000
-    })
-    .catch(e =>{
-        deleteLoading.value = 1000
-        return Promise.reject(e)
-    })
+const hidOverlay = ()=>{
+  const overlay = document.getElementById(`deleteStaff${props.overlayIndex}`)
+  overlay ? overlay.style.display = "none" : null
+  formErrorMessage.value = ''
+  stfId.value = ''
+}
+
+const deleteStaff = async()=>{
+  loading.value = true
+  const formData = new FormData()
+  formData.append('staffId', stfId.value)
+  formData.append('type', 'delete-staff')
+
+  await axiosInstance.post('sch-admin/staff', formData)
+  .then(response =>{
+      const data = response.data
+      const department = userAuthStore.adminStaff.departments.find(departmentItem => departmentItem['name']===data['department_name']);
+      if (department){
+          const department_index = userAuthStore.adminStaff.departments.indexOf(department);
+          const staffArray = userAuthStore.adminStaff.departments[department_index]['teachers'].filter(stf => stf['staff_id'] !== stfId.value)
+          userAuthStore.adminStaff.departments[department_index]['teachers'] = staffArray;
+      }
+      hidOverlay()
+      loading.value = false
+  })
+  .catch(e =>{
+    formErrorMessage.value = 'Oops! something went wrong. Check your internet connection and try again'
+    loading.value = false
+  })
 
 }
+
+const showOverlay = (staffId: any)=>{
+  stfId.value = staffId
+  const overlay = document.getElementById(`deleteStaff${props.overlayIndex}`)
+  overlay ? overlay.style.display = 'flex' : null
+}
+
 
 </script>
 
 <template>
+  <div :id="`deleteStaff${props.overlayIndex}`" class="overlay" v-if="userAuthStore.userData['school']['delete_staff']">
+    <v-card class="d-flex flex-column align-center">
+      <v-card-text style="font-size: .8rem; font-family: sans-serif; text-align: left; line-height: 1.2; font-weight: bold">
+        <p>Continue to delete ?</p>
+        <p v-if="formErrorMessage" class="mt-5" style="color: red">{{ formErrorMessage }}</p>
+      </v-card-text>
+      <v-card-actions>
+        <v-btn :loading="loading" class="overlay-btn mr-5" elevation="4" @click="deleteStaff">YES</v-btn>
+        <v-btn :disabled="loading" class="overlay-btn ml-5" elevation="4" @click="hidOverlay">NO</v-btn>
+      </v-card-actions>
+    </v-card>
+  </div>
     <div style="width: 100%; position: relative; height: 100%">
       <TheLoader v-if="!props.staff" />
       <v-table fixed-header height="55dvh" v-if="props.staff">
@@ -44,7 +76,7 @@ const deleteStaff = async(staffId: any, index: number)=>{
           <th class="table-head">STAFF ID</th>
           <th class="table-head">SUBJECT(S)</th>
           <th class="table-head">IMAGE</th>
-          <th class="table-head">ACTION</th>
+          <th class="table-head" v-if="userAuthStore.userData['school']['delete_staff']">ACTION</th>
         </tr>
         </thead>
         <tbody>
@@ -60,8 +92,8 @@ const deleteStaff = async(staffId: any, index: number)=>{
           <td class="table-data">
             <img class="student-img" :src="elementsStore.getBaseUrl + staff['img']">
           </td>
-          <td class="table-data">
-            <v-btn :loading="deleteLoading===index" @click="deleteStaff(staff['staff_id'], index)" size="x-small" class="edit-btn remove">delete</v-btn>
+          <td class="table-data"  v-if="userAuthStore.userData['school']['delete_staff']">
+            <v-btn @click="showOverlay(staff['staff_id'])" size="x-small" class="edit-btn remove">delete</v-btn>
           </td>            
         </tr>
         </tbody>
@@ -86,6 +118,33 @@ const deleteStaff = async(staffId: any, index: number)=>{
 }
 .remove:hover{
   color: yellow;
+  background-color: seagreen;
+}
+
+.overlay{
+  width: 100%;
+  height: 100%;
+  position: fixed;
+  top: 0;
+  left: 0;
+  display: none;
+  background-color: rgba(0,0,0,0.7);
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+.overlay-btn{
+  background-color: lightseagreen;
+  color: yellow;
+  font-family: Verdana, "sans-serif";
+  font-size: .7rem;
+  margin-right: 2em;
+  margin-left: 2em;
+
+}
+.overlay-btn:hover{
+  background-color: mediumseagreen;
 }
 
 
