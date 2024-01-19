@@ -1,4 +1,4 @@
-from settings import *
+from Backend.settings import *
 from google.oauth2 import service_account
 
 # SECURITY WARNING: don't run with debug turned on in production!
