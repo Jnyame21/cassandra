@@ -178,6 +178,8 @@ const closeOverlay = ()=>{
     font-size: .7rem;
     margin-top: .5em;
     text-align: center;
+    border: 1px solid;
+    padding: .1em 1em;
 }
 
 .select{

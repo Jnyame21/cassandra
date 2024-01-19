@@ -14,12 +14,20 @@ const changeSection = (term: string)=>{
 
 <template>
   <div class="sections-container">
-    <TheLoader class="no-data" v-if="!userAuthStore.headDepartments || userAuthStore.headDepartments && userAuthStore.headDepartments.length ===0 " />
+    <TheLoader class="no-data" v-if="!userAuthStore.headDepartments" />
+    <NoData :message="'No data yet'" v-if="userAuthStore.headDepartments && userAuthStore.headDepartments.length ===0 "/>
 
     <div v-if="userAuthStore.headDepartments && userAuthStore.headDepartments.length >0 " class="section-nav-container">
       <button v-for="(department, index) in userAuthStore.headDepartments" :key="index" class="nav-btn-1" 
       @click="changeSection(`section${index+1}`)" :class="{'nav-btn-1-active': sectionPage===`section${index+1}`}"
-      ><span>{{department['department']['name']}}</span>
+      ><v-icon icon="mdi-function-variant" v-if="department['department']['name'] === 'MATHEMATICS' "/>
+      <v-icon icon="mdi-book-open-variant" v-if="department['department']['name'] === 'ENGLISH' "/>
+      <v-icon icon="mdi-book-open-variant" v-if="department['department']['name'] === 'LANGUAGES' "/>
+      <v-icon icon="mdi-history" v-if="department['department']['name'] === 'ARTS' "/>
+      <v-icon icon="mdi-flask" v-if="department['department']['name'] === 'SCIENCE' "/>
+      <v-icon icon="mdi-finance" v-if="department['department']['name'] === 'BUSINESS' "/>
+      <v-icon icon="mdi-finance" v-if="department['department']['name'] === 'ECONOMICS' "/>
+      <span>{{department['department']['name']}}</span>
     </button>
     </div>
   

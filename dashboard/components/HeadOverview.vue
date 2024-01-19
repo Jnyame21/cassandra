@@ -27,7 +27,7 @@ watch(()=> userAuthStore.headDepartments, (newValue, oldValue)=>{
             if (department){
                 department['department']['teachers'].forEach((stf: any) =>{
                     totalStaff.value.push(stf)
-                    stf['gender'] && stf['gender'] === 'Male' || stf['gender'] === 'M' ? staffMales.value.push(stf) : staffFemales.value.push(stf)
+                    stf['gender'] && stf['gender'] === 'MALE' || stf['gender'] === 'M' ? staffMales.value.push(stf) : staffFemales.value.push(stf)
                 })
                 
             }
@@ -42,18 +42,18 @@ watch(()=> userAuthStore.headPrograms, (newValue, oldValue)=>{
             if (clas && clas['students']) {
                 clas['students'].forEach((st: any) => {
                     totalStudents.value.push(st)
-                    st['gender'] && st['gender']=== 'Male' || st['gender']=== 'M' ? totalMales.value.push(st) : totalFemales.value.push(st)
+                    st['gender'] && st['gender']=== 'MALE' || st['gender']=== 'M' ? totalMales.value.push(st) : totalFemales.value.push(st)
                     if (st['current_year'] && st['current_year'] === 1) {
                         yearOneStudents.value.push(st);
-                        st['gender'] && st['gender']=== 'Male' || st['gender']=== 'M' ? yearOneMales.value.push(st) : yearOneFemales.value.push(st)
+                        st['gender'] && st['gender']=== 'MALE' || st['gender']=== 'M' ? yearOneMales.value.push(st) : yearOneFemales.value.push(st)
                     } 
                     else if (st['current_year'] && st['current_year'] === 2) {
                         yearTwoStudents.value.push(st);
-                        st['gender'] && st['gender']=== 'Male' || st['gender']=== 'M' ? yearTwoMales.value.push(st) : yearTwoFemales.value.push(st)
+                        st['gender'] && st['gender']=== 'MALE' || st['gender']=== 'M' ? yearTwoMales.value.push(st) : yearTwoFemales.value.push(st)
                     } 
                     else if (st['current_year'] && st['current_year'] === 3){
                         yearThreeStudents.value.push(st);
-                        st['gender'] && st['gender']=== 'Male' || st['gender']=== 'M' ? yearThreeMales.value.push(st) : yearThreeFemales.value.push(st)
+                        st['gender'] && st['gender']=== 'MALE' || st['gender']=== 'M' ? yearThreeMales.value.push(st) : yearThreeFemales.value.push(st)
                     }
                 });
             }
@@ -66,7 +66,8 @@ watch(()=> userAuthStore.headPrograms, (newValue, oldValue)=>{
 
 <template>
     <div style="width: 100%; position: relative; height: 100%" class="overview">
-      <TheLoader v-if="!userAuthStore.headDepartments && !userAuthStore.headPrograms || totalStudents.length === 0 && totalStaff.length === 0" />
+      <TheLoader v-if="!userAuthStore.headDepartments && !userAuthStore.headPrograms" />
+      <NoData :message="'No data yet'" v-if="userAuthStore.headDepartments && userAuthStore.headPrograms && totalStudents.length === 0 && totalStaff.length === 0"/>
       <v-table class="mt-5" height="300px" v-if="totalStudents.length > 0 || totalStaff.length >0">
         <tbody>
         <tr class="table-title-container" style="position: relative">
@@ -150,4 +151,6 @@ watch(()=> userAuthStore.headPrograms, (newValue, oldValue)=>{
     display: flex;
     flex-direction: column;
 }
+
+
 </style>

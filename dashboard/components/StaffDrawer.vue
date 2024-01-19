@@ -73,21 +73,21 @@ const elementsStore = useElementsStore()
               <v-icon icon="mdi-calendar" />
             </template>
             <v-list-item-title class="title">1st SEMESTER END DATE</v-list-item-title>
-            <v-list-item-subtitle class="subtitle">{{ userAuthStore.userData['academic_year']['sem_1_end_date'] }}</v-list-item-subtitle>
+            <v-list-item-subtitle class="subtitle">{{ userAuthStore.userData['academic_year']['term_1_end_date'] }}</v-list-item-subtitle>
           </v-list-item>
           <v-list-item v-if="userAuthStore.userData['school']['semesters']">
             <template v-slot:prepend>
               <v-icon icon="mdi-calendar" />
             </template>
             <v-list-item-title class="title">2nd SEMESTER START DATE</v-list-item-title>
-            <v-list-item-subtitle class="subtitle">{{ userAuthStore.userData['academic_year']['sem_2_start_date'] }}</v-list-item-subtitle>
+            <v-list-item-subtitle class="subtitle">{{ userAuthStore.userData['academic_year']['term_2_start_date'] }}</v-list-item-subtitle>
           </v-list-item>
           <v-list-item v-if="userAuthStore.userData['school']['semesters']">
             <template v-slot:prepend>
               <v-icon icon="mdi-calendar" />
             </template>
             <v-list-item-title class="title">2nd SEMESTER END DATE</v-list-item-title>
-            <v-list-item-subtitle class="subtitle">{{ userAuthStore.userData['academic_year']['sem_2_end_date'] }}</v-list-item-subtitle>
+            <v-list-item-subtitle class="subtitle">{{ userAuthStore.userData['academic_year']['term_2_end_date'] }}</v-list-item-subtitle>
           </v-list-item>
 
           <!-- trimester -->
@@ -96,35 +96,35 @@ const elementsStore = useElementsStore()
               <v-icon icon="mdi-calendar" />
             </template>
             <v-list-item-title class="title">1st TRIMESTER END DATE</v-list-item-title>
-            <v-list-item-subtitle class="subtitle">{{ userAuthStore.userData['academic_year']['sem_1_end_date'] }}</v-list-item-subtitle>
+            <v-list-item-subtitle class="subtitle">{{ userAuthStore.userData['academic_year']['term_1_end_date'] }}</v-list-item-subtitle>
           </v-list-item>
           <v-list-item v-if="userAuthStore.userData && !userAuthStore.userData['school']['semesters']">
             <template v-slot:prepend>
               <v-icon icon="mdi-calendar" />
             </template>
             <v-list-item-title class="title">2nd TRIMESTER START DATE</v-list-item-title>
-            <v-list-item-subtitle class="subtitle">{{ userAuthStore.userData['academic_year']['sem_2_start_date'] }}</v-list-item-subtitle>
+            <v-list-item-subtitle class="subtitle">{{ userAuthStore.userData['academic_year']['term_2_start_date'] }}</v-list-item-subtitle>
           </v-list-item>
           <v-list-item v-if="userAuthStore.userData && !userAuthStore.userData['school']['semesters']">
             <template v-slot:prepend>
               <v-icon icon="mdi-calendar" />
             </template>
             <v-list-item-title class="title">2nd TRIMESTER END DATE</v-list-item-title>
-            <v-list-item-subtitle class="subtitle">{{ userAuthStore.userData['academic_year']['sem_2_end_date'] }}</v-list-item-subtitle>
+            <v-list-item-subtitle class="subtitle">{{ userAuthStore.userData['academic_year']['term_2_end_date'] }}</v-list-item-subtitle>
           </v-list-item>
           <v-list-item v-if="userAuthStore.userData && !userAuthStore.userData['school']['semesters']">
             <template v-slot:prepend>
               <v-icon icon="mdi-calendar" />
             </template>
             <v-list-item-title class="title">3rd TRIMESTER START DATE</v-list-item-title>
-            <v-list-item-subtitle class="subtitle">{{ userAuthStore.userData['academic_year']['sem_3_start_date'] }}</v-list-item-subtitle>
+            <v-list-item-subtitle class="subtitle">{{ userAuthStore.userData['academic_year']['term_3_start_date'] }}</v-list-item-subtitle>
           </v-list-item>
           <v-list-item v-if="userAuthStore.userData && !userAuthStore.userData['school']['semesters']">
             <template v-slot:prepend>
               <v-icon icon="mdi-calendar" />
             </template>
             <v-list-item-title class="title">3rd TRIMESTER END DATE</v-list-item-title>
-            <v-list-item-subtitle class="subtitle">{{ userAuthStore.userData['academic_year']['sem_3_end_date'] }}</v-list-item-subtitle>
+            <v-list-item-subtitle class="subtitle">{{ userAuthStore.userData['academic_year']['term_3_end_date'] }}</v-list-item-subtitle>
           </v-list-item>
           <v-card-title class="title-head">PERSONAL INFORMATION</v-card-title>
           <v-list-item>

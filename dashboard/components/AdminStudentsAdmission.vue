@@ -8,7 +8,6 @@ const formSuccessMessage = ref('')
 const className:any = ref(null)
 const firstName:any = ref(null)
 const lastName:any = ref(null)
-const stId:any = ref(null)
 const gender:any = ref(null)
 const getFileLoading = ref(false)
 const dob:any = ref(null)
@@ -21,7 +20,7 @@ const clearMessage = ()=>{
     setTimeout(()=>{
         formSuccessMessage.value = ''
         formErrorMessage.value = ''
-    }, 5000)
+    }, 15000)
 }
 
 // Generate an excel file
@@ -71,6 +70,7 @@ const uploadFile = async()=>{
     const formData = new FormData();
     formData.append('className', className.value);
     formData.append('file', fileToUpload.value)
+    formData.append('year', userAuthStore.activeAcademicYear)
     formData.append('type', 'upload-students-file')
 
     try{
@@ -112,8 +112,8 @@ const inputUpload = async()=>{
     const formData = new FormData()
     formData.append('className', className.value.trim())
     formData.append('firstName', firstName.value.trim())
+    formData.append('year', userAuthStore.activeAcademicYear)
     formData.append('lastName', lastName.value.trim())
-    formData.append('stId', stId.value.toString().trim())
     formData.append('gender', gender.value)
     formData.append('dob', dob.value)
     formData.append('type', 'input-student')
@@ -149,7 +149,6 @@ const checkInput = computed(()=>{
     className.value &&
     firstName.value &&
     lastName.value &&
-    stId.value &&
     gender.value &&
     dob.value
     )
@@ -185,29 +184,17 @@ const showForm = (element: any)=>{
             <h2 v-if="formErrorMessage" class="form-message" style="color: red">{{formErrorMessage}}</h2>
             
             <div class="input-container">
-            <div class="wrap one">
-            <div class="wrap-1 flex-all">
                 <v-select v-if="userAuthStore.adminClasses.names" :disabled="loading" v-model="className" class="select" label="CLASS" density="compact" variant="outlined" 
                 :items="userAuthStore.adminClasses.names" persistent-hint hint="Select the students's class">
                 </v-select>
-            </div>
-            </div>
-            <div class="wrap">
                 <v-text-field :disabled="loading" v-model="firstName" clearable class="input-field" label="FIRST NAME" variant="underlined"/>
                 <v-text-field :disabled="loading" v-model="lastName" clearable class="input-field" label="LAST NAME" variant="underlined"/>
-            </div>
-            <div class="wrap-1">
                 <v-select :disabled="loading" v-model="gender" class="select" label="GENDER" density="compact" variant="outlined" 
                 :items="selectGender">
                 </v-select>
-            </div>
-            <div class="ml-16">
-                <v-text-field :disabled="loading" v-model="stId" type="number" clearable class="input-field" label="STUDENT ID" variant="underlined"/>
-            </div>
+                <v-text-field :disabled="loading" v-model="dob" type="date" class="input-field" label="DATE OF BIRTH" variant="underlined"/>
             <div>
-            <v-text-field :disabled="loading" v-model="dob" type="date" class="input-field" label="DATE OF BIRTH" variant="underlined"/>
         </div>
-            
         </div>
             <v-btn :loading="loading" :disabled="checkInput" @click="inputUpload" class="submit-btn">SUBMIT</v-btn>
         </div>
@@ -253,22 +240,13 @@ const showForm = (element: any)=>{
 
 .input-container{
     display: flex;
-    flex-wrap: wrap;
     align-items: center;
-    justify-content: center !important;
+    flex-direction: column;
+    justify-content: flex-start;
     width: 100%;
     height: 90%;
     overflow: auto;
 }
-
-.wrap{
-    display: flex;
-    width: 100%;
-    flex-direction: column;
-    align-items: center;
-    justify-content: space-evenly;
-}
-
 .overlay{
     position: absolute;
     background: rgba(0, 0, 0, .5);
@@ -307,6 +285,10 @@ const showForm = (element: any)=>{
     max-width: 900px;
 }
 
+#inputForm .form{
+    max-width: 500px;
+}
+
 #fileForm .form{
     height: 400px !important;
     max-width: 500px;
@@ -343,6 +325,8 @@ const showForm = (element: any)=>{
     font-size: .8rem;
     margin: 1em 3em;
     text-align: center;
+    border: 1px solid;
+    padding: .1em 1em;
 }
 
 .select{
@@ -357,7 +341,8 @@ const showForm = (element: any)=>{
     font-weight: bold;
     margin-top: 1em;
     font-size: .7rem;
-    width: 300px;
+    width: 300px !important;
+    max-width: 300px !important;
     font-family:monospace;
 }
 
@@ -413,26 +398,6 @@ const showForm = (element: any)=>{
     }
 }
 
-@media screen and (min-width: 767px) {
-
-    .input-field{
-        margin-left: 5em;
-        margin-right: 5em;
-    }
-    .wrap{
-        flex-direction: row;
-    }
-    .select{
-        margin-right: 5em;
-        margin-left: 5em;
-    }
-    .btn{
-        font-size: .6rem;
-    }
-    .wrap-1{
-        width: 50%;
-    }
-}
 
 
 </style>

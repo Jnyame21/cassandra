@@ -11,7 +11,6 @@ interface Props {
 const { classYear } = defineProps<Props>()
 
 const userAuthStore = useUserAuthStore()
-const elementsStore = useElementsStore()
 const deleteLoading = ref(1000)
 
 const deleteSubject = async(clasName: any, subject: any, index: number)=>{
@@ -99,8 +98,8 @@ const deleteClass = async(clasName: any, index: number)=>{
 
     <div style="width: 100%; position: relative" >
       
-      <TheLoader class="no-data flex-all" v-if="!classYear || classYear && classYear.length ===0 " />
-      
+      <TheLoader class="no-data flex-all" v-if="!classYear" />
+      <NoData v-if="classYear && classYear.length ===0 " :message="'No data yet'"/>
         <v-table fixed-header class="table-2" v-if="classYear && classYear.length >0">
         <thead>
         <tr>
@@ -152,10 +151,10 @@ const deleteClass = async(clasName: any, index: number)=>{
                     <template v-slot:default="{ item }" >
                       <v-list-item style="position: relative">
                         <div class="student-info-container">
-                          <img class="student-img" :src="elementsStore.getBaseUrl + item['img']">
+                          <img class="profile-img" :src="item['img']">
                           <div class="flex-all-c">
-                            <p class="user-name">{{item['user']['first_name']}} {{item['user']['last_name']}}</p>
-                            <p class="user-name">{{item['st_id']}}</p>
+                            <p class="user-name">{{item['user']['first_name']}} {{item['user']['last_name']}} [ {{ item['gender'] }} ]</p>
+                            <p class="user-name">{{item['st_id']}} [ {{ item['user']['username'] }} ] [ {{ item['dob'] }} ]</p>
                           </div>
                           <div class="flex-all pa-2" v-if="clas['students_year']===1 && userAuthStore.userData['school']['delete_class']">
                             <v-btn :loading="deleteLoading===clas['students'].indexOf(item)" @click="deleteStudent(clas['name'], item['st_id'], clas['students'].indexOf(item))" size="x-small" class="edit-btn remove">delete</v-btn>

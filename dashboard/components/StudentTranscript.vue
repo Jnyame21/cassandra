@@ -27,7 +27,7 @@ const getTranscript = async()=>{
         if (response.status === 200){
             const a = document.createElement('a')
             a.href = response.data
-            a.download = `${userAuthStore.userData['first_name']}_userAuthStore.userData['last_name']_transcript.docx`
+            a.download = `${userAuthStore.userData['first_name']}_${userAuthStore.userData['last_name']}_transcript.docx`
             a.click()
             successMessage.value = 'Your transcript has been generated successfully and will be downloaded'
         }

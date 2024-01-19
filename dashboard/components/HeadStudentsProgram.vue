@@ -37,7 +37,7 @@ const { program } = defineProps<Props>()
                     <template v-slot:default="{ item }" >
                       <v-list-item style="position: relative">
                         <div class="student-info-container">
-                          <img class="student-img" :src="elementsStore.getBaseUrl + item['img']">
+                          <img class="profile-img" :src="item['img']">
                           <div class="flex-all-c">
                             <p class="user-name">{{item['user']['first_name']+' '+item['user']['last_name']}}</p>
                             <p class="user-name">{{item['st_id']}}</p>

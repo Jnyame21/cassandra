@@ -4,15 +4,14 @@ const props = defineProps({
   staff: null,
 })
 
-const elementsStore = useElementsStore()
-
 
 </script>
 
 <template>
     <div style="width: 100%; position: relative; height: 100%">
       <TheLoader v-if="!props.staff" />
-      <v-table fixed-header height="55dvh" v-if="props.staff">
+      <NoData :message="'No data yet'"  v-if="props.staff && props.staff.length === 0"/>
+      <v-table fixed-header height="55dvh" v-if="props.staff && props.staff.length > 0">
         <thead>
         <tr>
           <th class="table-head">NAME</th>
@@ -32,7 +31,7 @@ const elementsStore = useElementsStore()
             <p v-for="(subject, i) in staff['subjects']" :key="i">{{subject['name']}}</p>
           </td>
           <td class="table-data">
-            <img class="student-img" :src="elementsStore.getBaseUrl + staff['img']">
+            <img class="profile-img" :src="staff['img']">
           </td>
         </tr>
         </tbody>

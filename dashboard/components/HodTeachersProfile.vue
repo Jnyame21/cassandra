@@ -34,7 +34,7 @@ const elementsStore = useElementsStore()
             <p v-for="(subject, i) in staff['subjects']" :key="i">{{subject['name']}}</p>
           </td>
           <td class="table-data">
-            <img class="student-img" :src="elementsStore.getBaseUrl + staff['img']">
+            <img class="profile-img" :src="staff['img']">
           </td>
         </tr>
         </tbody>

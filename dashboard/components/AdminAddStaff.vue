@@ -22,7 +22,7 @@ const clearMessage = ()=>{
     setTimeout(()=>{
         formSuccessMessage.value = ''
         formErrorMessage.value = ''
-    }, 5000)
+    }, 15000)
 }
 
 // Generate an excel file
@@ -108,9 +108,9 @@ const inputUpload = async()=>{
 
     const formData = new FormData()
     formData.append('departmentName', departmentName.value)
-    formData.append('firstName', firstName.value)
-    formData.append('lastName', lastName.value)
-    formData.append('staffId', staffId.value)
+    formData.append('firstName', firstName.value.trim())
+    formData.append('lastName', lastName.value.trim())
+    formData.append('staffId', staffId.value.trim())
     formData.append('gender', gender.value)
     formData.append('subjects', subjects.value)
     formData.append('dob', dob.value)
@@ -351,6 +351,8 @@ const showForm = (element: any)=>{
     font-size: .8rem;
     margin: 1em 3em;
     text-align: center;
+    border: 1px solid;
+    padding: .1em 1em;
 }
 
 .select{

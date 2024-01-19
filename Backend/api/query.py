@@ -9,11 +9,17 @@ import pandas as pd
 
 # Other
 def query(request):
-    classes = Classe.objects.filter(is_active=True)
-    for clas in classes:
-        for st in clas.students.all():
-            st.current_year = clas.students_year
-            st.save()
+    # for i in range(5001):
+    #     padded_number = str(i).zfill(4)
+    #     print(padded_number)
+
+    # user = User.objects.create_user(
+    #     username='Sadministrator',
+    #     password='Sadministrator',
+    #     first_name='School',
+    #     last_name='Administrator',
+    # )
+    # user.save()
 
     return HttpResponse('Operation success')
 # # Student Objects Creation

@@ -46,7 +46,7 @@ const deleteMessage = async(messageId: number)=>{
         <template v-slot:default="{ item }">
             <v-list-item v-if="item['sent_by_hod']">
                 <div class="message-item">
-                    <img class="sender-img" :src="elementsStore.getBaseUrl+item['sent_by_hod']['img']">
+                    <img class="sender-img" :src="item['sent_by_hod']['img']">
                     <v-card class="message-card" >
                         <v-card-title class="title" v-if="userAuthStore.userData['staff_role']==='teacher' ">
                         From: HOD [ {{item['sent_by_hod']['user']['first_name']}} {{item['sent_by_hod']['user']['last_name']}} ]
@@ -58,7 +58,7 @@ const deleteMessage = async(messageId: number)=>{
               </v-list-item>
             <v-list-item v-if="item['sent_by_head']">
                 <div class="message-item">
-                    <img class="sender-img" :src="elementsStore.getBaseUrl+item['sent_by_head']['img']">
+                    <img class="sender-img" :src="item['sent_by_head']['img']">
                     <v-card class="message-card" >
                         <v-card-title class="title">
                             From: {{ item['sent_by_head']['role'] }} [ {{item['sent_by_head']['user']['first_name']}} {{item['sent_by_head']['user']['last_name']}} ]

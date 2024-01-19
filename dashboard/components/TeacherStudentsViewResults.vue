@@ -143,7 +143,7 @@ const showForm = (subject: string, className: string, stName: string, stId: stri
                     <template v-slot:default="{ item }" >
                       <v-list-item style="position: relative">
                         <div class="student-info-container">
-                          <img class="student-img" :src="elementsStore.getBaseUrl + item['student']['img']">
+                          <img class="profile-img" :src="item['student']['img']">
                           <div class="flex-all-c">
                             <p class="user-name">{{item['student']['user']['first_name']+' '+item['student']['user']['last_name']}}</p>
                             <p class="user-name">{{item['student']['st_id']}}</p>
@@ -243,6 +243,8 @@ const showForm = (subject: string, className: string, stName: string, stId: stri
     font-size: .8rem;
     margin-top: 1em;
     text-align: center;
+    border: 1px solid;
+    padding: .1em 1em;
 }
 .input-field{
     margin-top: 1em;

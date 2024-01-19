@@ -1,6 +1,8 @@
+import io
 from datetime import datetime, timedelta
 from api.serializer import *
 from rest_framework.response import Response
+from django.core.files.storage import default_storage
 
 # Document Manipulation
 from docx import Document
@@ -24,8 +26,7 @@ def get_school_folder(school_name: str):
     return name
 
 
-def get_student_transcript(student_username):
-    student = User.objects.get(username=student_username).student
+def get_student_transcript(student):
     student_data = StudentSerializer(student).data
     student_class = ClasseWithSubjectsSerializer(Classe.objects.get(students=student)).data
     st_name = f"{student_data['user']['first_name']} {student_data['user']['last_name']}"
@@ -33,8 +34,7 @@ def get_student_transcript(student_username):
     st_program = student_data['program']['name']
     st_gender = student_data['gender']
     st_id = student_data['st_id']
-    st_address = student_data['address']
-    st_phone = student_data['contact']
+
     if student_data['has_completed']:
         st_graduation_date = datetime.fromisoformat(student_class['completion_date']).strftime("%d %B, %Y")
     else:
@@ -73,7 +73,7 @@ def get_student_transcript(student_username):
 
     # School logo
     sch_logo = doc.add_paragraph()
-    sch_logo.add_run().add_picture(f"staticfiles/{get_school_folder(student_data['school']['name'])}/img/sch-logo.png", height=Inches(1.0))
+    sch_logo.add_run().add_picture(f"staticfiles/{get_school_folder(student_data['school']['name'])}/images/sch-logo.png", height=Inches(1.0))
     sch_logo.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
     sch_logo.paragraph_format.space_before = Pt(20)
     sch_logo.paragraph_format.space_after = Pt(0)
@@ -144,17 +144,22 @@ def get_student_transcript(student_username):
             cell_xml_element.get_or_add_tcPr().append(cell_shd)
 
     # Determine number of semesters in each academic year
+    academic_year_1 = None
+    academic_year_2 = None
+    academic_year_3 = None
     academic_year_names = [year['name'] for year in
                            sorted(student_class['academic_years'], key=lambda x: x['start_date'])]
 
     academic_year_1 = AcademicYearSerializer(
         AcademicYear.objects.get(school=student.school, name=academic_year_names[0])).data
 
-    academic_year_2 = AcademicYearSerializer(
-        AcademicYear.objects.get(school=student.school, name=academic_year_names[1])).data
+    if academic_year_names and len(academic_year_names) > 1:
+        academic_year_2 = AcademicYearSerializer(
+            AcademicYear.objects.get(school=student.school, name=academic_year_names[1])).data
 
-    academic_year_3 = AcademicYearSerializer(
-        AcademicYear.objects.get(school=student.school, name=academic_year_names[2])).data
+    if academic_year_names and len(academic_year_names) > 2:
+        academic_year_3 = AcademicYearSerializer(
+            AcademicYear.objects.get(school=student.school, name=academic_year_names[2])).data
 
     # Inner Table
     table_container_cell = container.rows[0].cells[1]
@@ -176,21 +181,21 @@ def get_student_transcript(student_username):
     year = r_table.rows[0].cells[0]
     year.paragraphs[0].add_run('YEAR', style=verdana2)
 
-    if academic_year_1['sem_3_start_date']:
+    if academic_year_1['term_3_start_date']:
         a = r_table.cell(0, 1)
         b = r_table.cell(0, 2)
         c = r_table.cell(0, 3)
         year_1 = a.merge(b).merge(c)
         year_one_sem = r_table.rows[1].cells[1:4]
         if academic_year_2:
-            if academic_year_2['sem_3_start_date']:
+            if academic_year_2['term_3_start_date']:
                 d = r_table.cell(0, 4)
                 e = r_table.cell(0, 5)
                 f = r_table.cell(0, 6)
                 year_2 = d.merge(e).merge(f)
                 year_two_sem = r_table.rows[1].cells[4:7]
                 if academic_year_3:
-                    if academic_year_3['sem_3_start_date']:
+                    if academic_year_3['term_3_start_date']:
                         g = r_table.cell(0, 7)
                         h = r_table.cell(0, 8)
                         i = r_table.cell(0, 9)
@@ -213,7 +218,7 @@ def get_student_transcript(student_username):
                 year_2 = d.merge(e)
                 year_two_sem = r_table.rows[1].cells[4:6]
                 if academic_year_3:
-                    if academic_year_3['sem_3_start_date']:
+                    if academic_year_3['term_3_start_date']:
                         f = r_table.cell(0, 6)
                         g = r_table.cell(0, 7)
                         h = r_table.cell(0, 8)
@@ -247,14 +252,14 @@ def get_student_transcript(student_username):
         year_1 = a.merge(b)
         year_one_sem = r_table.rows[1].cells[1:3]
         if academic_year_2:
-            if academic_year_2['sem_3_start_date']:
+            if academic_year_2['term_3_start_date']:
                 c = r_table.cell(0, 3)
                 d = r_table.cell(0, 4)
                 e = r_table.cell(0, 5)
                 year_2 = c.merge(d).merge(e)
                 year_two_sem = r_table.rows[1].cells[3:6]
                 if academic_year_3:
-                    if academic_year_3['sem_3_start_date']:
+                    if academic_year_3['term_3_start_date']:
                         f = r_table.cell(0, 6)
                         g = r_table.cell(0, 7)
                         h = r_table.cell(0, 8)
@@ -277,7 +282,7 @@ def get_student_transcript(student_username):
                 year_2 = c.merge(d)
                 year_two_sem = r_table.rows[1].cells[3:5]
                 if academic_year_3:
-                    if academic_year_3['sem_3_start_date']:
+                    if academic_year_3['term_3_start_date']:
                         e = r_table.cell(0, 5)
                         f = r_table.cell(0, 6)
                         g = r_table.cell(0, 7)
@@ -361,16 +366,16 @@ def get_student_transcript(student_username):
     for subject in student_class['subjects']:
         new_row = r_table.add_row().cells
 
-        # if academic_year_1['sem_3_start_date']:
+        # if academic_year_1['term_3_start_date']:
         #     if academic_year_2:
-        #         if academic_year_2['sem_3_start_date']:
+        #         if academic_year_2['term_3_start_date']:
         #             if academic_year_3:
-        #                 if not academic_year_3['sem_3_start_date']:
+        #                 if not academic_year_3['term_3_start_date']:
         #                     new_row[-1]._element.getparent().remove(new_row[-1]._element)
         #
         #         else:
         #             if academic_year_3:
-        #                 if academic_year_3['sem_3_start_date']:
+        #                 if academic_year_3['term_3_start_date']:
         #                     new_row[-1]._element.getparent().remove(new_row[-1]._element)
         #                 else:
         #                     new_row[-1]._element.getparent().remove(new_row[-1]._element)
@@ -381,9 +386,9 @@ def get_student_transcript(student_username):
         #
         # else:
         #     if academic_year_2:
-        #         if academic_year_2['sem_3_start_date']:
+        #         if academic_year_2['term_3_start_date']:
         #             if academic_year_3:
-        #                 if academic_year_3['sem_3_start_date']:
+        #                 if academic_year_3['term_3_start_date']:
         #                     new_row[-1]._element.getparent().remove(new_row[-1]._element)
         #                 else:
         #                     new_row[-1]._element.getparent().remove(new_row[-1]._element)
@@ -393,7 +398,7 @@ def get_student_transcript(student_username):
         #                 new_row[-1]._element.getparent().remove(new_row[-1]._element)
         #         else:
         #             if academic_year_3:
-        #                 if academic_year_3['sem_3_start_date']:
+        #                 if academic_year_3['term_3_start_date']:
         #                     new_row[-1]._element.getparent().remove(new_row[-1]._element)
         #                     new_row[-1]._element.getparent().remove(new_row[-1]._element)
         #                 else:
@@ -416,13 +421,13 @@ def get_student_transcript(student_username):
         new_row[0].paragraphs[0].runs[0].font.size = Pt(7)
         new_row[0].paragraphs[0].runs[0].font.color.rgb = RGBColor(46, 139, 87)
 
-        if academic_year_1['sem_3_start_date']:
+        if academic_year_1['term_3_start_date']:
             year_one = new_row[1:4]
             if academic_year_2:
-                if academic_year_2['sem_3_start_date']:
+                if academic_year_2['term_3_start_date']:
                     year_two = new_row[4:7]
                     if academic_year_3:
-                        if academic_year_3['sem_3_start_date']:
+                        if academic_year_3['term_3_start_date']:
                             year_three = new_row[7:10]
                         else:
                             year_three = new_row[7:10]
@@ -431,7 +436,7 @@ def get_student_transcript(student_username):
                 else:
                     year_two = new_row[4:6]
                     if academic_year_3:
-                        if academic_year_3['sem_3_start_date']:
+                        if academic_year_3['term_3_start_date']:
                             year_three = new_row[6:9]
                         else:
                             year_three = new_row[6:8]
@@ -444,10 +449,10 @@ def get_student_transcript(student_username):
         else:
             year_one = new_row[1:3]
             if academic_year_2:
-                if academic_year_2['sem_3_start_date']:
+                if academic_year_2['term_3_start_date']:
                     year_two = new_row[3:6]
                     if academic_year_3:
-                        if academic_year_3['sem_3_start_date']:
+                        if academic_year_3['term_3_start_date']:
                             year_three = new_row[6:9]
                         else:
                             year_three = new_row[6:8]
@@ -456,7 +461,7 @@ def get_student_transcript(student_username):
                 else:
                     year_two = new_row[3:5]
                     if academic_year_3:
-                        if academic_year_3['sem_3_start_date']:
+                        if academic_year_3['term_3_start_date']:
                             year_three = new_row[5:8]
                         else:
                             year_three = new_row[5:7]
@@ -653,9 +658,9 @@ def get_student_transcript(student_username):
 
     sign_cell = grad_sign_table.rows[1].cells[1]
     sign_cell_para = sign_cell.paragraphs[0]
-    sign_cell_para.add_run().add_picture(f"staticfiles/{get_school_folder(student_data['school']['name'])}/img/head_signature_1.png", height=Inches(0.93))
+    sign_cell_para.add_run().add_picture(f"staticfiles/{get_school_folder(student_data['school']['name'])}/images/head_signature_1.png", height=Inches(0.93))
     sign_cell_para.add_run().add_break()
-    sign_name = sign_cell_para.add_run("MR. NYAME JUSTICE")
+    sign_name = sign_cell_para.add_run(student_data['school']['head_name'])
     sign_cell_para.add_run().add_break()
     sign_title = sign_cell_para.add_run("(HEADMASTER)")
 
@@ -710,9 +715,26 @@ def get_student_transcript(student_username):
     bottom_bar_paragraph.paragraph_format.element.get_or_add_pPr().append(bottom_bar_shd)
 
     # Save The Doc File
-    os.makedirs(f"staticfiles/{get_school_folder(student_data['school']['name'])}/students/{student_data['user']['username']}",
-                exist_ok=True)
-    doc.save(f"staticfiles/{get_school_folder(student_data['school']['name'])}/students/{student_username}/{student_data['user']['first_name']}_{student_data['user']['last_name']}_transcript.docx")
+    doc_byte = io.BytesIO()
+    doc.save(doc_byte)
+
+    if settings.DEBUG:
+        file_path = f"{get_school_folder(student_data['school']['name'])}/students/{student_data['user']['username']}/{student_data['user']['first_name']}_{student_data['user']['last_name']}_transcript.docx"
+        if default_storage.exists(file_path):
+            default_storage.delete(file_path)
+
+        save_file = default_storage.save(file_path, doc_byte)
+
+        return f"http://localhost:8000{default_storage.url(save_file)}"
+
+    else:
+        file_path = f"media/{get_school_folder(student_data['school']['name'])}/students/{student_data['user']['username']}/{student_data['user']['first_name']}_{student_data['user']['last_name']}_transcript.docx"
+        if default_storage.exists(file_path):
+            default_storage.delete(file_path)
+
+        save_file = default_storage.save(file_path, doc_byte)
+
+        return default_storage.url(save_file)
 
 
 # Get current academic year
@@ -722,33 +744,33 @@ def get_current_academic_year(school_user, user_data):
     if academic_years.exists():
         current_year = academic_years[0]
         if current_year.start_date <= current_date:
-            if not current_date > current_year.sem_1_end_date:
-                user_data['current_sem'] = 1
+            if not current_date > current_year.term_1_end_date:
+                user_data['current_term'] = 1
 
-            elif not current_date > current_year.sem_2_end_date:
-                user_data['current_sem'] = 2
+            elif not current_date > current_year.term_2_end_date:
+                user_data['current_term'] = 2
 
-            elif not current_year.sem_3_start_date:
-                user_data['current_sem'] = 2
+            elif not current_year.term_3_start_date:
+                user_data['current_term'] = 2
 
-            elif current_year.sem_3_start_date:
-                user_data['current_sem'] = 3
+            elif current_year.term_3_start_date:
+                user_data['current_term'] = 3
 
             user_data['academic_year'] = AcademicYearSerializer(current_year).data
 
         elif academic_years.count() > 1:
             previous_year = academic_years[1]
-            if not current_date > previous_year.sem_1_end_date:
-                user_data['current_sem'] = 1
+            if not current_date > previous_year.term_1_end_date:
+                user_data['current_term'] = 1
 
-            elif not current_date > previous_year.sem_2_end_date:
-                user_data['current_sem'] = 2
+            elif not current_date > previous_year.term_2_end_date:
+                user_data['current_term'] = 2
 
-            elif not previous_year.sem_3_start_date:
-                user_data['current_sem'] = 2
+            elif not previous_year.term_3_start_date:
+                user_data['current_term'] = 2
 
-            elif previous_year.sem_3_start_date:
-                user_data['current_sem'] = 3
+            elif previous_year.term_3_start_date:
+                user_data['current_term'] = 3
 
             user_data['academic_year'] = AcademicYearSerializer(previous_year).data
 
@@ -807,8 +829,18 @@ def get_hod_subject_assignments(hod, academic_year):
 
 # Teacher upload results
 def teacher_results_upload(staff, year, term):
-    subject_assignments = SubjectAssignment.objects.filter(teacher=staff, academic_year=year, academic_term=term)
-    results = Result.objects.filter(teacher=staff, academic_year=year, academic_term=term)
+    subject_assignments = SubjectAssignment.objects.select_related('students_class', 'subject').filter(
+        school=staff.school,
+        teacher=staff,
+        academic_year=year,
+        academic_term=term,
+    )
+    results = Result.objects.select_related('student', 'subject').filter(
+        school=staff.school,
+        teacher=staff,
+        academic_year=year,
+        academic_term=term,
+    )
     serialized_results = ResultsSerializer(results, many=True).data
     teacher_students_without_results = []
     teacher_students_with_results = []
@@ -821,6 +853,7 @@ def teacher_results_upload(staff, year, term):
             subject_assignment_class_name = assign_item['students_class']['name']
             students_without_results = []
             students_with_results = []
+
             for st_item in subject_assignment_students:
                 subject_assignment_st_name = f"{st_item['user']['first_name']} {st_item['user']['last_name']}"
                 subject_assignment_st_id = st_item['st_id']

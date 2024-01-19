@@ -6,11 +6,11 @@ const userAuthStore = useUserAuthStore()
 const yearName = ref('')
 const startDate = ref('')
 const endDate = ref('')
-const sem1EndDate = ref('')
-const sem2StartDate = ref('')
-const sem2EndDate = ref('')
-const sem3StartDate = ref('')
-const sem3EndDate = ref('')
+const term1EndDate = ref('')
+const term2StartDate = ref('')
+const term2EndDate = ref('')
+const term3StartDate = ref('')
+const term3EndDate = ref('')
 const formErrorMessage = ref('')
 const formSuccessMessage = ref('')
 const loading = ref(false)
@@ -34,11 +34,11 @@ const createYear = async()=>{
     formData.append('year', userAuthStore.activeAcademicYear)
     formData.append('type', 'create-year')
     formData.append('yearName', yearName.value.trim())
-    formData.append('sem1EndDate', sem1EndDate.value)
-    formData.append('sem2StartDate', sem2StartDate.value)
-    formData.append('sem2EndDate', sem2EndDate.value)
-    formData.append('sem3StartDate', sem3StartDate.value)
-    formData.append('sem3EndDate', sem3EndDate.value)
+    formData.append('term1EndDate', term1EndDate.value)
+    formData.append('term2StartDate', term2StartDate.value)
+    formData.append('term2EndDate', term2EndDate.value)
+    formData.append('term3StartDate', term3StartDate.value)
+    formData.append('term3EndDate', term3EndDate.value)
     formData.append('term', userAuthStore.activeTerm.toString())
 
     try {
@@ -54,6 +54,8 @@ const createYear = async()=>{
             .catch(e =>{
                 return Promise.reject(e)
             })
+            await userAuthStore.getAdminData()
+            
         }
         else if (response.status === 201){
             formErrorMessage.value = response.data.ms
@@ -69,11 +71,11 @@ const createYear = async()=>{
 }
 
 const checkInput1 = computed(()=>{
-    return !(yearName.value && startDate.value && endDate.value && sem1EndDate.value && sem2StartDate.value && sem2EndDate.value)
+    return !(yearName.value && startDate.value && endDate.value && term1EndDate.value && term2StartDate.value && term2EndDate.value)
 })
 
 const checkInput2 = computed(()=>{
-    return !(yearName.value && startDate.value && endDate.value && sem1EndDate.value && sem2StartDate.value && sem2EndDate.value && sem3StartDate.value && sem3EndDate.value)
+    return !(yearName.value && startDate.value && endDate.value && term1EndDate.value && term2StartDate.value && term2EndDate.value && term3StartDate.value && term3EndDate.value)
 })
 
 
@@ -102,7 +104,7 @@ const checkInput2 = computed(()=>{
                 </div>
                 <p>FIRST SEMESTER</p>
                 <div class="select-container w-100" >
-                    <v-text-field label="EXPECTED END DATE" clearable class="input-field" v-model="sem1EndDate"
+                    <v-text-field label="EXPECTED END DATE" clearable class="input-field" v-model="term1EndDate"
                     persistent-hint hint="The expected date first semester ends" density="compact" variant="outlined"
                     type="date"
                     />
@@ -110,11 +112,11 @@ const checkInput2 = computed(()=>{
 
                 <p>SECOND SEMESTER</p>
                 <div class="select-container w-100" >
-                    <v-text-field label="START DATE" clearable class="input-field" v-model="sem2StartDate"
+                    <v-text-field label="START DATE" clearable class="input-field" v-model="term2StartDate"
                     persistent-hint hint="The date second semester starts" density="compact" variant="outlined"
                     type="date"
                     />
-                    <v-text-field label="EXPECTED END DATE" clearable class="input-field" v-model="sem2EndDate"
+                    <v-text-field label="EXPECTED END DATE" clearable class="input-field" v-model="term2EndDate"
                     persistent-hint hint="The expected date second semester ends" density="compact" variant="outlined"
                     type="date"
                     />
@@ -139,7 +141,7 @@ const checkInput2 = computed(()=>{
                 </div>
                 <p>FIRST TRIMESTER</p>
                 <div class="select-container w-100" >
-                    <v-text-field label="EXPECTED END DATE" clearable class="input-field" v-model="sem1EndDate"
+                    <v-text-field label="EXPECTED END DATE" clearable class="input-field" v-model="term1EndDate"
                     persistent-hint hint="The expected date first trimester ends" density="compact" variant="outlined"
                     type="date"
                     />
@@ -147,11 +149,11 @@ const checkInput2 = computed(()=>{
 
                 <p>SECOND TRIMESTER</p>
                 <div class="select-container w-100" >
-                    <v-text-field label="START DATE" clearable class="input-field" v-model="sem2StartDate"
+                    <v-text-field label="START DATE" clearable class="input-field" v-model="term2StartDate"
                     persistent-hint hint="The date second trimester starts" density="compact" variant="outlined"
                     type="date"
                     />
-                    <v-text-field label="EXPECTED END DATE" clearable class="input-field" v-model="sem2EndDate"
+                    <v-text-field label="EXPECTED END DATE" clearable class="input-field" v-model="term2EndDate"
                     persistent-hint hint="The expected date second trimester ends" density="compact" variant="outlined"
                     type="date"
                     />
@@ -159,11 +161,11 @@ const checkInput2 = computed(()=>{
                 
                 <p>THIRD TRIMESTER</p>
                 <div class="select-container mb-5 w-100" >
-                    <v-text-field label="START DATE" clearable class="input-field" v-model="sem3StartDate"
+                    <v-text-field label="START DATE" clearable class="input-field" v-model="term3StartDate"
                     persistent-hint hint="The date third trimester starts" density="compact" variant="outlined"
                     type="date"
                     />
-                    <v-text-field label="EXPECTED END DATE" clearable class="input-field" v-model="sem3EndDate"
+                    <v-text-field label="EXPECTED END DATE" clearable class="input-field" v-model="term3EndDate"
                     persistent-hint hint="The expected date third trimester ends" density="compact" variant="outlined"
                     type="date"
                     />
@@ -226,6 +228,8 @@ const checkInput2 = computed(()=>{
     font-size: .8rem;
     margin-bottom: 1em;
     text-align: center;
+    border: 1px solid;
+    padding: .1em 1em;
 }
 
 .select-container{

@@ -13,9 +13,16 @@ const changeSection = (term: string)=>{
 
 <template>
   <div class="sections-container">
-    <TheLoader v-if="!userAuthStore.headPrograms || userAuthStore.headPrograms && userAuthStore.headPrograms.length === 0" />
+    <TheLoader v-if="!userAuthStore.headPrograms" />
+    <NoData :message="'No data yet'"  v-if="userAuthStore.headPrograms && userAuthStore.headPrograms.length === 0" />
     <v-sheet v-if="userAuthStore.headPrograms && userAuthStore.headPrograms.length > 0" class="section-nav-container" elevation="0">
       <button v-for="(program, index) in userAuthStore.headPrograms" :key="index" class="nav-btn-2 btn-1" @click="changeSection(`section${index + 1}`)" :class="{'nav-btn-2-active': sectionPage===`section${index + 1}`}">
+        <v-icon icon="mdi-function-variant" v-if="program['name'] === 'AGRICULTURAL SCIENCE' "/>
+        <v-icon icon="mdi-book-open-variant" v-if="program['name'] === 'VISUAL ARTS' "/>
+        <v-icon icon="mdi-history" v-if="program['name'] === 'GENERAL ARTS' "/>
+        <v-icon icon="mdi-flask" v-if="program['name'] === 'GENERAL SCIENCE' "/>
+        <v-icon icon="mdi-finance" v-if="program['name'] === 'BUSINESS' "/>
+        <v-icon icon="mdi-finance" v-if="program['name'] === 'HOME ECONOMICS' "/>
         {{ program['name'] }}
       </button>
     </v-sheet>

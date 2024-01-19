@@ -10,8 +10,7 @@ urlpatterns = [
     
     path('', root, name='root'),
     path('file/', FileView.as_view()),
-    path('refresh/data', refresh_data),
-    
+
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),  # Token refresh
     path('support', user_help),  # Support/Help
     path('user/data', get_user_data),
@@ -27,6 +26,7 @@ urlpatterns = [
     path('hod/data', get_hod_data),
     path('staff/notification', staff_notification),
     path('hod/students_performance', hod_students_performance),
+    path('teacher/students/attendance', teacher_students_attendance),
 
     # Head
     path('head/data', get_head_data),
@@ -36,12 +36,19 @@ urlpatterns = [
     path('sch-admin/data', get_sch_admin_data),
     path('sch-admin/students', admin_students),
     path('sch-admin/staff', admin_staff),
+    path('sch-admin/head', admin_head),
 
 
-    # Testing paths
+    # Query paths
+    # path('test/staff', StaffView.as_view()),
     # path('query/', query),
 
 ]
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+
+
 
 
 

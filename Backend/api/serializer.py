@@ -2,6 +2,7 @@ from rest_framework import serializers
 from api.models import *
 from django.contrib.auth.models import User
 import os
+from django.conf import settings
 from api.utils import *
 from pathlib import Path
 
@@ -18,6 +19,13 @@ class SchoolSerializer(serializers.ModelSerializer):
     class Meta:
         model = School
         fields = "__all__"
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if settings.DEBUG:
+            data['sch_logo'] = f"http://localhost:8000{data['sch_logo']}"
+
+        return data
 
 
 class SpecificSchoolSerializer(serializers.ModelSerializer):
@@ -58,21 +66,6 @@ class SpecificProgramSerializer(serializers.ModelSerializer):
         fields = ['name']
 
 
-# Batch Serializers
-# class BatchSerializer(serializers.ModelSerializer):
-#     # school = SchoolSerializer()
-#
-#     class Meta:
-#         model = Batch
-#         fields = '__all__'
-#
-#
-# class SpecificBatchSerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = Batch
-#         fields = ['name']
-
-
 #  Student Serializers
 class StudentSerializer(serializers.ModelSerializer):
     school = SchoolSerializer()
@@ -86,12 +79,17 @@ class StudentSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        # Extract the filename from the file path
-        # one_level_up_path = os.path.dirname(data['img'])
-        # filename = os.path.basename(data['img'])
-        # data['img'] = f"/static/students/{os.path.join(os.path.basename(one_level_up_path), filename)}"
-        # data['img'] = f"/static/{get_school_folder(instance.school.name)}/students/img/students_img.jpg"
-        data['img'] = f"/static/students_img.jpg"
+        if settings.DEBUG:
+            if data['img'] and data['img'] != 'null':
+                data['img'] = f"http://localhost:8000{data['img']}"
+            else:
+                data['img'] = f"http://localhost:8000/static/images/students_img.jpg"
+        else:
+            if data['img'] and data['img'] != 'null':
+                pass
+            else:
+                data['img'] = f"https://eduaap.onrender.com/static/images/students_img.jpg"
+
         return data
 
 
@@ -101,16 +99,21 @@ class SpecificStudentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Student
-        fields = ('user', 'img', 'st_id', 'gender', 'has_completed', 'current_year', 'program')
+        fields = ('user', 'img', 'st_id', 'gender', 'has_completed', 'current_year', 'program', 'dob')
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        # Extract the filename from the file path
-        # one_level_up_path = os.path.dirname(data['img'])
-        # filename = os.path.basename(data['img'])
-        # data['img'] = f"/static/students/{os.path.join(os.path.basename(one_level_up_path), filename)}"
-        # data['img'] = f"/static/{get_school_folder(instance.school.name)}/students/img/students_img.jpg"
-        data['img'] = f"/static/students_img.jpg"
+        if settings.DEBUG:
+            if data['img'] and data['img'] != 'null':
+                data['img'] = f"http://localhost:8000{data['img']}"
+            else:
+                data['img'] = f"http://localhost:8000/static/images/students_img.jpg"
+        else:
+            if data['img'] and data['img'] != 'null':
+                pass
+            else:
+                data['img'] = f"https://eduaap.onrender.com/static/images/students_img.jpg"
+
         return data
 
 
@@ -126,12 +129,18 @@ class StaffSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        # Extract the filename from the file path
-        # one_level_up_path = os.path.dirname(data['img'])
-        # filename = os.path.basename(data['img'])
-        # data['img'] = f"/static/staff/{os.path.join(os.path.basename(one_level_up_path), filename)}"
-        # data['img'] = f"/static/{get_school_folder(instance.school.name)}/staff/img/staff_img.jpg"
-        data['img'] = f"/static/staff_img.jpg"
+
+        if settings.DEBUG:
+            if data['img'] and data['img'] != 'null':
+                data['img'] = f"http://localhost:8000{data['img']}"
+            else:
+                data['img'] = f"http://localhost:8000/static/images/staff_img.jpg"
+        else:
+            if data['img'] and data['img'] != 'null':
+                pass
+            else:
+                data['img'] = f"https://eduaap.onrender.com/static/images/staff_img.jpg"
+
         return data
 
 
@@ -143,22 +152,26 @@ class DepartmentNameSerializer(serializers.ModelSerializer):
 
 class SpecificStaffSerializer(serializers.ModelSerializer):
     user = UserSerializer()
-    # school = SchoolSerializer()
     subjects = SubjectsSerializer(many=True)
     department = DepartmentNameSerializer()
 
     class Meta:
         model = Staff
-        fields = ('staff_id', 'contact', 'img', 'gender', 'user', 'subjects', 'department', 'role')
+        fields = ('staff_id', 'contact', 'img', 'gender', 'user', 'subjects', 'department', 'role', 'dob')
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        # Extract the filename from the file path
-        # one_level_up_path = os.path.dirname(data['img'])
-        # filename = os.path.basename(data['img'])
-        # data['img'] = f"/static/staff/{os.path.join(os.path.basename(one_level_up_path), filename)}"
-        # data['img'] = f"/static/{get_school_folder(instance.school.name)}/staff/img/staff_img.jpg"
-        data['img'] = f"/static/staff_img.jpg"
+        if settings.DEBUG:
+            if data['img'] and data['img'] != 'null':
+                data['img'] = f"http://localhost:8000{data['img']}"
+            else:
+                data['img'] = f"http://localhost:8000/static/images/staff_img.jpg"
+        else:
+            if data['img'] and data['img'] != 'null':
+                pass
+            else:
+                data['img'] = f"https://eduaap.onrender.com/static/images/staff_img.jpg"
+
         return data
 
 
@@ -184,11 +197,17 @@ class HeadSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        # Extract the filename from the file path
-        one_level_up_path = os.path.dirname(data['img'])
-        filename = os.path.basename(data['img'])
-        # data['img'] = f"/static/{get_school_folder(instance.school.name)}/head/{os.path.join(os.path.basename(one_level_up_path), filename)}"
-        data['img'] = f"/static/staff_img.jpg"
+        if settings.DEBUG:
+            if data['img'] and data['img'] != 'null':
+                data['img'] = f"http://localhost:8000{data['img']}"
+            else:
+                data['img'] = f"http://localhost:8000/static/images/staff_img.jpg"
+        else:
+            if data['img'] and data['img'] != 'null':
+                pass
+            else:
+                data['img'] = f"https://eduaap.onrender.com/static/images/staff_img.jpg"
+
         return data
 
 
@@ -197,15 +216,21 @@ class SpecificHeadSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Head
-        fields = ('head_id', 'contact', 'img', 'gender', 'user')
+        fields = ('head_id', 'contact', 'img', 'gender', 'user', 'role', 'dob')
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        # Extract the filename from the file path
-        one_level_up_path = os.path.dirname(data['img'])
-        filename = os.path.basename(data['img'])
-        # data['img'] = f"/static/{get_school_folder(instance.school.name)}/head/{os.path.join(os.path.basename(one_level_up_path), filename)}"
-        data['img'] = f"/static/staff_img.jpg"
+        if settings.DEBUG:
+            if data['img'] and data['img'] != 'null':
+                data['img'] = f"http://localhost:8000{data['img']}"
+            else:
+                data['img'] = f"http://localhost:8000/static/images/staff_img.jpg"
+        else:
+            if data['img'] and data['img'] != 'null':
+                pass
+            else:
+                data['img'] = f"https://eduaap.onrender.com/static/images/staff_img.jpg"
+
         return data
 
 
@@ -279,6 +304,19 @@ class StudentResultsSerializer(serializers.ModelSerializer):
         fields = ('subject', 'score')
 
 
+# Students Attendance
+class StudentsAttendanceSerializer(serializers.ModelSerializer):
+    students_class = ClasseWithoutStudentsSerializer()
+    subject = SubjectsSerializer()
+    teacher = SpecificStaffSerializer()
+    students_present = SpecificStudentSerializer(many=True)
+    students_absent = SpecificStudentSerializer(many=True)
+
+    class Meta:
+        model = StudentAttendance
+        fields = '__all__'
+
+
 # Staff Message Serializer
 class NotificationStaff(serializers.ModelSerializer):
     user = UserSerializer()
@@ -289,12 +327,17 @@ class NotificationStaff(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        # Extract the filename from the file path
-        # one_level_up_path = os.path.dirname(data['img'])
-        filename = os.path.basename(data['img'])
-        # data['img'] = f"/static/staff/{os.path.join(os.path.basename(one_level_up_path), filename)}"
-        # data['img'] = f"/static/{get_school_folder(instance.school.name)}/staff/img/staff_img.jpg"
-        data['img'] = f"/static/staff_img.jpg"
+        if settings.DEBUG:
+            if data['img'] and data['img'] != 'null':
+                data['img'] = f"http://localhost:8000{data['img']}"
+            else:
+                data['img'] = f"http://localhost:8000/static/images/staff_img.jpg"
+        else:
+            if data['img'] and data['img'] != 'null':
+                pass
+            else:
+                data['img'] = f"https://eduaap.onrender.com/static/images/staff_img.jpg"
+
         return data
 
 
@@ -307,11 +350,17 @@ class NotificationHead(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        # Extract the filename from the file path
-        one_level_up_path = os.path.dirname(data['img'])
-        filename = os.path.basename(data['img'])
-        # data['img'] = f"/static/{get_school_folder(instance.school.name)}/head/{os.path.join(os.path.basename(one_level_up_path), filename)}"
-        data['img'] = f"/static/staff_img.jpg"
+        if settings.DEBUG:
+            if data['img'] and data['img'] != 'null':
+                data['img'] = f"http://localhost:8000{data['img']}"
+            else:
+                data['img'] = f"http://localhost:8000/static/images/staff_img.jpg"
+        else:
+            if data['img'] and data['img'] != 'null':
+                pass
+            else:
+                data['img'] = f"https://eduaap.onrender.com/static/images/staff_img.jpg"
+
         return data
 
 

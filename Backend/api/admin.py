@@ -16,6 +16,6 @@ admin.site.register(AcademicYear)
 admin.site.register(Result)
 admin.site.register(StaffNotification)
 admin.site.register(School)
-
+admin.site.register(StudentAttendance)
 
 

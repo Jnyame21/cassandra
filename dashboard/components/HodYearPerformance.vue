@@ -445,12 +445,14 @@ const termThreeFail = computed(()=>{
     border: 1px solid whitesmoke;
     display: flex;
     flex-direction: column;
+    align-items: center;
     justify-content: center;
 }
 
 .term-table{
     margin-bottom: 2em;
     border: 1px solid;
+    width: 90%;
 }
 .term-one{
     color: green !important;
@@ -467,6 +469,12 @@ const termThreeFail = computed(()=>{
         flex-direction: row;
         justify-content: space-evenly;
     }
+    .term-table{
+        min-width: 300px;
+        max-width: 800px;
+    }
 }
+
+
 
 </style>

@@ -3,7 +3,6 @@
 import {ref} from "vue";
 
 
-const userAuthStore = useUserAuthStore()
 const sectionPage = ref(1)
 
 

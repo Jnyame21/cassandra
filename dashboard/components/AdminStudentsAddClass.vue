@@ -132,7 +132,7 @@ const checkInput = computed(()=>{
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     height: 45dvh;
     width: 100%;
     background-color: whitesmoke;
@@ -146,7 +146,6 @@ const checkInput = computed(()=>{
 }
 
 .class-name{
-    margin-top: 18em !important;
     max-height: 70px !important;
 }
 
@@ -158,6 +157,8 @@ const checkInput = computed(()=>{
     font-size: .8rem;
     margin-bottom: 1em;
     text-align: center;
+    border: 1px solid;
+    padding: .1em 1em;
 }
 
 .select-wrap{
@@ -202,7 +203,7 @@ const checkInput = computed(()=>{
         margin-top: 0 !important;
     }
     .class-name{
-        margin-top: 3em !important;
+        margin-top: 1em !important;
     }
     .select-container{
         flex-direction: row;

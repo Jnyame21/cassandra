@@ -171,7 +171,7 @@ const st_D = computed(()=>{
 .table-container{
     margin-top: 3em;
     overflow: hidden;
-    max-width: 600px !important;
+    max-width: 800px !important;
     width: 100%;
     border: 1px solid whitesmoke;
     display: flex;

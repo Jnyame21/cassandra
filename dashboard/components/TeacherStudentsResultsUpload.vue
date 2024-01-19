@@ -94,8 +94,6 @@ const uploadFile = async()=>{
             formSuccessMessage.value = response.data.message
         }
         else if (response.status === 201){
-            userAuthStore.staffStudentResultsSubjectAssignment = response.data.data[0]
-            userAuthStore.staffStudentResultsEdit = response.data.data[1]
             formErrorMessage.value = response.data.message
         }
         else if (response.status === 202){
@@ -132,7 +130,6 @@ const inputUpload = async()=>{
                 multiple.value = false
                 score.value = null
                 loading.value = false
-
             })
             .catch(e =>{
                 formErrorMessage.value = 'Oops! something went wrong while generating the file. Try again'
@@ -241,7 +238,7 @@ const showForm = (subject: string, className: string, students: [], index: numbe
                 <v-list-item v-bind="props" :subtitle="item.raw.st_id"></v-list-item>
             </template>
             </v-select>
-            <v-select :disabled="loading" v-if="multiple && show" multiple v-model="multipleValue" chips class="select" label="STUDENT" variant="outlined" 
+            <v-select :disabled="loading" v-if="multiple && show" multiple clearable v-model="multipleValue" chips class="select" label="STUDENT" variant="outlined" 
             :items="selectedStudents" item-title="name" item-value="st_id" persistent-hint hint="Select the student you want to upload result for">
             <template v-slot:item="{ props, item }">
                 <v-list-item v-bind="props" :subtitle="item.raw.st_id"></v-list-item>
@@ -365,6 +362,8 @@ const showForm = (subject: string, className: string, students: [], index: numbe
     font-size: .8rem;
     margin-top: 1em;
     text-align: center;
+    border: 1px solid;
+    padding: .1em 1em;
 }
 
 .select{
@@ -373,6 +372,8 @@ const showForm = (subject: string, className: string, students: [], index: numbe
     color: black;
     min-width: 200px;
     margin-bottom: 1em;
+    max-height: 100px !important;
+    overflow-y: auto;
 }
 
 .checkbox{

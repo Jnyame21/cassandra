@@ -66,7 +66,7 @@
     color: black;
   }
   
-  .student-img{
+  .profile-img{
     width: 30px;
     height: 30px;
     border-radius: 50%;
@@ -91,12 +91,14 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    width: 100%;
+    width: max-content !important;
+    max-width: max-content !important;
     position: absolute;
     top: 0;
     left: 0;
   }
 
+  
 @media screen and (min-width: 576px) {
   .table-head{
     font-size: .8rem;
@@ -125,7 +127,7 @@
   .user-name {
     font-size: .8rem;
   }
-  .student-img{
+  .profile-img{
     width: 40px;
     height: 40px;
   }

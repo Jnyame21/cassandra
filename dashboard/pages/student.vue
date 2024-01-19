@@ -10,6 +10,7 @@ useHead({
   ],
 })
 
+
 const userAuthStore = useUserAuthStore()
 const rozmachAuth: any = ref(null)
 const activePage = ref('page1')
@@ -46,7 +47,9 @@ const hidOverlay = ()=>{
 
 
 const changePage = (page: string)=>{
+
   activePage.value = page
+
 }
 
 
@@ -68,7 +71,7 @@ const changePage = (page: string)=>{
         <v-btn class="overlay-btn" elevation="4" @click="hidOverlay()">OK</v-btn>
       </v-card-actions>
     </v-card>
-  </div>    
+  </div>
   <TheHeader />
   <main class="main">
     <div class="pages-container">
@@ -121,14 +124,17 @@ const changePage = (page: string)=>{
   text-transform: uppercase;
   color: #007bff;
 }
+
 .overlay-btn{
   background-color: mediumseagreen;
   color: yellow;
 }
+
 .overlay-btn:hover{
   background-color: lightseagreen;
   color: white;
 }
+
 
 
 </style>

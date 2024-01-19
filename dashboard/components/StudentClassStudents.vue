@@ -24,7 +24,7 @@ const elementsStore = useElementsStore()
           <td class="table-data">{{st['user']['first_name']}} {{st['user']['last_name']}}</td>
           <td class="table-data">{{st['st_id']}}</td>
           <td class="table-data">{{st['gender']}}</td>
-          <td class="table-data"><img class="student-img" :src="elementsStore.getBaseUrl + st['img']"></td>
+          <td class="table-data"><img class="profile-img" :src="st['img']"></td>
         </tr>
         </tbody>
       </v-table>

@@ -4,6 +4,7 @@ export default defineNuxtRouteMiddleware((to, from) => {
         if (userAuthStore.isAuthenticated && userAuthStore.userData){
             if (userAuthStore.userData['role']==='staff' && userAuthStore.userData['staff_role']!='admin' && !userAuthStore.staffSubjectAssignment.termOne ){
                 userAuthStore.getTeacherSubjectAssignments()
+                userAuthStore.getTeacherStudentsAttendance()
                 userAuthStore.getTeacherStudentResults()
                 userAuthStore.staffNotification()
             }

@@ -95,7 +95,7 @@ const changeYear = async ()=>{
         <StudentTermResults :term="'termTwo'" :term-number="2" />
       </div>
       <div :style="sectionPage===3 ? {'display': 'flex'}: {'display': 'none'}"
-      v-if="userAuthStore.userData && userAuthStore.userData['academic_year']['sem_3_start_date']"
+      v-if="userAuthStore.userData && userAuthStore.userData['academic_year']['term_3_start_date']"
       >
         <StudentTermResults :term="'termThree'" :term-number="3" />
       </div>

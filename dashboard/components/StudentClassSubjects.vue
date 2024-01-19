@@ -54,7 +54,7 @@ const closeBtn = ()=>{
           <p class="title">DEPARTMENT: <strong>{{teacherDepartment}}</strong></p>
           <p class="title">PHONE NO: <strong>{{teacherContact}}</strong></p>
           <p class="title">EMAIL: <strong>{{teacherEmail}}</strong></p>
-          <p class="title"><img class="teacher-img" :src="elementsStore.getBaseUrl + teacherImg"></p>
+          <p class="title"><img class="teacher-img" :src="teacherImg"></p>
         </div>
       </div>
     </div>

@@ -4,6 +4,7 @@ from django.db.models.signals import pre_delete
 from django.dispatch import receiver
 from django.contrib.auth.models import User
 from pathlib import Path
+from Backend.development import *
 from django.utils import timezone
 
 
@@ -18,23 +19,43 @@ def get_school_folder(school_name: str):
 
 def students_file_path(instance, filename):
     # Construct the folder path based on the user's username
-    # user_folder = instance.user.username
-    # Combine the folder path and filename
-    return os.path.join(BASE_DIR, 'staticfiles', f"{get_school_folder(instance.school.name)}", 'students', 'img', filename)
+    user_folder = instance.user.username
+    if DEBUG:
+        return f"{get_school_folder(instance.school.name)}/students/{user_folder}/{filename}"
+    else:
+        return f"media/{get_school_folder(instance.school.name)}/students/{user_folder}/{filename}"
 
 
 def staff_file_path(instance, filename):
     # Construct the folder path based on the user's username
-    # user_folder = instance.user.username
-    # Combine the folder path and filename
-    return os.path.join(BASE_DIR, 'staticfiles', f"{get_school_folder(instance.school.name)}", 'staff', 'img', filename)
+    user_folder = instance.user.username
+    if DEBUG:
+        return f"{get_school_folder(instance.school.name)}/staff/{user_folder}/{filename}"
+    else:
+        return f"media/{get_school_folder(instance.school.name)}/staff/{user_folder}/{filename}"
+
+
+def school_image_path(instance, filename):
+    if DEBUG:
+        return f"{get_school_folder(instance.name)}/images/{filename}"
+    else:
+        return f"media/{get_school_folder(instance.name)}/images/{filename}"
+
+
+def school_file_path(instance, filename):
+    if DEBUG:
+        return f"{get_school_folder(instance.name)}/files/{filename}"
+    else:
+        return f"media/{get_school_folder(instance.name)}/files/{filename}"
 
 
 def head_file_path(instance, filename):
     # Construct the folder path based on the user's username
     user_folder = instance.user.username
-    # Combine the folder path and filename
-    return os.path.join(BASE_DIR, 'staticfiles', f"{get_school_folder(instance.school.name)}" , 'head', user_folder, filename)
+    if DEBUG:
+        return f"{get_school_folder(instance.school.name)}/head/{user_folder}/{filename}"
+    else:
+        return f"media/{get_school_folder(instance.school.name)}/head/{user_folder}/{filename}"
 
 
 class File(models.Model):
@@ -56,6 +77,11 @@ def delete_file(sender, instance, **kwargs):
 class School(models.Model):
     name = models.CharField(max_length=100, verbose_name="School Name", blank=False, unique=True, null=False)
     code = models.CharField(max_length=10, verbose_name="School Code", blank=True, null=True)
+    sch_logo = models.ImageField(verbose_name='School Logo', upload_to=school_image_path, blank=True, null=True,
+                            max_length=255)
+    head_name = models.CharField(max_length=20, verbose_name="Head Master/Mistress's Name", default='not set')
+    head_signature = models.ImageField(verbose_name="Head Master/Mistress's Signature", upload_to=school_image_path, blank=True, null=True,
+                                 max_length=255)
     semesters = models.BooleanField(verbose_name="Semester System", default=True, blank=False, null=False)
     address = models.CharField(max_length=100, verbose_name="School Address", blank=False, default="not set")
     short_name = models.CharField(max_length=50, verbose_name="School Short Name", blank=True, null=True)
@@ -70,14 +96,14 @@ class School(models.Model):
 
 class AcademicYear(models.Model):
     name = models.CharField(max_length=20, verbose_name="Name", blank=False, unique=True)
+    school = models.ForeignKey(School, verbose_name="School", on_delete=models.SET_NULL, null=True)
     start_date = models.DateField(verbose_name='Start Date')
     end_date = models.DateField(verbose_name='End Date')
-    school = models.ForeignKey(School, verbose_name="School", on_delete=models.SET_NULL, null=True)
-    sem_1_end_date = models.DateField(verbose_name="First Semester End Date", blank=False, null=True)
-    sem_2_start_date = models.DateField(verbose_name="Second Semester Start Date", blank=False, null=True)
-    sem_2_end_date = models.DateField(verbose_name="Second Semester End Date", blank=False, null=True)
-    sem_3_start_date = models.DateField(verbose_name="Third Semester Start Date", blank=True, null=True)
-    sem_3_end_date = models.DateField(verbose_name="Third Semester End Date", blank=True, null=True)
+    term_1_end_date = models.DateField(verbose_name="Term 1 End Date", blank=False, null=True)
+    term_2_start_date = models.DateField(verbose_name="Term 2 Start Date", blank=False, null=True)
+    term_2_end_date = models.DateField(verbose_name="Term 2 End Date", blank=False, null=True)
+    term_3_start_date = models.DateField(verbose_name="Term 3 Start Date", blank=True, null=True)
+    term_3_end_date = models.DateField(verbose_name="Term 3 End Date", blank=True, null=True)
 
     def __str__(self):
         return f"{self.school} {self.name}"
@@ -120,12 +146,12 @@ class Student(models.Model):
     religion = models.CharField(verbose_name='Religion', max_length=50, default='not set')
     pob = models.CharField(verbose_name='Home City/Town', max_length=50, default='not set')
     region = models.CharField(verbose_name='Region', max_length=50, default='not set')
-    nationality = models.CharField(verbose_name='Nationality', max_length=50, default='GHANA')
+    nationality = models.CharField(verbose_name='Nationality', max_length=50, default='GHANAIAN')
     guardian = models.CharField(max_length=100, verbose_name='Guardian Name', default='not set')
     guardian_gender = models.CharField(max_length=100, verbose_name='Guardian Gender')
     guardian_email = models.CharField(max_length=100, verbose_name='Guardian Email', default='not set')
     guardian_occupation = models.CharField(max_length=50, verbose_name='Occupation of guardian', default='not set')
-    guardian_nationality = models.CharField(max_length=50, verbose_name='Nationality of Guardian', default='GHANA')
+    guardian_nationality = models.CharField(max_length=50, verbose_name='Nationality of Guardian', default='GHANAIAN')
     guardian_contact = models.CharField(max_length=10, verbose_name='Phone no. of guardian', default='not set')
     guardian_address = models.CharField(max_length=100, verbose_name='Address of guardian', default='not set')
 
@@ -148,16 +174,18 @@ class Staff(models.Model):
     gender = models.CharField(max_length=10, verbose_name="Gender", default='not set')
     dob = models.DateField(verbose_name='Date Of Birth')
     contact = models.CharField(verbose_name='Phone No', max_length=20, default='not set')
+    alt_contact = models.CharField(verbose_name='Alternate Phone No', max_length=15, default='not set', blank=True,
+                                   null=True)
     address = models.CharField(verbose_name='Address', max_length=100, default='not set')
     pob = models.CharField(verbose_name='Home City/Town', max_length=50, default='not set')
     region = models.CharField(verbose_name='Region', max_length=50, default='not set')
-    nationality = models.CharField(verbose_name='Nationality', max_length=50, default='not set')
+    nationality = models.CharField(verbose_name='Nationality', max_length=50, default='GHANAIAN')
 
     def __str__(self):
         return f"{self.school} {self.user.first_name} {self.user.last_name}"
 
     class Meta:
-        unique_together = ('staff_id', 'school', 'dob', 'contact', 'address')
+        unique_together = ('staff_id', 'school')
 
 
 class Head(models.Model):
@@ -166,20 +194,22 @@ class Head(models.Model):
     img = models.ImageField(verbose_name="Profile Image", upload_to=head_file_path, blank=True, null=True, max_length=255)
     head_id = models.CharField(max_length=50, verbose_name='Head ID', blank=False)
     role = models.CharField(max_length=50, verbose_name='Head Role', blank=True, null=True)
-    date_enrolled = models.DateField(verbose_name='Enrollment Date', blank=True)
-    gender = models.CharField(max_length=10, verbose_name="Gender")
+    date_enrolled = models.DateField(verbose_name='Enrollment Date', blank=True, null=True)
+    gender = models.CharField(max_length=10, verbose_name="Gender", blank=False, default='not set')
     dob = models.DateField(verbose_name='Date Of Birth', blank=False)
-    contact = models.CharField(verbose_name='Phone No', max_length=20)
-    address = models.CharField(verbose_name='Address', max_length=100)
-    pob = models.CharField(verbose_name='Home City/Town', max_length=50)
-    region = models.CharField(verbose_name='Region', max_length=50)
-    nationality = models.CharField(verbose_name='Nationality', max_length=50)
+    contact = models.CharField(verbose_name='Phone No', max_length=20, default='not set')
+    alt_contact = models.CharField(verbose_name='Alternate Phone No', max_length=15, default='not set', blank=True,
+                                   null=True)
+    address = models.CharField(verbose_name='Address', max_length=100, default='not set')
+    pob = models.CharField(verbose_name='Home City/Town', max_length=50, default='not set')
+    region = models.CharField(verbose_name='Region', max_length=50, default='not set')
+    nationality = models.CharField(verbose_name='Nationality', max_length=50, default='GHANAIAN')
 
     def __str__(self):
         return f"{self.school} {self.user.first_name} {self.user.last_name}"
 
     class Meta:
-        unique_together = ('head_id', 'school', 'dob', 'contact', 'address')
+        unique_together = ('head_id', 'school')
 
 
 class Department(models.Model):
@@ -203,7 +233,7 @@ class Classe(models.Model):
     subjects = models.ManyToManyField('Subject', verbose_name='Subjects', blank=True)
     academic_years = models.ManyToManyField(AcademicYear, verbose_name='Academic Years')
     date_enrolled = models.DateField(verbose_name='Enrollment Date', blank=False, null=True)
-    created_at = models.DateTimeField(verbose_name="Created At", default=timezone.now())
+    created_at = models.DateTimeField(verbose_name="Created At", default=timezone.now)
     is_active = models.BooleanField(verbose_name='Class is Active', default=True)
 
     def __str__(self):
@@ -244,6 +274,25 @@ class Result(models.Model):
 
     class Meta:
         unique_together = ('student', 'subject', 'academic_year', 'academic_term', 'teacher')
+
+
+class StudentAttendance(models.Model):
+    school = models.ForeignKey(School, verbose_name="School", blank=False, on_delete=models.SET_NULL, null=True)
+    students_present = models.ManyToManyField(Student, related_name='students_present', verbose_name='Students Present')
+    students_absent = models.ManyToManyField(Student, related_name='students_absent', verbose_name='Students Absent')
+    subject = models.ForeignKey(Subject, verbose_name='Subject', on_delete=models.SET_NULL, null=True)
+    academic_year = models.ForeignKey(AcademicYear, verbose_name='Academic Year', on_delete=models.SET_NULL, null=True)
+    academic_term = models.IntegerField(verbose_name='Term', blank=False)
+    students_year = models.IntegerField(verbose_name='Students Year', blank=True, null=True)
+    students_class = models.ForeignKey('Classe', verbose_name='Students Class', on_delete=models.SET_NULL, null=True)
+    date = models.DateField(verbose_name="Attendance Date", default=timezone.now().date())
+    teacher = models.ForeignKey(Staff, verbose_name="Uploaded By", on_delete=models.SET_NULL, null=True)
+
+    def __str__(self):
+        return f"{self.subject} attendance by {self.teacher} for the {self.academic_year} academic year term {self.academic_term} in {self.school}"
+
+    class Meta:
+        unique_together = ('school', 'subject', 'academic_year', 'academic_term', 'teacher', 'date', 'students_class')
 
 
 class StaffNotification(models.Model):

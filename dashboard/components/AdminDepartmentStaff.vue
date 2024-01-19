@@ -68,13 +68,16 @@ const showOverlay = (staffId: any)=>{
     </v-card>
   </div>
     <div style="width: 100%; position: relative; height: 100%">
-      <TheLoader v-if="!props.staff" />
-      <v-table fixed-header height="55dvh" v-if="props.staff">
+      <TheLoader v-if="!props.staff || props.staff.length ===0 " />
+      <v-table fixed-header height="55dvh" v-if="props.staff && props.staff.length > 0">
         <thead>
         <tr>
           <th class="table-head">NAME</th>
+          <th class="table-head">USERNAME</th>
+          <th class="table-head">GENDER</th>
           <th class="table-head">STAFF ID</th>
           <th class="table-head">SUBJECT(S)</th>
+          <th class="table-head">DATE OF BIRTH</th>
           <th class="table-head">IMAGE</th>
           <th class="table-head" v-if="userAuthStore.userData['school']['delete_staff']">ACTION</th>
         </tr>
@@ -85,12 +88,15 @@ const showOverlay = (staffId: any)=>{
             {{staff['user']['first_name']}} {{staff['user']['last_name']}}
             <span style="color: seagreen;" v-if="staff['role'] === 'hod'">[HOD]</span>
           </td>
+          <td class="table-data username">{{staff['user']['username']}}</td>
+          <td class="table-data username">{{staff['gender']}}</td>
           <td class="table-data">{{staff['staff_id']}}</td>
           <td class="table-data">
             <p v-for="(subject, i) in staff['subjects']" :key="i">{{subject['name']}}</p>
           </td>
+          <td class="table-data username">{{staff['dob']}}</td>
           <td class="table-data">
-            <img class="student-img" :src="elementsStore.getBaseUrl + staff['img']">
+            <img class="profile-img" :src="staff['img']">
           </td>
           <td class="table-data"  v-if="userAuthStore.userData['school']['delete_staff']">
             <v-btn @click="showOverlay(staff['staff_id'])" size="x-small" class="edit-btn remove">delete</v-btn>
@@ -110,6 +116,9 @@ const showOverlay = (staffId: any)=>{
   padding: .1em .5em;
 }
 
+.username{
+  text-transform: none;
+}
 .remove{
   font-size: .5rem;
   background-color: red;

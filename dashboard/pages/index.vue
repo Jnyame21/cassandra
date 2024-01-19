@@ -76,16 +76,16 @@ const authenticate = async ()=>{
 </script>
 
 <template>
-  <div class="container flex-c align-center justify-center" style="background-color: seagreen; height: 100dvh">
-    <div style="height: 90dvh" class="row-wrapper img-container">
-      <section class="flex-all-c">
+  <div class="container img-container flex-c align-center justify-center" style="height: 100dvh">
+    <div style="height: 90dvh" class="row-wrapper">
+      <section class="flex-all-c form-container">
         <h1 class="portal-name">ACADEMIC ACCESS POINT</h1>
         <img class="sch-logo" src="/login_logo.jpg" alt="school logo">
         <div class="flex-c align-center" style="background-color: transparent">
           <v-form class="flex-c justify-start align-center" @submit.prevent="authenticate">
             <div class="form-message-container">
               <h6 class="form-message" style="color: yellow" v-if="userAuthStore.message && userAuthStore.isAuthenticated">{{userAuthStore.message}}</h6>
-              <h6 class="form-message" style="color: #be12121010e71010" v-if="userAuthStore.message && !userAuthStore.isAuthenticated">{{userAuthStore.message}}</h6>
+              <h6 class="form-message" style="color: red" v-if="userAuthStore.message && !userAuthStore.isAuthenticated">{{userAuthStore.message}}</h6>
             </div>
             <v-text-field
                 :disabled="data.lockField"
@@ -93,7 +93,6 @@ const authenticate = async ()=>{
                 v-model="data.username"
                 label="USERNAME"
                 hint="Enter your username"
-                variant="solo"
                 density="comfortable"
                 type="text"
                 clearable
@@ -108,14 +107,13 @@ const authenticate = async ()=>{
                 clearable
                 @focus="checkInput"
                 density="comfortable"
-                variant="solo"
                 class="form-text-field password"
                 hint="Enter your password"
                 v-model="data.password"
                 label="PASSWORD"
                 prepend-inner-icon="mdi-lock-outline"
             ></v-text-field>
-            <p class="forgot-password">forgotten password ?</p>
+            <!-- <p class="forgot-password">forgotten password ?</p> -->
             <v-btn
               class="submit-btn"
               type="submit"
@@ -148,33 +146,34 @@ const authenticate = async ()=>{
   font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif
 }
 
-.aap{
-  margin-top: .3em;
-  margin-bottom: 1em;
-  font-family:Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
-  color: yellow;
-  font-size: .7rem;
-}
 
 .form-message-container{
   margin-bottom: 1em;
+  margin-top: 1em;
 }
 
 .form-message{
   font-size: .7rem;
+  border: 1px solid;
+  padding: .1em 1em;
 }
 
-
+.form-container{
+  border-radius: 1em;
+}
 .form-text-field{
   width: 250px;
   font-weight: bold;
   margin-top: .5em;
+  color: yellow !important;
   
 }
+
 .submit-btn{
   margin-top: 2em;
   font-weight: bold;
 }
+
 .submit-btn:hover{
   background-color: mediumseagreen;
   color: yellow;
@@ -188,6 +187,13 @@ const authenticate = async ()=>{
 .forgot-password:hover{
   color: yellow;
   cursor: pointer;
+}
+.img-container{
+  width: 100%;
+  height: 100%;
+  border-radius: 0 !important;
+  background-size: cover;
+  background-image: url('/login_logo_main.jpg');
 }
 
 .footer-container{
@@ -232,11 +238,21 @@ const authenticate = async ()=>{
       background-size: cover;
   }
 
+  .form-container{
+    margin-right: 10%;
+  }
+
   .form-text-field{
       width: 350px;
   }
-  
 }
+
+@media screen and (min-width: 991px){
+  .form-container{
+    margin-right: 30%;
+  }
+}
+
 
 
 </style>

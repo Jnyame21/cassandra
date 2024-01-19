@@ -290,10 +290,11 @@ const termThreeFail = computed(()=>{
 
 <template>
 <div class="flex-all-c w-100 h-100">
-    <TheLoader v-if="!year || year && year['term_one'].length ===0" />
+    <TheLoader v-if="!year"/>
+    <NoData v-if="year && year['term_one'].length ===0 && year && year['term_two'].length ===0 && year && year['term_three'].length ===0" :message="'No data yet'"/>
 
     <Bar
-    v-if="year && userAuthStore.userData['school']['semesters']  && year['term_one'].length >0 || year && !userAuthStore.userData['academic_year']['sem_3_start_date'] && year['term_two'].length >0 "
+    v-if="year && userAuthStore.userData['school']['semesters']  && year['term_one'].length >0 || year &&  userAuthStore.userData['school']['semesters']  && year['term_two'].length >0 "
     class="chart"
     :options="chartOptions"
     :data="chartData1"
@@ -301,7 +302,7 @@ const termThreeFail = computed(()=>{
     />
 
     <Bar
-    v-if="year && !userAuthStore.userData['school']['semesters']  && year['term_one'].length >0 || year && userAuthStore.userData['academic_year']['sem_3_start_date'] && year['term_two'].length >0 || year && userAuthStore.userData['academic_year']['sem_3_start_date'] && year['term_three'].length >0"
+    v-if="year && !userAuthStore.userData['school']['semesters']  && year['term_one'].length >0 || year &&  !userAuthStore.userData['school']['semesters']  && year['term_two'].length >0 || year &&  !userAuthStore.userData['school']['semesters']  && year['term_three'].length >0"
     class="chart"
     :options="chartOptions"
     :data="chartData2"
@@ -311,7 +312,7 @@ const termThreeFail = computed(()=>{
     <div class="table-container">
 
         <!-- Term Three -->
-        <div class="term-table" v-if="year['term_three'] && year['term_three'].length >0">
+        <div class="term-table" v-if="!userAuthStore.userData['school']['semesters'] && year['term_three'] && year['term_three'].length >0">
             <v-table density="comfortable">
                 <tbody >
                     <tr class="term-three table-title-container" style="position: relative">

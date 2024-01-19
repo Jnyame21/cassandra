@@ -26,9 +26,9 @@ const userAuthStore = useUserAuthStore()
           <td class="table-data">{{ year['name']}}</td>
           <td class="table-data">{{year['start_date']}}</td>
           <td class="table-data">{{year['end_date']}}</td>
-          <td class="table-data">{{year['sem_1_end_date']}}</td>
-          <td class="table-data">{{year['sem_2_start_date']}}</td>
-          <td class="table-data">{{year['sem_2_end_date']}}</td>
+          <td class="table-data">{{year['term_1_end_date']}}</td>
+          <td class="table-data">{{year['term_2_start_date']}}</td>
+          <td class="table-data">{{year['term_2_end_date']}}</td>
         </tr>
         </tbody>
       </v-table>
@@ -52,11 +52,11 @@ const userAuthStore = useUserAuthStore()
           <td class="table-data">{{ year['name']}}</td>
           <td class="table-data">{{year['start_date']}}</td>
           <td class="table-data">{{year['end_date']}}</td>
-          <td class="table-data">{{year['sem_1_end_date']}}</td>
-          <td class="table-data">{{year['sem_2_start_date']}}</td>
-          <td class="table-data">{{year['sem_2_end_date']}}</td>
-          <td class="table-data" >{{year['sem_3_start_date']}}</td>
-          <td class="table-data" >{{year['sem_3_end_date']}}</td>
+          <td class="table-data">{{year['term_1_end_date']}}</td>
+          <td class="table-data">{{year['term_2_start_date']}}</td>
+          <td class="table-data">{{year['term_2_end_date']}}</td>
+          <td class="table-data" >{{year['term_3_start_date']}}</td>
+          <td class="table-data" >{{year['term_3_end_date']}}</td>
         </tr>
         </tbody>
       </v-table>

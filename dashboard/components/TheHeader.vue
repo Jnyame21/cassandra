@@ -26,7 +26,7 @@ const showOverlay = ()=>{
         <p class="last-login" v-if="userAuthStore.userData && userAuthStore.userData['last_login']">Last Login: {{userAuthStore.userData['last_login']}}</p>
         <div class="info-container">
           <div class="profile-container">
-            <img @click.stop="elementsStore.drawer =!elementsStore.drawer" class="user-img" :src="elementsStore.getBaseUrl+userAuthStore.userData['img']">
+            <img @click.stop="elementsStore.drawer =!elementsStore.drawer" class="user-img" :src="userAuthStore.userData['img']">
             <div class="name-container">
               <p class="user-name">{{userAuthStore.userData['first_name']}} {{userAuthStore.userData['last_name']}}</p>
               <p class="user-username">{{ userAuthStore.userData['username'] }}</p>

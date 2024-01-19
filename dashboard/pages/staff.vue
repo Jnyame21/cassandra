@@ -13,6 +13,14 @@ useHead({
 const userAuthStore = useUserAuthStore()
 const rozmachAuth: any = ref(null)
 const activePage = ref('page1')
+const formErrorMessage = ref('')
+const formSuccessMessage = ref('')
+const password = ref('')
+const contact = ref('')
+const email = ref('')
+const altContact = ref('')
+const loading = ref(false)
+const visible = ref(false)
 
 onBeforeUnmount(()=>{
   document.body.style.overflow = 'auto'
@@ -31,22 +39,42 @@ onBeforeMount(()=>{
 })
 
 
-const hidOverlay = ()=>{
-  const overlay = document.getElementById('welcome')
-  if (overlay){
-    if (rozmachAuth.value && !rozmachAuth.value.last_login){
-      showOverlay()
-      rozmachAuth.value.last_login = true
-      localStorage.setItem('RozmachAuth', JSON.stringify(rozmachAuth))
+const hidOverlay = async()=>{
+  loading.value = true
+  const formData = new FormData()
+  formData.append('password', password.value)
+  formData.append('contact', contact.value)
+  formData.append('altContact', altContact.value)
+  formData.append('email', email.value)
+
+  try{
+    const response = await axiosInstance.post('user/data', formData)
+    if (response.status === 200){
+      if (rozmachAuth.value && rozmachAuth.value.reset){
+        rozmachAuth.value.reset = false
+        localStorage.setItem('RozmachAuth', JSON.stringify(rozmachAuth.value))
+      }
+      await userAuthStore.getUserData()
+      formSuccessMessage.value = 'success'
+      const overlay = document.getElementById('welcome')
+      overlay ? overlay.style.display = 'none' : null
     }
-    overlay.style.display = 'none'
+    else if (response.status === 201){
+      formErrorMessage.value = response.data['ms']
+    }
+  }
+  catch (e){
+    formErrorMessage.value = 'Something went wrong. check your internet connection'
+    return Promise.reject()
+  }
+  finally{
+    loading.value = false
   }
 }
 
-const showOverlay = ()=>{
-  const overlay = document.getElementById('welcome')
-  overlay? overlay.style.display = 'flex' : null
-}
+const checkInput = computed(()=>{
+  return !(contact.value && password.value)
+})
 
 const changePage = (page: string)=>{
   activePage.value = page
@@ -57,18 +85,77 @@ const changePage = (page: string)=>{
 
 <template>
     <!-- Welcome Overlay-->
-  <div id="welcome" class="welcome-overlay" v-if="rozmachAuth && !rozmachAuth['last_login'] && userAuthStore.userData && userAuthStore.userData['role']==='staff' ">
+  <div id="welcome" class="welcome-overlay" v-if="rozmachAuth && rozmachAuth['reset'] && userAuthStore.userData && userAuthStore.userData['role']==='staff' 
+  || rozmachAuth && rozmachAuth['reset'] && userAuthStore.userData && userAuthStore.userData['role']==='head' "
+  >
     <v-card class="card flex-all-c">
       <v-card-title id="school-name">{{userAuthStore.userData['school']['name']}}</v-card-title>
       <v-card-text style="font-size: .9rem; font-family: sans-serif; text-align: left; line-height: 1.5">
-        <p style="text-align: center"><strong>Welcome {{userAuthStore.userData['first_name']+' '+userAuthStore.userData['last_name']}}!</strong></p>
-        <p>We're thrilled to have you on board as part of our dedicated teaching team. Your passion, expertise, and commitment to education are greatly appreciated.
-          This is your personalized dashboard, designed to make your teaching experience as smooth and rewarding as possible.
-          Here, you'll find all the tools and resources you need to inspire and guide your students to success. Feel free to explore and familiarize yourself with your dashboard.</p>
-        <p>If you have any questions or need assistance, our support team is always here to help.</p>
+        <p style="text-align: center" class="mb-5"><strong>Welcome {{userAuthStore.userData['first_name']+' '+userAuthStore.userData['last_name']}}! Update your information before you begin</strong></p>
+        <h6 class="form-message" style="color: yellow" v-if="formSuccessMessage">{{ formSuccessMessage }}</h6>
+        <h6 class="form-message" style="color: red"  v-if="formErrorMessage">{{ formErrorMessage }}</h6>
+        <div class="field-container flex-all-c">
+          <v-text-field
+          :disabled="loading"
+          class="form-text-field"
+          v-model="contact"
+          label="PHONE NUMBER"
+          hint="Enter you phone number"
+          placeholder="0596021383"
+          prepend-inner-icon="mdi-phone"
+          type="number"
+          variant="outlined"
+          density="compact"
+          clearable
+          />
+
+          <v-text-field
+          :disabled="loading"
+          class="form-text-field"
+          v-model="altContact"
+          label="SECOND PHONE (OPTIONAL)"
+          type="number"
+          placeholder="0556429210"
+          hint="Enter you second phone number"
+          prepend-inner-icon="mdi-phone"
+          density="compact"
+          variant="outlined"
+          clearable
+          />
+        </div>
+        <div class="field-container flex-all-c">
+          <v-text-field
+          :disabled="loading"
+          class="form-text-field"
+          v-model="email"
+          label="EMAIL (OPTIONAL)"
+          hint="Enter your email address"
+          type="email"
+          placeholder="nyamejustice2000@gmail.com"
+          variant="outlined"
+          prepend-inner-icon="mdi-email"
+          density="compact"
+          clearable
+          />
+
+          <v-text-field
+          :append-inner-icon="visible ? 'mdi-eye-off-outline' : 'mdi-eye-outline'"
+          @click:append-inner="visible = !visible"
+          :disabled="loading"
+          :type="visible ? 'text' : 'password'"
+          clearable
+          density="compact"
+          class="form-text-field"
+          variant="outlined"
+          hint="Enter a new password"
+          v-model="password"
+          label="RESET PASSWORD"
+          prepend-inner-icon="mdi-lock-outline"
+          />
+        </div>
       </v-card-text>
       <v-card-actions class="flex-all">
-        <v-btn class="overlay-btn" elevation="4" @click="hidOverlay()">OK</v-btn>
+        <v-btn class="overlay-btn" :disabled="checkInput" :loading="loading" elevation="4" @click="hidOverlay()">DONE</v-btn>
       </v-card-actions>
     </v-card>
   </div>    
@@ -162,6 +249,12 @@ const changePage = (page: string)=>{
           TEACHERS
         </button>
 
+        <button class="nav-btn" @click="changePage('page4')" :class="{'nav-btn-active': activePage==='page4'}"
+        v-if="userAuthStore.userData && userAuthStore.userData['staff_role']=== 'admin' "
+        ><v-icon icon="mdi-account"/>
+          HEAD
+        </button>
+
         <!-- Admin -->
 
         <button class="nav-btn" @click="changePage('page6')" :class="{'nav-btn-active': activePage==='page6'}"
@@ -241,6 +334,12 @@ const changePage = (page: string)=>{
       v-if="userAuthStore.userData && userAuthStore.userData['staff_role']=== 'admin' "
       ><AdminStaff />
       </div>
+
+      <div class="pages" :style="activePage==='page4' ? {'display': 'flex'}: {'display': 'none'}"
+      v-if="userAuthStore.userData && userAuthStore.userData['staff_role']=== 'admin' "
+      ><AdminHead />
+      </div>
+
         <!-- Admin -->
 
       <div class="pages" :style="activePage==='page6' ? {'display': 'flex'}: {'display': 'none'}"
@@ -267,9 +366,28 @@ const changePage = (page: string)=>{
 }
 
 .card{
-  width: 80%;
-  max-width: 700px;
+  width: 90%;
+  max-width: 800px;
+  display: flex;
+  align-items: center !important;
+  justify-content: center !important;
 }
+
+.form-message{
+  font-size: .7rem;
+  margin-top: 1em;
+  margin-bottom: 1em;
+  text-align: center;
+  border: 1px solid;
+  padding: .1em 1em;
+}
+
+.form-text-field{
+  margin-top: 1em;
+  width: 300px !important;
+  max-width: 300px !important;
+}
+
 
 #school-name{
   font-size: .7rem;

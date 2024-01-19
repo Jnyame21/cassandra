@@ -58,7 +58,9 @@ interface states {
         subjects: any;
         departments: any;
         academicYears: any;
-    }
+    };
+    adminHeads: any;
+    teacherStudentsAttendance: any;
 }
 
 export const useUserAuthStore = defineStore('userAuth',{
@@ -118,6 +120,8 @@ export const useUserAuthStore = defineStore('userAuth',{
                 departments: null,
                 academicYears: null,
             },
+            adminHeads: null,
+            teacherStudentsAttendance: null,
         }
 
     },
@@ -189,6 +193,8 @@ export const useUserAuthStore = defineStore('userAuth',{
                 departments: null,
                 academicYears: null,
             }
+            this.adminHeads = null
+            this.teacherStudentsAttendance = null
 
         },
 
@@ -232,6 +238,16 @@ export const useUserAuthStore = defineStore('userAuth',{
                 })
         },
 
+        async getTeacherStudentsAttendance(){
+            await axiosInstance.get("teacher/students/attendance", {params: {'year': this.activeAcademicYear, 'term': this.activeTerm}})
+                .then(response =>{
+                    this.teacherStudentsAttendance = response.data
+                })
+                .catch(e =>{
+                    return Promise.reject()
+                })
+        },
+
         async getHodData(){
             await axiosInstance.get("hod/data", {params: {'year': this.activeAcademicYear}})
                 .then(response =>{
@@ -264,6 +280,7 @@ export const useUserAuthStore = defineStore('userAuth',{
                     this.adminClasses.yearOne = response.data['classes']['year_one']
                     this.adminClasses.yearTwo = response.data['classes']['year_two']
                     this.adminClasses.yearThree = response.data['classes']['year_three']
+                    this.adminHeads = response.data['heads']
                     this.adminClasses.names = response.data['class_names']
                     this.adminClasses.programs = response.data['programs']
                     this.adminStaff.departmentNames = response.data['department_names']
@@ -277,7 +294,7 @@ export const useUserAuthStore = defineStore('userAuth',{
         },
 
         async staffNotification(){
-            await axiosInstance.get("staff/notification", {params: {"school": this.userData['school']}})
+            await axiosInstance.get("staff/notification")
                 .then(response =>{
                     if (this.userData && this.userData['role']==='head'){
                         this.headNotificationsStaff = response.data['head_staff_data']
@@ -342,13 +359,7 @@ export const useUserAuthStore = defineStore('userAuth',{
                         const userInfo = response.data
                         this.userData = userInfo
                         this.activeAcademicYear = userInfo['academic_year']['name']
-                        this.activeTerm = userInfo['current_sem']
-
-                        if (userInfo.last_login){
-                            localStorage.setItem('RozmachAuth', JSON.stringify({'last_login': true}))
-                        }else {
-                            localStorage.setItem('RozmachAuth', JSON.stringify({'last_login': false}))
-                        }
+                        this.activeTerm = userInfo['current_term']
                     })
                     .catch(e =>{
                         return Promise.reject(e)
@@ -365,28 +376,42 @@ export const useUserAuthStore = defineStore('userAuth',{
                     this.authTokens = response.data
                     await this.getUserData()
                     .then(secondResponse =>{
-
                         // Tokens storage location
                         localStorage.setItem('authTokens', JSON.stringify(response.data))
+
+                        const userInfo = jwtDecode(response.data['access'])
+
+                        if (userInfo['last_login']){
+                            localStorage.setItem('RozmachAuth', JSON.stringify({'last_login': true, 'reset': userInfo['reset']}))
+                        }else {
+                            localStorage.setItem('RozmachAuth', JSON.stringify({'last_login': false, 'reset': userInfo['reset']}))
+                        }
 
                         this.isAuthenticated = true
                         this.message = "Login successful"
                     })
+
                     .catch(e =>{
                         return Promise.reject(e)
                     })
 
                 }
-                else if (response.status === 401){
+                else{
                     this.message = "Oops! your username or password is wrong. Try again"
                     return Promise.reject()
                 }
             }
-            catch {
-                this.message = "Oops! something went wrong. Try again later"
-                return Promise.reject()
-            }
+            catch (e) {
+                if (e.response && e.response.status === 401 ){
+                    this.message = "Oops! your username or password is wrong."
+                    return Promise.reject(e)
+                }
 
+                else{
+                    this.message = "Oops! something went wrong. Check you internet connection"
+                    return Promise.reject(e)
+                }
+            }
         },
 
         async UpdateToken(){

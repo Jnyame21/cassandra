@@ -28,8 +28,8 @@ watch(()=> userAuthStore.staffStudentResultsEdit, (newValue, oldValue)=>{
     <div v-if="resultData" class="section-nav-container">
       <button v-for="(resultsAssign, index) in resultData" :key="index" class="nav-btn-1" 
       @click="changeSection(`section${index+1}`)" :class="{'nav-btn-1-active': sectionPage===`section${index+1}`}"
-      ><span>{{resultsAssign['subject']}}</span>
-      <span>{{ resultsAssign['class_name'] }}</span>
+      >
+      <span>{{ resultsAssign['class_name'] }} {{resultsAssign['subject']}}</span>
       <span>FORM {{ resultsAssign['students_year'] }}</span>
       </button>
     </div>
@@ -39,7 +39,7 @@ watch(()=> userAuthStore.staffStudentResultsEdit, (newValue, oldValue)=>{
         <TeacherAnalyticsStatistics :studentsData="resultsAssign['students']" :key="resultsAssign['students']"
         v-if="resultsAssign['students'] && resultsAssign['students'].length > 0"
         />
-        <p class="no-data" v-if="resultsAssign['students'] && resultsAssign['students'].length === 0">You have not uploaded results for students under this subject yet</p>
+        <NoData v-if="resultsAssign['students'] && resultsAssign['students'].length === 0" :message="'You have not uploaded results for students under this subject yet'"/>
       </div>
     </div>
   </div>
@@ -47,11 +47,6 @@ watch(()=> userAuthStore.staffStudentResultsEdit, (newValue, oldValue)=>{
 
 <style scoped>
 
-.no-data{
-  margin-top: 5em;
-  color: red;
-  text-align: center;
-}
 .nav-btn-1{
   font-size: .5rem !important;
 }
@@ -59,18 +54,21 @@ watch(()=> userAuthStore.staffStudentResultsEdit, (newValue, oldValue)=>{
 @media screen and (min-width: 576px) {
   .nav-btn-1{
     margin: 0 1.5em !important;
+    font-size: .55rem !important;
   }
 }
 
 @media screen and (min-width: 767px) {
   .nav-btn-1{
     margin: 0 2em !important;
+    font-size: .6rem !important;
   }
 }
 
 @media screen and (min-width: 991px) {
   .nav-btn-1{
     margin: 0 3em !important;
+    font-size: .7rem !important;
   }
 }
 
