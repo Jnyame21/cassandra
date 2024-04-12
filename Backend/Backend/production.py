@@ -10,7 +10,6 @@ ALLOWED_HOSTS = [
 
 # Cors Config
 CORS_ALLOWED_ORIGINS = [
-    'https://vue-site-testing.onrender.com',
     'https://eduaap.vercel.app',
 ]
 

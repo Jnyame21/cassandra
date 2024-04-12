@@ -131,49 +131,12 @@ wd-5{
 }
 .container{
   width: 100%;
-  max-width: 1400px;
+  max-width: 3600px;
   padding: 0 !important;
   height: 100%;
   margin: auto;
   position: relative;
 }
-
-
-
-  
-@media (min-width: 576px) {
-    .wrapper {
-        width: 576px;
-    }
-}
-
-@media (min-width: 671px) {
-  .wrapper {
-      width: 671px;
-  }
-}
-
-@media (min-width: 767px) {
-    .wrapper {
-        width: 767px;
-    }
-    .nav-btn-2{
-      font-size: .7rem !important;
-    }
-}
-
-@media (min-width: 992px) {
-    .wrapper {
-        width: 992px;
-    }
-}
-
-@media (min-width: 1200px) {
-    .wrapper {
-        width: 1200px;
-    }
-}
-
   
 .row-wrapper {
   padding: .5em .25em;

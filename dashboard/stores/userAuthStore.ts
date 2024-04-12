@@ -435,9 +435,6 @@ export const useUserAuthStore = defineStore('userAuth',{
                 return Promise.reject()
             }
         },
-
     },
-
-
 })
 

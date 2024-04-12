@@ -2296,4 +2296,4 @@ class FileView(ListAPIView):
 
 
 def root(request):
-    return HttpResponse("<h1>EduAAP/h1>")
+    return HttpResponse("<h1>EduAAP</h1>")

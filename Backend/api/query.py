@@ -9,17 +9,7 @@ import pandas as pd
 
 # Other
 def query(request):
-    # for i in range(5001):
-    #     padded_number = str(i).zfill(4)
-    #     print(padded_number)
-
-    # user = User.objects.create_user(
-    #     username='Sadministrator',
-    #     password='Sadministrator',
-    #     first_name='School',
-    #     last_name='Administrator',
-    # )
-    # user.save()
+    student = Student.objects.get()
 
     return HttpResponse('Operation success')
 # # Student Objects Creation
