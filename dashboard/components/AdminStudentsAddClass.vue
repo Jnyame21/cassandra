@@ -6,6 +6,7 @@ const userAuthStore = useUserAuthStore()
 const completionDate = ref('')
 const subjects = ref(null)
 const program = ref('')
+const studentsYear = ref(null)
 const enrollmentDate = ref('')
 const className = ref('')
 const formErrorMessage = ref('')
@@ -25,6 +26,13 @@ const createClass = async()=>{
     formErrorMessage.value = ''
     formSuccessMessage.value = ''
 
+    if (studentsYear.value <0 || studentsYear.value > 3){
+        formErrorMessage.value = 'The students year must be 1, 2 or 3'
+        clearMessage()
+        loading.value = false
+        return;
+    }
+
     const formData = new FormData
     formData.append('subjects', subjects.value)
     formData.append('program', program.value)
@@ -33,6 +41,7 @@ const createClass = async()=>{
     formData.append('type', 'create-class')
     formData.append('className', className.value.trim())
     formData.append('enrollmentDate', enrollmentDate.value)
+    formData.append('studentsYear', studentsYear.value)
     formData.append('term', userAuthStore.activeTerm.toString())
 
     try {
@@ -57,8 +66,9 @@ const createClass = async()=>{
 }
 
 const checkInput = computed(()=>{
-    return !(className.value && subjects.value && program.value && completionDate.value && enrollmentDate.value)
+    return !(className.value && subjects.value && program.value && completionDate.value && enrollmentDate.value && studentsYear.value)
 })
+
 
 
 </script>
@@ -73,6 +83,9 @@ const checkInput = computed(()=>{
             <div class="field-container">
             <v-text-field label="CLASS NAME" class="input-field class-name" v-model="className" density="compact" variant="outlined"
             persistent-hint hint="Enter the name of the class" placeholder="eg. SCIENCE or SCIENCE-1 or SCIENCE-1-A"
+            />
+            <v-text-field label="STUDENTS YEAR/FORM" clearable class="input-field mt-7 mb-5" type="number" v-model="studentsYear" density="compact" variant="outlined"
+            persistent-hint hint="Enter the year/form of the students" placeholder="eg. 1"
             />
             <div class="select-container mt-5 w-100">
                 <div class="select-wrap">

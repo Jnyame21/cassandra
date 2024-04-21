@@ -2,14 +2,16 @@ from django.urls import path
 from django.conf.urls.static import static
 from django.conf import settings
 from rest_framework_simplejwt.views import TokenRefreshView
+from api.students import *
+from api.head import *
+from api.teachers import *
+from api.school_admin import *
 from api.views import *
 from api.query import *
 
 
 urlpatterns = [
-    
     path('', root, name='root'),
-    path('file/', FileView.as_view()),
 
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),  # Token refresh
     path('support', user_help),  # Support/Help
@@ -46,6 +48,71 @@ urlpatterns = [
 ]
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+
+202260301
+202260302
+202250603
+202260304
+202260305
+202260306
+202260307
+202260308
+202260309
+202260310
+202260311
+202260312
+202260313
+202260314
+202260315
+202260316
+202260317
+202260318
+202260319
+202260320
+202260321
+202260322
+202260323
+202260324
+202260325
+202260326
+202260327
+202260328
+202260329
+202260330
+202260331
+202260332
+202260333
+202260334
+202260335
+202260336
+202260337
+202260338
+202260339
+202260340
+202260341
+202260342
+202260343
+202260344
+202260345
+202260346
+202260347
+202260348
+202260349
+202260350
+202260351
+202260352
+202260353
+202260353
+202260354
+202260355
+202260356
+202260357
+202260358
+202260359
+202260360
+202260361
+
 
 
 

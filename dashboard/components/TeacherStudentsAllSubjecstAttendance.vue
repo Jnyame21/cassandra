@@ -86,7 +86,7 @@ const deletesubjectAssignment = async(subjectName: string, studentsClassName: st
     </v-card>
   </div>
     <div style="width: 100%; position: relative; height: 100%">
-      <v-table fixed-header height="320px" v-if="attendance && attendance.length > 0">
+      <v-table fixed-header v-if="attendance && attendance.length > 0">
         <thead>
         <tr>
           <th class="table-head">DATE</th>

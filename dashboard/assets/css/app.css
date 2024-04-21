@@ -182,7 +182,7 @@ wd-5{
 .pages,
 .sections,
 .subsections{
-  height: 90% !important;
+  height: 85% !important;
   display: flex;
   flex-direction: column !important;
   justify-content: flex-start !important;
@@ -197,7 +197,7 @@ wd-5{
   width: 100% !important;
   display: flex !important;
   align-items: center;
-  height: 10% !important;
+  height: 15% !important;
 }
 
 .page-nav-container{
@@ -222,9 +222,11 @@ wd-5{
   flex-direction: column !important;
   align-items: center !important;
   justify-content: center !important;
+  min-width: 100px !important;
+  max-width: 400px !important;
   text-transform: uppercase;
   text-align: center !important;
-  font-family: monospace;
+  font-family: Verdana, Geneva, Tahoma, sans-serif;
   border-radius: .4em !important;
   font-weight: bold !important;
   margin: 0em 1em !important;
@@ -235,9 +237,9 @@ wd-5{
   color: white !important;
   font-family: monospace;
   padding: .1em .5em;
-  width: 100px;
   background-color: lightseagreen;
 }
+
 .nav-btn:hover, .nav-btn-active{
   color: yellow !important;
   background-color: seagreen;

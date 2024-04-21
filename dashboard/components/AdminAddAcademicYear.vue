@@ -127,7 +127,7 @@ const checkInput2 = computed(()=>{
                 <!-- trimesters -->
             <div class="fields-container" v-if="userAuthStore.userData && !userAuthStore.userData['school']['semesters']">
                 <v-text-field label="YEAR NAME" clearable class="input-field year-name" v-model="yearName" density="compact" variant="outlined"
-                persistent-hint hint="Enter the name of the academic year" placeholder="eg. 2023-2024"
+                persistent-hint hint="Enter the name of the academic year" placeholder="eg. 2023/2024"
                 />
                 <div class="select-container mt-5 w-100">
                     <v-text-field label="START DATE" clearable class="input-field" v-model="startDate"

@@ -3,7 +3,6 @@ from api.models import *
 from django.contrib.auth.models import User
 import os
 from django.conf import settings
-from api.utils import *
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -186,6 +185,15 @@ class DepartmentSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
+# Department Serializers
+class SpecificDepartmentSerializer(serializers.ModelSerializer):
+    subjects = SubjectsSerializer(many=True)
+
+    class Meta:
+        model = Department
+        fields = ('name', 'subjects')
+        
+
 # Head Serializers
 class HeadSerializer(serializers.ModelSerializer):
     user = UserSerializer()
@@ -263,7 +271,7 @@ class ClasseWithoutStudentsSerializer(serializers.ModelSerializer):
         fields = ('name', 'students_year')
 
 
-# Course Assignment Serializers
+# Subject Assignment Serializers
 class SubjectAssignmentSerializer(serializers.ModelSerializer):
     students_class = ClasseSerializer()
     subject = SubjectsSerializer()
@@ -271,7 +279,7 @@ class SubjectAssignmentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = SubjectAssignment
-        fields = ('students_class', 'subject', 'teacher')
+        fields = ('students_class', 'subject', 'teacher', 'academic_term')
 
 
 class SubjectAssignmentWithoutStudentsSerializer(serializers.ModelSerializer):
@@ -281,7 +289,8 @@ class SubjectAssignmentWithoutStudentsSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = SubjectAssignment
-        fields = ('students_class', 'subject', 'teacher')
+        fields = ('students_class', 'subject', 'teacher', 'academic_term')
+
 
         
 # Results Serializers
@@ -294,6 +303,13 @@ class ResultsSerializer(serializers.ModelSerializer):
     class Meta:
         model = Result
         fields = "__all__"
+        
+class ResultsSerializerWithoutStudentTeacher(serializers.ModelSerializer):
+    subject = SubjectsSerializer()
+
+    class Meta:
+        model = Result
+        fields = ('subject', 'student_year', 'academic_term', 'score')
 
 
 class StudentResultsSerializer(serializers.ModelSerializer):

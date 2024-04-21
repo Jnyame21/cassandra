@@ -10,6 +10,7 @@ const firstName:any = ref(null)
 const lastName:any = ref(null)
 const gender:any = ref(null)
 const getFileLoading = ref(false)
+const studentId:any = ref(null)
 const dob:any = ref(null)
 const selectGender:any = ref(['MALE', 'FEMALE'])
 const loading:any = ref(false)
@@ -117,6 +118,7 @@ const inputUpload = async()=>{
     formData.append('gender', gender.value)
     formData.append('dob', dob.value)
     formData.append('type', 'input-student')
+    formData.append('studentId', studentId.value)
 
     try {
         const response = await axiosInstance.post('sch-admin/students', formData)
@@ -179,7 +181,7 @@ const showForm = (element: any)=>{
 <template>
     <div id="inputForm" class="overlay">
         <div class="form" style="position: relative">
-            <button @click="closeOverlay('inputForm')" class="close-btn flex-all">X</button>
+            <v-btn @click="closeOverlay('inputForm')" :disabled="loading || getFileLoading" color="red" size="small" class="close-btn flex-all">X</v-btn>
             <h2 v-if="formSuccessMessage" class="form-message" style="color: green">{{formSuccessMessage}}</h2>
             <h2 v-if="formErrorMessage" class="form-message" style="color: red">{{formErrorMessage}}</h2>
             
@@ -189,6 +191,7 @@ const showForm = (element: any)=>{
                 </v-select>
                 <v-text-field :disabled="loading" v-model="firstName" clearable class="input-field" label="FIRST NAME" variant="underlined"/>
                 <v-text-field :disabled="loading" v-model="lastName" clearable class="input-field" label="LAST NAME" variant="underlined"/>
+                <v-text-field :disabled="loading" v-model="studentId" clearable class="input-field" label="STUDENT ID" variant="underlined"/>
                 <v-select :disabled="loading" v-model="gender" class="select" label="GENDER" density="compact" variant="outlined" 
                 :items="selectGender">
                 </v-select>
@@ -203,7 +206,7 @@ const showForm = (element: any)=>{
     <!-- File upload form -->
     <div id="fileForm" class="overlay">
         <div class="form" style="position: relative">
-            <button @click="closeOverlay('fileForm')" class="close-btn flex-all">X</button>
+            <v-btn @click="closeOverlay('fileForm')" :disabled="loading || getFileLoading" color="red" size="small" class="close-btn flex-all">X</v-btn>
             <h2 v-if="formSuccessMessage" class="form-message" style="color: green">{{formSuccessMessage}}</h2>
             <h2 v-if="formErrorMessage" class="form-message" style="color: red">{{formErrorMessage}}</h2>
 
@@ -218,7 +221,7 @@ const showForm = (element: any)=>{
 
             <hr class="line">
 
-            <v-file-input :disabled="loading" @change="fileChange"  clearable  show-size class="file-field" label="upload an excel file" density="compact"
+            <v-file-input :disabled="loading" @change="fileChange" clearable show-size class="file-field" label="upload an excel file" density="compact"
             variant="outlined" accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
             </v-file-input>
             <v-btn :loading="loading" :disabled="!fileToUpload || !className" @click="uploadFile" class="submit-btn">UPLOAD</v-btn>
@@ -302,15 +305,8 @@ const showForm = (element: any)=>{
     position: absolute;
     right: 0;
     top: 0;
-    background-color: red;
-    width: 25px;
-    border-radius: .3em;
-    color: white;
 }
 
-.close-btn:hover{
-    background-color: black;
-}
 .info{
     font-size: .7rem;
     text-align: center;

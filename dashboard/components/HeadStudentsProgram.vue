@@ -3,7 +3,7 @@
 const elementsStore = useElementsStore()
 
 interface Props {
-    program: string;
+    program: any;
 }
 
 const { program } = defineProps<Props>()

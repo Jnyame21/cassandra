@@ -60,7 +60,7 @@ const changePage = (page: string)=>{
     <!-- Welcome Overlay-->
   <div id="welcome" class="welcome-overlay" v-if="rozmachAuth && !rozmachAuth['last_login'] && userAuthStore.userData">
     <v-card class="flex-all-c card">
-      <v-card-title id="company-name">Rozmach</v-card-title>
+      <v-card-title id="company-name">{{userAuthStore.userData['school']['name']}}</v-card-title>
       <v-card-text style="font-size: .9rem; font-family: sans-serif; text-align: left; line-height: 1.2">
         <p style="text-align: center">Welcome <strong>{{userAuthStore.userData['first_name']+' '+userAuthStore.userData['last_name']}}!</strong></p>
         <p>We're excited to have you here. This is your special place to find everything you need for a successful school year.
@@ -107,7 +107,7 @@ const changePage = (page: string)=>{
   align-items: center;
   justify-content: center;
   height: 100%;
-  z-index: 2;
+  z-index: 10;
   width: 100%;
   background-color: rgba(0,0,0,0.5);
 }

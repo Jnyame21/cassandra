@@ -95,7 +95,7 @@ class School(models.Model):
 
 
 class AcademicYear(models.Model):
-    name = models.CharField(max_length=20, verbose_name="Name", blank=False, unique=True)
+    name = models.CharField(max_length=20, verbose_name="Name", blank=False)
     school = models.ForeignKey(School, verbose_name="School", on_delete=models.SET_NULL, null=True)
     start_date = models.DateField(verbose_name='Start Date')
     end_date = models.DateField(verbose_name='End Date')
@@ -156,6 +156,7 @@ class Student(models.Model):
     guardian_address = models.CharField(max_length=100, verbose_name='Address of guardian', default='not set')
 
     def __str__(self):
+        # return f"{self.school}"
         return f"{self.school} {self.user.first_name} {self.user.last_name}"
 
     class Meta:
@@ -182,6 +183,7 @@ class Staff(models.Model):
     nationality = models.CharField(verbose_name='Nationality', max_length=50, default='GHANAIAN')
 
     def __str__(self):
+        # return f"{self.school}"
         return f"{self.school} {self.user.first_name} {self.user.last_name}"
 
     class Meta:
@@ -206,7 +208,7 @@ class Head(models.Model):
     nationality = models.CharField(verbose_name='Nationality', max_length=50, default='GHANAIAN')
 
     def __str__(self):
-        return f"{self.school} {self.user.first_name} {self.user.last_name}"
+        return f"{self.school}"
 
     class Meta:
         unique_together = ('head_id', 'school')

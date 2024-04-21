@@ -10,10 +10,6 @@ const selectedAcademicYear: any = ref(null)
 const counter = ref(0)
 
 
-const changeTerm = (term: number)=>{
-  sectionPage.value = term
-}
-
 const checkInput = computed(()=>{
     return !selectedAcademicYear.value
 })
@@ -61,43 +57,20 @@ const changeYear = async ()=>{
 
 <template>
   <div class="sections-container">
-    <!-- semesters -->
     <div class="section-nav-container" v-if="userAuthStore.userData && userAuthStore.userData['school']['semesters']">
-      <div class="d-flex flex-column justify-center align-center mt-7" v-if="userAuthStore.studentData.results.academicYears">
+      <div class="d-flex flex-column justify-center align-center" v-if="userAuthStore.studentData.results.academicYears">
         <v-select :label="(userAuthStore.userData['current_yr']==='COMPLETED' || userAuthStore.userData['current_yr']=== 4) ? userAuthStore.studentData.results.academicYears[0].name : userAuthStore.activeAcademicYear" v-model="selectedAcademicYear" clearable 
         :items="userAuthStore.studentData.results.academicYears" class="select" density="compact" variant="outlined"
         item-title="name" item-value="name" :disabled="loading"
         />
-        <v-btn @click="changeYear" :disabled="checkInput" :loading="loading" class="year-btn" size="x-small">CHANGE</v-btn>
+        <v-btn @click="changeYear" :disabled="checkInput" :loading="loading" class="year-btn" size="small">CHANGE</v-btn>
       </div>
-      <button class="nav-btn-1" @click="changeTerm(1)" :class="{'nav-btn-1-active': sectionPage===1}">SEMESTER 1</button>
-      <button class="nav-btn-1" @click="changeTerm(2)" :class="{'nav-btn-1-active': sectionPage===2}">SEMESTER 2</button>
+      
     </div>
-    <!-- trimester -->
-    <div class="section-nav-container" v-if="userAuthStore.userData && !userAuthStore.userData['school']['semesters']">
-      <div class="d-flex flex-column justify-center align-center mt-7" v-if="userAuthStore.studentData.results.academicYears">
-        <v-select :label="(userAuthStore.userData['current_yr']==='COMPLETED' || userAuthStore.userData['current_yr']=== 4) ? userAuthStore.studentData.results.academicYears[0].name : userAuthStore.activeAcademicYear" v-model="selectedAcademicYear" clearable 
-        :items="userAuthStore.studentData.results.academicYears" class="select" density="compact" variant="outlined"
-        item-title="name" item-value="name" :disabled="loading"
-        />
-        <v-btn @click="changeYear" :disabled="checkInput" :loading="loading" class="year-btn" size="x-small">CHANGE</v-btn>
-      </div>
-      <button class="nav-btn-1" @click="changeTerm(1)" :class="{'nav-btn-1-active': sectionPage===1}">TRIMESTER 1</button>
-      <button class="nav-btn-1" @click="changeTerm(2)" :class="{'nav-btn-1-active': sectionPage===2}">TRIMESTER 2</button>
-      <button class="nav-btn-1" @click="changeTerm(3)" :class="{'nav-btn-1-active': sectionPage===3}">TRIMESTER 3</button>
-    </div>
-  
+      
     <div class="sections">
       <div :style="sectionPage===1 ? {'display': 'flex'}: {'display': 'none'}">
-        <StudentTermResults :term="'termOne'" :term-number="1" />
-      </div>
-      <div :style="sectionPage===2 ? {'display': 'flex'}: {'display': 'none'}">
-        <StudentTermResults :term="'termTwo'" :term-number="2" />
-      </div>
-      <div :style="sectionPage===3 ? {'display': 'flex'}: {'display': 'none'}"
-      v-if="userAuthStore.userData && userAuthStore.userData['academic_year']['term_3_start_date']"
-      >
-        <StudentTermResults :term="'termThree'" :term-number="3" />
+        <StudentTermResults />
       </div>
     </div>
   </div>
@@ -106,7 +79,7 @@ const changeYear = async ()=>{
 <style scoped>
 
 .select{
-    width: 150px;
+    width: 250px;
     color: black !important;
     height: 40px;
 }

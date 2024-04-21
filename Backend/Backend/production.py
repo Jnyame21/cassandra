@@ -14,7 +14,7 @@ CORS_ALLOWED_ORIGINS = [
 ]
 
 # Media Config (Google Cloud Storage)
-GS_CREDENTIALS = service_account.Credentials.from_service_account_file("gcs-service.json")
+GS_CREDENTIALS = service_account.Credentials.from_service_account_info(os.environ.get("GS_CREDENTIALS"))
 
 GS_MEDIA_URL = 'https://storage.googleapis.com/eduaap-bkt/media/'
 

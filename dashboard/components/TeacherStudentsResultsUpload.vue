@@ -50,11 +50,11 @@ const generateFile = async()=>{
             link.href = response.data.file_path;
             link.download = response.data.filename
             link.click()
-        }
-        else {
+        }else if (response.status === 201){
+            formErrorMessage.value = response.data['ms']
+        }else{
             formErrorMessage.value = 'Oops! an error occurred while generating the file. Try again later'
         }
-
     }
     catch{
         formErrorMessage.value = 'Something went wrong. Try again later'
@@ -227,7 +227,7 @@ const showForm = (subject: string, className: string, students: [], index: numbe
 <template>
     <div id="singleForm" class="overlay">
         <form style="position: relative">
-            <button @click.prevent="closeOverlay('singleForm')" class="close-btn flex-all">X</button>
+            <v-btn @click.prevent="closeOverlay('singleForm')" :disabled="loading || getFileLoading" color="red" size="small" class="close-btn flex-all">X</v-btn>
             <h2 class="info mt-3"><strong>CLASS:</strong> {{studentsClass}} FORM {{studentsYear}}</h2>
             <h2 class="info"><strong>SUBJECT:</strong> {{subjectName}}</h2>
             <h2 v-if="formSuccessMessage" class="form-message" style="color: green">{{formSuccessMessage}}</h2>
@@ -258,7 +258,7 @@ const showForm = (subject: string, className: string, students: [], index: numbe
     <!-- File upload form -->
     <div id="fileForm" class="overlay">
         <form style="position: relative">
-            <button @click.prevent="closeOverlay('fileForm')" class="close-btn flex-all">X</button>
+            <v-btn @click.prevent="closeOverlay('fileForm')" :disabled="loading || getFileLoading" color="red" size="small" class="close-btn flex-all">X</v-btn>
             <h2 class="info mt-3"><strong>CLASS:</strong> {{studentsClass}} FORM {{studentsYear}}</h2>
             <h2 class="info"><strong>SUBJECT:</strong> {{subjectName}}</h2>
             <h2 v-if="formSuccessMessage" class="form-message" style="color: green">{{formSuccessMessage}}</h2>

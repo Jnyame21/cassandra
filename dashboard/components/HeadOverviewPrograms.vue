@@ -31,18 +31,18 @@ program.classes.forEach((clas: any) => {
     if (clas && clas['students']) {
         clas['students'].forEach((st: any) => {
             totalStudents.value.push(st)
-            st['gender'] && st['gender']=== 'Male' || st['gender']=== 'M' ? totalMales.value.push(st) : totalFemales.value.push(st)
+            st['gender'] && st['gender']=== 'MALE' || st['gender']=== 'M' ? totalMales.value.push(st) : totalFemales.value.push(st)
             if (st['current_year'] && st['current_year'] === 1) {
                 yearOneStudents.value.push(st);
-                st['gender'] && st['gender']=== 'Male' || st['gender']=== 'M' ? yearOneMales.value.push(st) : yearOneFemales.value.push(st)
+                st['gender'] && st['gender']=== 'MALE' || st['gender']=== 'M' ? yearOneMales.value.push(st) : yearOneFemales.value.push(st)
             } 
             else if (st['current_year'] && st['current_year'] === 2) {
                 yearTwoStudents.value.push(st);
-                st['gender'] && st['gender']=== 'Male' || st['gender']=== 'M' ? yearTwoMales.value.push(st) : yearTwoFemales.value.push(st)
+                st['gender'] && st['gender']=== 'MALE' || st['gender']=== 'M' ? yearTwoMales.value.push(st) : yearTwoFemales.value.push(st)
             } 
             else if (st['current_year'] && st['current_year'] === 3){
                 yearThreeStudents.value.push(st);
-                st['gender'] && st['gender']=== 'Male' || st['gender']=== 'M' ? yearThreeMales.value.push(st) : yearThreeFemales.value.push(st)
+                st['gender'] && st['gender']=== 'MALE' || st['gender']=== 'M' ? yearThreeMales.value.push(st) : yearThreeFemales.value.push(st)
             }
         });
     }

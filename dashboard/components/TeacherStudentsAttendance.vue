@@ -41,27 +41,56 @@ const changeSection = (term: string)=>{
 
 <style scoped>
 
+.subsections{
+  height: 85% !important;
+}
+.subsection-nav-container{
+  height: 15% !important;
+}
+
 .nav-btn-1{
-  font-size: .5rem !important;
+  font-size: .4rem !important;
+
 }
 
 @media screen and (min-width: 576px) {
   .nav-btn-1{
     margin: 0 1.5em !important;
+    font-size: .45rem !important;
   }
 }
 
 @media screen and (min-width: 767px) {
   .nav-btn-1{
     margin: 0 2em !important;
-    font-size: .6rem !important;
+    font-size: .5rem !important;
   }
 }
 
 @media screen and (min-width: 991px) {
   .nav-btn-1{
     margin: 0 3em !important;
+    font-size: .55rem !important;
+  }
+}
+
+@media screen and (min-width: 1200px) {
+  .nav-btn-1{
+    margin: 0 3em !important;
+    font-size: .6rem !important;
+  }
+}
+@media screen and (min-width: 2600px) {
+  .nav-btn-1{
+    margin: 0 3em !important;
     font-size: .65rem !important;
+  }
+}
+
+@media screen and (min-width: 3600px) {
+  .nav-btn-1{
+    margin: 0 3em !important;
+    font-size: .7rem !important;
   }
 }
 

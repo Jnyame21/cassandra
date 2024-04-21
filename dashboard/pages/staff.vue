@@ -168,8 +168,8 @@ const changePage = (page: string)=>{
       <div class="page-nav-container">
         <!-- Head -->
         <button class="nav-btn" @click="changePage('page1')" :class="{'nav-btn-active': activePage==='page1'}"
-        v-if="userAuthStore.userData && userAuthStore.userData['role'] && userAuthStore.userData['role'] === 'head'"
-        ><v-icon icon="mdi-eye"/>
+        v-if="userAuthStore.userData && userAuthStore.userData['role'] && userAuthStore.userData['role'] === 'head'">
+        <v-icon icon="mdi-eye"/>
           OVERVIEW
         </button>
         
@@ -284,7 +284,7 @@ const changePage = (page: string)=>{
 
       <div class="pages" :style="activePage==='page4' ? {'display': 'flex'}: {'display': 'none'}"
       v-if="userAuthStore.userData && userAuthStore.userData['role'] && userAuthStore.userData['role']=== 'head'"
-      ><HeadPerformance />
+      ><HeadPerformanceDepartment />
       </div>
 
       <div class="pages" :style="activePage==='page5' ? {'display': 'flex'}: {'display': 'none'}"
@@ -360,7 +360,7 @@ const changePage = (page: string)=>{
   align-items: center;
   justify-content: center;
   height: 100%;
-  z-index: 2;
+  z-index: 10;
   width: 100%;
   background-color: rgba(0,0,0,0.5);
 }

@@ -28,7 +28,7 @@ const subjectInfo = (subject: string, teacher: string, img: any, gender: any, em
 
 const closeBtn = ()=>{
   const overlay = document.getElementById('subjectOverlay')
-  teacherName.value = 'not assigned yet'
+  teacherName.value = 'No teacher has been assigned to this subject yet'
   teacherImg.value = ''
   teacherGender.value = ''
   teacherContact.value = ''
@@ -43,11 +43,11 @@ const closeBtn = ()=>{
 <template>
   <div id="subjectOverlay" class="overlay">
     <div class="info-container">
-      <button @click="closeBtn" class="close-btn">X</button>
+      <v-btn @click="closeBtn" color="red" size="small" class="close-btn">X</v-btn>
       <div class="flex-all-c ma-5">
         <h4 class="subject-name"><strong>{{subjectName}}</strong></h4>
-        <p class="title" v-if="teacherName === 'not assigned yet'">NOT ASSIGNED YET</p>
-        <div class="teacher-info" v-if="teacherName != 'not assigned yet'">
+        <p class="title" v-if="teacherName === 'No teacher has been assigned to this subject yet'">No teacher has been assigned to this subject yet</p>
+        <div class="teacher-info" v-if="teacherName != 'No teacher has been assigned to this subject yet'">
           <h4  class="title">TEACHER INFO</h4>
           <p class="title">NAME: <strong>{{teacherName}}</strong></p>
           <p class="title">GENDER: <strong>{{teacherGender}}</strong></p>
@@ -60,7 +60,7 @@ const closeBtn = ()=>{
     </div>
   </div>
 <section class="d-flex flex-column h-100 w-100 justify-center align-center">
-  <TheLoader v-if="userAuthStore.studentData === 4 && !userAuthStore.studentData['subjects']" />
+  <TheLoader v-if="userAuthStore.studentData && !userAuthStore.studentData['subjects']" />
   <p class="notice" v-if="userAuthStore.userData && userAuthStore.userData['current_yr'] === 'COMPLETED'">YOU HAVE COMPLETED SCHOOL</p>
   <div v-if="userAuthStore.studentData && userAuthStore.userData['current_yr'] !== 'COMPLETED' && userAuthStore.studentData['subjects']"  class="subject-container">
     <v-card v-for="(subject, index) in userAuthStore.studentData.subjects" @click="subjectInfo(subject['name'], subject['teacher'], subject['teacher_img'], subject['teacher_gender'], subject['teacher_email'], subject['teacher_contact'], subject['teacher_department'])" class="subject-card" :key="index">
@@ -185,5 +185,8 @@ const closeBtn = ()=>{
     font-size: .7rem;
   }
 }
+
+
+
 
 </style>

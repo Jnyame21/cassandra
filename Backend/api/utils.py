@@ -1,6 +1,8 @@
 import io
 from datetime import datetime, timedelta
+from api.models import *
 from api.serializer import *
+from django.conf import settings
 from rest_framework.response import Response
 from django.core.files.storage import default_storage
 
@@ -12,6 +14,7 @@ from docx.enum.table import WD_ALIGN_VERTICAL, WD_TABLE_ALIGNMENT
 from docx.oxml.ns import qn
 from docx.enum.style import WD_STYLE_TYPE
 from docx.oxml.shared import OxmlElement
+
 
 
 # Base url
@@ -26,7 +29,7 @@ def get_school_folder(school_name: str):
     return name
 
 
-def get_student_transcript(student):
+def get_student_transcript(student, request):
     student_data = StudentSerializer(student).data
     student_class = ClasseWithSubjectsSerializer(Classe.objects.get(students=student)).data
     st_name = f"{student_data['user']['first_name']} {student_data['user']['last_name']}"
@@ -64,6 +67,7 @@ def get_student_transcript(student):
     top_bar_paragraph.paragraph_format.space_after = Pt(0)
     top_bar_paragraph.runs[0].font.size = Pt(7.5)
     top_bar_paragraph.runs[0].font.color.rgb = RGBColor(255, 255, 0)
+    
     # Top Bar Shade
     top_bar_shd = OxmlElement('w:shd')
     top_bar_shd.set(qn('w:val'), 'clear')
@@ -73,7 +77,7 @@ def get_student_transcript(student):
 
     # School logo
     sch_logo = doc.add_paragraph()
-    sch_logo.add_run().add_picture(f"staticfiles/{get_school_folder(student_data['school']['name'])}/images/sch-logo.png", height=Inches(1.0))
+    sch_logo.add_run().add_picture(f"{student_data['school']['sch_logo'].replace(f'{base_url(request)}/', '')}", height=Inches(1.0))
     sch_logo.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
     sch_logo.paragraph_format.space_before = Pt(20)
     sch_logo.paragraph_format.space_after = Pt(0)
@@ -470,15 +474,6 @@ def get_student_transcript(student):
             else:
                 year_two = new_row[3:5]
                 year_three = new_row[5:7]
-                # empty_col_1 = [row.cells[-1] for row in r_table.rows]
-                # empty_col_2 = [row.cells[-2] for row in r_table.rows]
-                # empty_col_3 = [row.cells[-3] for row in r_table.rows]
-                # for cell in empty_col_1:
-                #     cell._element.getparent().remove(cell._element)
-                # for cell in empty_col_2:
-                #     cell._element.getparent().remove(cell._element)
-                # for cell in empty_col_3:
-                #     cell._element.getparent().remove(cell._element)
 
         st_subject = Subject.objects.get(name=subject['name'])
         new_counter = 1
@@ -658,7 +653,7 @@ def get_student_transcript(student):
 
     sign_cell = grad_sign_table.rows[1].cells[1]
     sign_cell_para = sign_cell.paragraphs[0]
-    sign_cell_para.add_run().add_picture(f"staticfiles/{get_school_folder(student_data['school']['name'])}/images/head_signature_1.png", height=Inches(0.93))
+    sign_cell_para.add_run().add_picture(f"{student_data['school']['head_signature'].replace(f'{base_url(request)}', '').replace('/', '', 1)}", height=Inches(0.93))
     sign_cell_para.add_run().add_break()
     sign_name = sign_cell_para.add_run(student_data['school']['head_name'])
     sign_cell_para.add_run().add_break()

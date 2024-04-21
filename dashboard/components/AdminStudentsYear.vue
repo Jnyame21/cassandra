@@ -11,10 +11,15 @@ interface Props {
 const { classYear } = defineProps<Props>()
 
 const userAuthStore = useUserAuthStore()
-const deleteLoading = ref(1000)
+const deleteLoading = ref(false)
+const formErrorMessage = ref('')
+const deleteType = ref('')
+const className = ref('')
+const subjectName = ref('')
+const studentId = ref('')
+const overlayMessage = ref('')
 
-const deleteSubject = async(clasName: any, subject: any, index: number)=>{
-    deleteLoading.value = index
+const deleteSubject = async(clasName: any, subject: any)=>{
     const formData = new FormData()
     formData.append('className', clasName)
     formData.append('subject', subject)
@@ -30,18 +35,19 @@ const deleteSubject = async(clasName: any, subject: any, index: number)=>{
             const subjectArray = userAuthStore.adminClasses[year][clas_index]['subjects'].filter(sub => sub['name'] !== subject)
             userAuthStore.adminClasses[year][clas_index]['subjects'] = subjectArray;
         }
-        deleteLoading.value = 1000
     })
     .catch(e =>{
-        deleteLoading.value = 1000
         return Promise.reject(e)
     })
-
 }
 
+const clearMessage = ()=>{
+  setTimeout(()=>{
+    formErrorMessage.value = ''
+  }, 15000)
+}
 
-const deleteStudent = async(clasName: any, stId: any, index: number)=>{
-    deleteLoading.value = index
+const deleteStudent = async(clasName: any, stId: any)=>{
     const formData = new FormData()
     formData.append('className', clasName)
     formData.append('stId', stId)
@@ -57,17 +63,36 @@ const deleteStudent = async(clasName: any, stId: any, index: number)=>{
             const studentArray = userAuthStore.adminClasses[year][clas_index]['students'].filter(st => st['st_id'] !== stId)
             userAuthStore.adminClasses[year][clas_index]['students'] = studentArray;
         }
-        deleteLoading.value = 1000
     })
     .catch(e =>{
-        deleteLoading.value = 1000
         return Promise.reject(e)
     })
-
 }
 
-const deleteClass = async(clasName: any, index: number)=>{
-    deleteLoading.value = index
+const showOverlay = (type:string, clasName:string, stId:string, subject:string)=>{
+  deleteType.value = type
+  className.value = clasName
+  studentId.value = stId
+  subjectName.value = subject
+
+  if (type === 'deleteStudent'){
+    overlayMessage.value = `Are you sure you want to delete student with ID ${studentId.value} from the class`
+  }else if (type === 'deleteClass'){
+    overlayMessage.value = `Are you sure you want to delete the ${className.value} class`
+  }else if (type === 'deleteSubject'){
+    overlayMessage.value = `Are you sure you want to delete ${subjectName.value} from the ${className.value} class subjects`
+  }
+
+  const overlay = document.getElementById('deleteClassSubjectStudentOverlay')
+  overlay ? overlay.style.display = 'flex' : null
+}
+
+const hidOverlay = ()=>{
+  const overlay = document.getElementById('deleteClassSubjectStudentOverlay')
+  overlay ? overlay.style.display = 'none' : null
+}
+
+const deleteClass = async(clasName: any)=>{
     const formData = new FormData()
     formData.append('className', clasName)
     formData.append('type', 'delete-class')
@@ -81,21 +106,58 @@ const deleteClass = async(clasName: any, index: number)=>{
             const newClassNames = userAuthStore.adminClasses.names.filter(classItem => classItem !== `${clasName} FORM-1`)
             newClassNames ? userAuthStore.adminClasses.names = newClassNames : null
         }
-        
-        deleteLoading.value = 1000
     })
     .catch(e =>{
-        deleteLoading.value = 1000
         return Promise.reject(e)
     })
-
 }
+
+const deleteClassSubjectStudent = async()=>{
+  deleteLoading.value = true
+  if (deleteType.value === 'deleteStudent') {
+    await deleteStudent(className.value, studentId.value)
+    .then(response =>{
+      hidOverlay()
+    })
+    .catch(e =>{
+      clearMessage();
+    })
+  } else if (deleteType.value === 'deleteSubject') {
+    await deleteSubject(className.value, subjectName.value)
+    .then(response =>{
+      hidOverlay()
+    })
+    .catch(e =>{
+      clearMessage();
+    })
+  } else if (deleteType.value === 'deleteClass') {
+    await deleteClass(className.value)
+    .then(response =>{
+      hidOverlay()
+    })
+    .catch(e =>{
+      clearMessage();
+    })
+  }
+  deleteLoading.value = false
+  clearMessage()
+}
+
 
 
 </script>
 
 <template>
-
+    <div id="deleteClassSubjectStudentOverlay" class=overlay>
+      <v-card class="overlay-card">
+        <p class="mb-5 error-message">{{formErrorMessage}}</p>
+        <p class="mb-10">{{overlayMessage}}</p>
+        <div>
+          <v-btn class="mr-5" color="red" @click="deleteClassSubjectStudent" :loading="deleteLoading">YES</v-btn>
+          <v-btn @click="hidOverlay" color="blue" class="ml-5" :disabled="deleteLoading">NO</v-btn>
+        </div>
+      </v-card>
+    </div>
     <div style="width: 100%; position: relative" >
       
       <TheLoader class="no-data flex-all" v-if="!classYear" />
@@ -130,7 +192,7 @@ const deleteClass = async(clasName: any, index: number)=>{
                         <div class="student-info-container">
                           <p>{{ item['name'] }}</p>
                           <div class="flex-all pa-2"  v-if="clas['students_year']===1 && userAuthStore.userData['school']['delete_class']">
-                            <v-btn :loading="deleteLoading===clas['subjects'].indexOf(item)" @click="deleteSubject(clas['name'], item['name'], clas['subjects'].indexOf(item))" size="x-small" class="edit-btn remove">delete</v-btn>
+                            <v-btn @click="showOverlay('deleteSubject' ,clas['name'], '', item['name'])" size="x-small" class="edit-btn remove">delete</v-btn>
                           </div>
                         </div>
                       </v-list-item>
@@ -157,7 +219,7 @@ const deleteClass = async(clasName: any, index: number)=>{
                             <p class="user-name">{{item['st_id']}} [ {{ item['user']['username'] }} ] [ {{ item['dob'] }} ]</p>
                           </div>
                           <div class="flex-all pa-2" v-if="clas['students_year']===1 && userAuthStore.userData['school']['delete_class']">
-                            <v-btn :loading="deleteLoading===clas['students'].indexOf(item)" @click="deleteStudent(clas['name'], item['st_id'], clas['students'].indexOf(item))" size="x-small" class="edit-btn remove">delete</v-btn>
+                            <v-btn @click="showOverlay('deleteStudent' ,clas['name'], item['st_id'], '')" size="x-small" class="edit-btn remove">delete</v-btn>
                           </div>
                         </div>
                       </v-list-item>
@@ -168,7 +230,7 @@ const deleteClass = async(clasName: any, index: number)=>{
           </td>
           <td class="table-data" v-if="clas['students_year']===1 && userAuthStore.userData['school']['delete_class']">
             <div class="flex-all pa-2">
-              <v-btn :loading="deleteLoading===i" @click="deleteClass(clas['name'], i)" size="x-small" class="edit-btn remove">delete</v-btn>
+              <v-btn @click="showOverlay('deleteClass' ,clas['name'], '', '')" size="x-small" class="edit-btn remove">delete</v-btn>
             </div>
           </td>
         </tr>
@@ -180,6 +242,19 @@ const deleteClass = async(clasName: any, index: number)=>{
 <style scoped>
 
 @import url('../assets/css/tables.css');
+
+.overlay-card{
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
+  align-items: center;
+  padding: 0.5em 1em;
+  color: blue;
+}
+.error-message{
+  color: red;
+}
 
 .edit-btn{
     font-size: .7rem;

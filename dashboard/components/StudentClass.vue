@@ -15,8 +15,14 @@ const changeTerm = (page: number)=>{
 
 <template>
   <div class="section-nav-container">
-    <button class="nav-btn-1" @click="changeTerm(1)" :class="{'nav-btn-1-active': sectionPage===1}">STUDENTS</button>
-    <button class="nav-btn-1" @click="changeTerm(2)" :class="{'nav-btn-1-active': sectionPage===2}">SUBJECTS</button>
+    <button class="nav-btn-1" @click="changeTerm(1)" :class="{'nav-btn-1-active': sectionPage===1}">
+      <v-icon icon="mdi-account" />
+      STUDENTS
+      </button>
+    <button class="nav-btn-1" @click="changeTerm(2)" :class="{'nav-btn-1-active': sectionPage===2}">
+      <v-icon icon="mdi-book-open" />
+      SUBJECTS
+      </button>
   </div>
 
   <div class="sections">

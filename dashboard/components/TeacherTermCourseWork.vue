@@ -100,7 +100,7 @@ const closeOverlay = ()=>{
 
   <div :id="`attendace${termNumber}`" class="overlay">
     <div class="card" style="position: relative">
-        <button @click="closeOverlay" class="close-btn flex-all">X</button>
+        <v-btn @click="closeOverlay" :disabled="loading" color="red" size="small" class="close-btn flex-all">X</v-btn>
         <h2 class="info mt-3"><strong>CLASS:</strong> {{className}} FORM {{studentsYear}}</h2>
         <h2 class="info"><strong>SUBJECT:</strong> {{subject}}</h2>
         <h2 v-if="formSuccessMessage" class="form-message" style="color: green">{{formSuccessMessage}}</h2>
@@ -211,23 +211,17 @@ const closeOverlay = ()=>{
   flex-direction: column;
   align-items: center;
   width: 90%;
-  height: 400px;
-  max-width: 600px;
+  height: 80%;
+  max-width: 800px;
+  max-height: 700px;
 }
 
 .close-btn{
   position: absolute;
   right: 0;
   top: 0;
-  background-color: red;
-  width: 25px;
-  border-radius: .3em;
-  color: white;
 }
 
-.close-btn:hover{
-  background-color: black;
-}
 .info{
   font-size: .7rem;
   text-align: center;
