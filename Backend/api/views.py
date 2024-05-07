@@ -265,93 +265,145 @@ def get_user_data(request):
                 return Response(user_data)
 
 
-# Messages
+# Notification
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
-def staff_notification(request):
-    if request.method == 'POST' and request.data['type'] == 'send':
+def notification(request):
+    from_obj = None
+    from_obj_type = None
+    try:
+        from_obj = request.user.head
+        from_obj_type = 'head'
+    except User.head.RelatedObjectDoesNotExist:
         try:
-            sender = request.user.staff
-            staff_ids = json.loads(request.POST.get('staff_ids'))
-            if staff_ids and len(staff_ids) > 0:
-                staff_message_instance = StaffNotification.objects.create(
-                    content=request.data['message'],
-                    sent_by_hod=sender
-                )
-                for staff_id in staff_ids:
-                    send_to = Staff.objects.get(school=sender.school, staff_id=staff_id)
-                    staff_message_instance.send_to.add(send_to)
-
-                staff_message_instance.save()
-
-                messages = get_staff_messages(request.user)
-
-                return Response(messages)
-            else:
+            from_obj = request.user.staff
+            from_obj_type = 'staff'
+        except User.head.RelatedObject.DoesNotExist:
+            try:
+                from_obj = request.user.student
+                from_obj_type = 'student'
+            except User.head.RelatedObject.DoesNotExist:
                 return Response(status=401)
+                
+    if request.method == 'POST':
+        data = request.data
+        if request.data['type'] == 'send':
+            receivers = json.loads(data['ids'])
+            to_obj = None
+            to_obj_type = None
+            with transaction.atomic():
+                try:
+                    notification_obj = Notification.objects.create(
+                        content=data['content'],
+                        from_head=from_obj if from_obj_type == 'head' else None,
+                        from_staff=from_obj if from_obj_type == 'staff' else None,
+                        from_student=from_obj if from_obj_type == 'student' else None,
+                    )
+                    for receiver_id in receivers:
+                        try:
+                            to_obj = Staff.objects.get(school=from_obj.school, staff_id=receiver_id)
+                            to_obj_type = 'staff'
+                        except Exception as e:
+                            try:
+                                to_obj = Student.objects.get(school=from_obj.school, st_id=receiver_id)
+                                to_obj_type = 'student'
+                            except Exception as e:
+                                transaction.set_rollback(True)
+                                return Response(status=401)
+                        
+                        if to_obj_type == 'staff':
+                            notification_obj.to_staff.add(to_obj)
+                        elif to_obj_type == 'student':
+                            notification_obj.to_student.add(to_obj)
+                
+                    notification_obj.save()
+                        
+                    return Response(status=200)
 
-        except User.staff.RelatedObjectDoesNotExist:
-            sender = request.user.head
-            staff_ids = json.loads(request.POST.get('staff_ids'))
-            if staff_ids and len(staff_ids) > 0:
-                head_message_instance = StaffNotification.objects.create(
-                    content=request.data['message'],
-                    sent_by_head=sender
-                )
-                for stf_id in staff_ids:
-                    send_to = Staff.objects.get(school=sender.school, staff_id=stf_id)
-                    head_message_instance.send_to.add(send_to)
-
-                head_message_instance.save()
-
-                messages = get_staff_messages(request.user)
-
-                return Response(messages)
-            else:
+                except Exception as e:
+                    transaction.set_rollback(True)
+                    return Response(status=401)
+                
+        elif data['type'] == 'getClassStudents':     
+            try:
+                st_class = ClasseSerializer(Classe.objects.get(school=from_obj.school, is_active=True, name=data['className'])).data
+                students = []
+                for st in st_class['students']:
+                    students.append({'label': f"{st['user']['first_name']} {st['user']['last_name']}", 'st_id': st['st_id']})
+                
+                if from_obj_type == 'student': 
+                    students = [item for item in students if item['st_id'] != from_obj.st_id]
+                    
+                return Response(students)
+            
+            except Exception as e:
                 return Response(status=401)
-
-    elif request.method == 'POST' and request.data['type'] == 'delete':
-        message_id = int(request.data['id'])
-        try:
-            hod = request.user.staff
-            hod_messages = get_object_or_404(StaffNotification, sent_by_hod=hod, id=message_id)
-            if hod_messages:
-                hod_messages.delete()
-
-            messages = get_staff_messages(request.user)
-
-            return Response(messages)
-
-        except User.staff.RelatedObjectDoesNotExist:
-            head = request.user.head
-            head_messages = get_object_or_404(StaffNotification, sent_by_head=head, id=message_id)
-            if head_messages:
-                head_messages.delete()
-
-            messages = get_staff_messages(request.user)
-
-            return Response(messages)
-
-    else:
-        try:
-            head = request.user.head
-            head_staff_data = []
-            staff = SpecificStaffSerializer(Staff.objects.filter(school=head.school), many=True).data
-            for stf in staff:
-                head_staff_data.append({
-                    'name': f"{stf['user']['first_name']} {stf['user']['last_name']}",
-                    'staff_id': stf['staff_id']
-                })
-
-            messages = get_staff_messages(request.user)
-
-            return Response({'messages': messages, 'head_staff_data': head_staff_data})
-
-        except User.head.RelatedObjectDoesNotExist:
-            messages = get_staff_messages(request.user)
-
-            return Response(messages)
-
+            
+        elif data['type'] == 'delete':
+            notification_id = data['id']
+            try:
+                notification_obj = Notification.objects.get(id=int(notification_id))
+                notification_obj.delete()
+                return Response(status=200)
+            
+            except Exception as e:
+                return Response(status=401)
+    
+    elif request.method == 'GET':
+        notifications = []
+        notifications_sent = []
+        notifications_received = []
+        students_classes = []
+        staff = []
+        if from_obj_type == 'head':
+            notifications_sent = NotificationSerializer(Notification.objects.filter(from_head=from_obj), many=True).data
+            for item in notifications_sent:
+                del notifications_sent[notifications_sent.index(item)]['from_head']
+            notifications_received = NotificationSerializer(Notification.objects.filter(to_head=from_obj), many=True).data
+            for item in notifications_received:
+                del notifications_received[notifications_received.index(item)]['to_staff']
+                del notifications_received[notifications_received.index(item)]['to_student']
+        elif from_obj_type == 'staff':
+            notifications_sent = NotificationSerializer(Notification.objects.filter(from_staff=from_obj), many=True).data
+            for item in notifications_sent:
+                del notifications_sent[notifications_sent.index(item)]['from_staff']
+            notifications_received = NotificationSerializer(Notification.objects.filter(to_staff=from_obj), many=True).data
+            for item in notifications_received:
+                del notifications_received[notifications_received.index(item)]['to_staff']
+                del notifications_received[notifications_received.index(item)]['to_student']
+        elif from_obj_type == 'student':
+            notifications_sent = NotificationSerializer(Notification.objects.filter(from_student=from_obj), many=True).data
+            for item in notifications_sent:
+                del notifications_sent[notifications_sent.index(item)]['from_student']
+            notifications_received = NotificationSerializer(Notification.objects.filter(to_student=from_obj), many=True).data
+            for item in notifications_received:
+                del notifications_received[notifications_received.index(item)]['to_staff']
+                del notifications_received[notifications_received.index(item)]['to_student']
+        
+        for item in notifications_sent:
+            notifications.append(item)
+        
+        for item in notifications_received:
+            notifications.append(item)
+        
+        notifications = sorted(notifications, key=lambda x: x['date_time'], reverse=True)
+        for item in notifications:
+            item['date_time'] = format_relative_date_time(item['date_time'], True, True)
+        
+        if from_obj_type == 'staff':
+            all_staff = SpecificStaffSerializer(Staff.objects.filter(school=from_obj.school).exclude(staff_id=from_obj.staff_id), many=True).data
+        else:
+            all_staff = SpecificStaffSerializer(Staff.objects.filter(school=from_obj.school), many=True).data
+        all_classes = ClasseWithoutStudentsSerializer(Classe.objects.filter(school=from_obj.school, is_active=True), many=True).data
+        
+        for item in all_staff:
+            staff.append({'label': f"{item['user']['first_name']} {item['user']['last_name']}", 'staff_id': item['staff_id']})
+        
+        for item in all_classes:
+            students_classes.append({'label': f"{item['name']} FORM {item['students_year']}", 'value': item['name']})
+            
+        return Response({'notifications': notifications, 'classes': students_classes, 'staff': staff}, status=200)
+        
 
 # OTHER
 @api_view(['POST'])

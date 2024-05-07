@@ -84,8 +84,8 @@ const deletesubjectAssignment = async(subjectName: string, studentsClassName: st
         <p v-if="formErrorMessage" class="mt-5" style="color: red">{{ formErrorMessage }}</p>
       </v-card-text>
       <v-card-actions>
-        <v-btn :loading="loading" class="overlay-btn mr-5" elevation="4" @click="continueDeletion">YES</v-btn>
-        <v-btn :disabled="loading" class="overlay-btn ml-5" elevation="4" @click="hidOverlay">NO</v-btn>
+        <v-btn :loading="loading" class="mr-5" elevation="4" @click="continueDeletion" color="red" >YES</v-btn>
+        <v-btn :disabled="loading" class="ml-5" elevation="4" @click="hidOverlay" color="blue" >NO</v-btn>
       </v-card-actions>
     </v-card>
   </div>
@@ -110,7 +110,7 @@ const deletesubjectAssignment = async(subjectName: string, studentsClassName: st
             <td class="table-data">{{assign['students_class']['name']}}</td>
             <td class="table-data">{{assign['students_class']['students_year']}}</td>
             <td class="table-data">{{assign['teacher']['user']['first_name']}} {{assign['teacher']['user']['last_name']}} [{{assign['teacher']['staff_id']}}]</td>
-            <td v-if="userAuthStore.activeTerm===term"><v-btn @click="deletesubjectAssignment(assign['subject']['name'], assign['students_class']['name'], assign['teacher']['staff_id'])" size="small" density="comfortable" class="delete-btn">Delete</v-btn></td>
+            <td v-if="userAuthStore.activeTerm===term"><v-btn @click="deletesubjectAssignment(assign['subject']['name'], assign['students_class']['name'], assign['teacher']['staff_id'])" color="red" size="small" >Delete</v-btn></td>
         </tr>
         </tbody>
       </v-table>
@@ -121,19 +121,6 @@ const deletesubjectAssignment = async(subjectName: string, studentsClassName: st
 
 @import url('../assets/css/tables.css');
 
-.delete-btn{
-    background-color: red;
-    border-radius: .2em;
-    padding: 0 .5em;
-    font-size: .6rem;
-    color: white;
-    font-weight: bold;
-    font-family: Verdana, Geneva, Tahoma, sans-serif;
-}
-.delete-btn:hover{
-    background-color: mediumseagreen;
-    color: yellow;
-}
 
 .overlay{
   width: 100%;
@@ -147,18 +134,6 @@ const deletesubjectAssignment = async(subjectName: string, studentsClassName: st
   z-index: 10;
 }
 
-.overlay-btn{
-  background-color: lightseagreen;
-  color: yellow;
-  font-family: Verdana, "sans-serif";
-  font-size: .7rem;
-  margin-right: 2em;
-  margin-left: 2em;
-
-}
-.overlay-btn:hover{
-  background-color: mediumseagreen;
-}
 
 </style>
 

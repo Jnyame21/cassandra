@@ -31,7 +31,7 @@ export const useElementsStore = defineStore('elementsStore', {
             }else{
                 return 'http://localhost:8000'
             }
-        }
+        },
     },
 
     actions: {

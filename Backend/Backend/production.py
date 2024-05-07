@@ -7,11 +7,13 @@ DEBUG = False
 
 ALLOWED_HOSTS = [
     'eduaap.onrender.com',
+    # 'localhost',
 ]
 
 # Cors Config
 CORS_ALLOWED_ORIGINS = [
     'https://eduaap.vercel.app',
+    # 'http://localhost:3000',
 ]
 
 # Media Config (Google Cloud Storage)
@@ -24,7 +26,7 @@ else:
     raise ValueError("GCS_CREDENTIALS environment variable is not set")
 
 
-GS_MEDIA_URL = 'https://storage.googleapis.com/eduaap-bkt/media/'
+GS_MEDIA_URL = 'https://storage.googleapis.com/eduaap-bkt/'
 
 
 STORAGES = {
@@ -38,6 +40,7 @@ STORAGES = {
     },
     "staticfiles": {
         "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        
     },
 }
 

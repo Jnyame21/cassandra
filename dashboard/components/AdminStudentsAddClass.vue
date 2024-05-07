@@ -203,10 +203,6 @@ const checkInput = computed(()=>{
     margin-bottom: 1em;
 }
 
-.submit-btn:hover{
-    background-color: mediumseagreen;
-    color: yellow;
-}
 
 @media screen and (min-width: 776px) {
     .form{

@@ -90,8 +90,8 @@ const logout = async ()=>{
             <p v-if="userAuthStore.userData">{{userAuthStore.userData['first_name']}}! are you sure you want to logout?</p>
           </v-card-text>
           <v-card-actions>
-            <v-btn class="overlay-btn mr-5" elevation="4" @click="logout()">YES</v-btn>
-            <v-btn :disabled="loading" class="overlay-btn ml-5" elevation="4" @click="hidLogoutOverlay">NO</v-btn>
+            <v-btn class="mr-5" color="red" elevation="4" @click="logout()">YES</v-btn>
+            <v-btn :disabled="loading" color="blue" class="ml-5" elevation="4" @click="hidLogoutOverlay">NO</v-btn>
           </v-card-actions>
         </v-card>
       </div>
@@ -142,17 +142,7 @@ div:hover{
   margin-bottom: 1em;
   font-size: 9rem;
 }
-.overlay-btn{
-  background-color: lightseagreen;
-  color: yellow;
-  font-family: Verdana, "sans-serif";
-  font-size: .7rem;
-  margin-right: 2em;
-  margin-left: 2em;
 
-}
-.overlay-btn:hover{
-  background-color: mediumseagreen;
-}
+
 
 </style>

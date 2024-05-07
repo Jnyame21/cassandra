@@ -185,7 +185,7 @@ const showForm = (element: any)=>{
 <template>
     <div id="staffInputForm" class="overlay">
         <div class="form" style="position: relative">
-            <button @click="closeOverlay('staffInputForm')" class="close-btn flex-all">X</button>
+            <v-btn @click="closeOverlay('staffInputForm')" size="small" color="red" class="close-btn">X</v-btn>
             <h2 v-if="formSuccessMessage" class="form-message" style="color: green">{{formSuccessMessage}}</h2>
             <h2 v-if="formErrorMessage" class="form-message" style="color: red">{{formErrorMessage}}</h2>
             
@@ -224,7 +224,7 @@ const showForm = (element: any)=>{
     <!-- File upload form -->
     <div id="staffFileForm" class="overlay">
         <div class="form" style="position: relative">
-            <button @click="closeOverlay('staffFileForm')" class="close-btn flex-all">X</button>
+            <v-btn @click="closeOverlay('staffFileForm')" color="red" size="small" class="close-btn">X</v-btn>
             <h2 v-if="formSuccessMessage" class="form-message" style="color: green">{{formSuccessMessage}}</h2>
             <h2 v-if="formErrorMessage" class="form-message" style="color: red">{{formErrorMessage}}</h2>
 
@@ -301,9 +301,7 @@ const showForm = (element: any)=>{
     font-weight: bold;
     margin-bottom: 6em;
 }
-.btn:hover{
-    background-color: mediumseagreen;
-}
+
 #staffInputForm .form, #staffFileForm .form{
     background-color: white;
     border-radius: .3em;
@@ -323,20 +321,6 @@ const showForm = (element: any)=>{
     height: 0px;
 }
 
-
-.close-btn{
-    position: absolute;
-    right: 0;
-    top: 0;
-    background-color: red;
-    width: 25px;
-    border-radius: .3em;
-    color: white;
-}
-
-.close-btn:hover{
-    background-color: black;
-}
 .info{
     font-size: .7rem;
     text-align: center;
@@ -384,11 +368,6 @@ const showForm = (element: any)=>{
 
 }
 
-.submit-btn:hover{
-    background-color: mediumseagreen;
-    color: yellow;
-}
-
 .upload-btn-container{
     display: flex;
     flex-direction: row;
@@ -405,11 +384,6 @@ const showForm = (element: any)=>{
     padding: .1em .6em;
     text-transform: uppercase;
     font-weight: bold;
-}
-
-.upload-btn:hover{
-    background-color: mediumseagreen;
-    color: white;
 }
 
 .line{

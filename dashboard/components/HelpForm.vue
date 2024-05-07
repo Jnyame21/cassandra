@@ -42,33 +42,37 @@ const submitProblem = async ()=>{
 </script>
 
 <template>
-<v-card class="w-75" style="background-color: mediumseagreen; margin-top: 5%; margin-left: 10%">
-  <v-card-text style="font-size: 1.5vw; font-family: Verdana, 'sans-serif'" :style="{'color': message==='Submission successful! Our team will work on it and notify you.'? 'yellow' : 'red'}" class="text-center" v-if="message">{{message}}</v-card-text>
-  <v-form @submit.prevent="submitProblem">
-    <v-textarea :disabled="loading" v-model="problem" class="area" placeholder="Enter the problem you are facing"></v-textarea>
-    <v-card-actions class="d-flex justify-center">
-      <v-btn elevation="5" type="submit" :loading="loading" class=" rozmach-btn">SUBMIT</v-btn>
-    </v-card-actions>
-  </v-form>
-</v-card>
+  <div class="flex-all-c h-100 w-100">
+    <v-card class="help-card">
+      <v-card-text style="font-size: .8rem; font-family: Verdana, 'sans-serif'" :style="{'color': message==='Submission successful! Our team will work on it and notify you.'? 'yellow' : 'red'}" class="text-center" v-if="message">{{message}}</v-card-text>
+      <v-form @submit.prevent="submitProblem">
+        <v-textarea :disabled="loading" v-model="problem" class="area" placeholder="Enter the problem you are facing"></v-textarea>
+        <v-card-actions class="d-flex justify-center">
+          <v-btn type="submit" :loading="loading" class="help-btn">SUBMIT</v-btn>
+        </v-card-actions>
+      </v-form>
+    </v-card>
+  </div>
 </template>
 
 <style scoped>
-.rozmach-btn{
-  background-color: mediumseagreen;
-  color: yellow;
-  font-size: 1.5vw;
-}
-.rozmach-btn:hover{
-  background-color: lightseagreen;
-  color: white;
 
+.help-card{
+  width: 90%;
+  max-width: 500px !important;
+  background-color: seagreen;
+}
+
+.help-btn{
+  background-color: white;
 }
 .area{
-  background-color: seagreen;
   color: white;
   font-family: Verdana, "sans-serif";
-  font-size: 2vw;
+  font-size: .8rem;
 }
+
+
+
 
 </style>

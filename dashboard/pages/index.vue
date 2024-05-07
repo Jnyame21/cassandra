@@ -23,7 +23,6 @@ onBeforeUnmount(()=>{
 
 onBeforeMount(() => {
   document.body.style.overflow = 'hidden';
-
 })
 
 const userAuthStore = useUserAuthStore()
@@ -55,7 +54,7 @@ const authenticate = async ()=>{
       },2000)
     }
 
-    else if (userAuthStore.isAuthenticated===true && userAuthStore.userData['role']==='student' ){
+    else if (userAuthStore.isAuthenticated && userAuthStore.userData['role']==='student' ){
       data.password = ''
       data.loading = false;
       setTimeout(()=>{
@@ -133,7 +132,6 @@ const authenticate = async ()=>{
 
 <style scoped>
 
-
 .sch-logo{
   width: 50px;
   height: 50px;
@@ -172,11 +170,6 @@ const authenticate = async ()=>{
 .submit-btn{
   margin-top: 2em;
   font-weight: bold;
-}
-
-.submit-btn:hover{
-  background-color: mediumseagreen;
-  color: yellow;
 }
 
 .forgot-password{

@@ -31,7 +31,7 @@ def get_school_folder(school_name: str):
 
 def get_student_transcript(student, request):
     student_data = StudentSerializer(student).data
-    student_class = ClasseWithSubjectsSerializer(Classe.objects.get(students=student)).data
+    student_class = ClasseWithSubjectsSerializer(Classe.objects.get(school=student.school, students=student)).data
     st_name = f"{student_data['user']['first_name']} {student_data['user']['last_name']}"
     st_date_enrolled = datetime.fromisoformat(student_data['date_enrolled']).strftime("%d %B, %Y")
     st_program = student_data['program']['name']
@@ -504,8 +504,8 @@ def get_student_transcript(student, request):
                 para3.runs[0].font.size = Pt(8)
 
             try:
-                academic_year_one = AcademicYear.objects.get(name=academic_year_names[0])
-                results_obj = Result.objects.filter(student=student, subject=st_subject, academic_year=academic_year_one, academic_term=new_counter)
+                academic_year_one = AcademicYear.objects.get(school=student.school, name=academic_year_names[0])
+                results_obj = Result.objects.filter(school=student.school, student=student, subject=st_subject, academic_year=academic_year_one, academic_term=new_counter)
                 if results_obj.exists():
                     results = StudentResultsSerializer(results_obj, many=True).data
                     score = float(results[0]['score'])
@@ -534,8 +534,8 @@ def get_student_transcript(student, request):
                 cell1.paragraphs[0].runs[0].text = 'N/A'
 
             try:
-                academic_year_two = AcademicYear.objects.get(name=academic_year_names[1])
-                results_obj = Result.objects.filter(student=student, subject=st_subject, academic_year=academic_year_two,
+                academic_year_two = AcademicYear.objects.get(school=student.school, name=academic_year_names[1])
+                results_obj = Result.objects.filter(school=student.school, student=student, subject=st_subject, academic_year=academic_year_two,
                                                     academic_term=new_counter)
                 if results_obj.exists():
                     results = StudentResultsSerializer(results_obj, many=True).data
@@ -565,8 +565,8 @@ def get_student_transcript(student, request):
                 cell2.paragraphs[0].runs[0].text = 'N/A'
 
             try:
-                academic_year_three = AcademicYear.objects.get(name=academic_year_names[2])
-                results_obj = Result.objects.filter(student=student, subject=st_subject, academic_year=academic_year_three,
+                academic_year_three = AcademicYear.objects.get(school=student.school, name=academic_year_names[2])
+                results_obj = Result.objects.filter(school=student.school, student=student, subject=st_subject, academic_year=academic_year_three,
                                                     academic_term=new_counter)
                 if results_obj.exists():
                     results = StudentResultsSerializer(results_obj, many=True).data
@@ -723,7 +723,7 @@ def get_student_transcript(student, request):
         return f"http://localhost:8000{default_storage.url(save_file)}"
 
     else:
-        file_path = f"media/{get_school_folder(student_data['school']['name'])}/students/{student_data['user']['username']}/{student_data['user']['first_name']}_{student_data['user']['last_name']}_transcript.docx"
+        file_path = f"{get_school_folder(student_data['school']['name'])}/students/{student_data['user']['username']}/{student_data['user']['first_name']}_{student_data['user']['last_name']}_transcript.docx"
         if default_storage.exists(file_path):
             default_storage.delete(file_path)
 
@@ -881,54 +881,13 @@ def teacher_results_upload(staff, year, term):
         return [teacher_students_without_results, teacher_students_with_results]
 
 
-# Notifications messages
-def get_staff_messages(request_user):
-    try:
-        staff = request_user.staff
-        messages = []
-        messages_sent = StaffNotificationSerializer(StaffNotification.objects.filter(sent_by_hod=staff), many=True).data
-        if messages_sent:
-            for msg in messages_sent:
-                messages.append(msg)
-
-        messages_received = StaffNotificationSerializer(StaffNotification.objects.filter(send_to=staff), many=True).data
-        if messages_received:
-            for msg in messages_received:
-                messages.append(msg)
-
-        messages = sorted(messages, key=lambda x: x['date_time'], reverse=True)
-        response_data = []
-        for msg in messages:
-            msg['date_time'] = format_relative_date_time(msg['date_time'], True, True)
-            response_data.append(msg)
-
-        return response_data
-
-    except User.staff.RelatedObjectDoesNotExist:
-        head = request_user.head
-        messages = []
-        messages_sent = StaffNotificationSerializer(StaffNotification.objects.filter(sent_by_head=head), many=True).data
-        if messages_sent:
-            for msg in messages_sent:
-                messages.append(msg)
-
-        messages = sorted(messages, key=lambda x: x['date_time'], reverse=True)
-
-        response_data = []
-        for msg in messages:
-            msg['date_time'] = format_relative_date_time(msg['date_time'], True, True)
-            response_data.append(msg)
-
-        return response_data
-
-
 # Convert datetime
 def format_relative_date_time(utc_date, day_name, time):
     # Convert the UTC string to a datetime object
     utc_datetime = datetime.strptime(utc_date, "%Y-%m-%dT%H:%M:%S.%fZ")
 
     # Get the current UTC datetime
-    current_utc_datetime = datetime.utcnow()
+    current_utc_datetime = datetime.now()
 
     # Check if it's today
     if utc_datetime.date() == current_utc_datetime.date():

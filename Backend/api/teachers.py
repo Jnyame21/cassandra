@@ -206,7 +206,7 @@ def teacher_student_results(request):
                     count += 1
 
                 ws.column_dimensions['A'].width = 40
-                ws.column_dimensions['B'].width = 40
+                ws.column_dimensions['B'].width = 50
                 ws.column_dimensions['C'].width = 25
                 ws.column_dimensions['D'].width = 25
 
@@ -246,7 +246,7 @@ def teacher_student_results(request):
                     })
 
                 else:
-                    file_path = f"media/{get_school_folder(staff['school']['name'])}/staff/{staff['user']['username']}/{filename}"
+                    file_path = f"{get_school_folder(staff['school']['name'])}/staff/{staff['user']['username']}/{filename}"
                     if default_storage.exists(file_path):
                         default_storage.delete(file_path)
 

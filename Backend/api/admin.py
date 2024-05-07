@@ -14,7 +14,7 @@ admin.site.register(File)
 admin.site.register(SubjectAssignment)
 admin.site.register(AcademicYear)
 admin.site.register(Result)
-admin.site.register(StaffNotification)
+admin.site.register(Notification)
 admin.site.register(School)
 admin.site.register(StudentAttendance)
 

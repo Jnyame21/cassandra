@@ -101,7 +101,7 @@ const closeOverlay = ()=>{
   <div :id="`attendace${termNumber}`" class="overlay">
     <div class="card" style="position: relative">
         <v-btn @click="closeOverlay" :disabled="loading" color="red" size="small" class="close-btn flex-all">X</v-btn>
-        <h2 class="info mt-3"><strong>CLASS:</strong> {{className}} FORM {{studentsYear}}</h2>
+        <h2 class="info mt-5"><strong>CLASS:</strong> {{className}} FORM {{studentsYear}}</h2>
         <h2 class="info"><strong>SUBJECT:</strong> {{subject}}</h2>
         <h2 v-if="formSuccessMessage" class="form-message" style="color: green">{{formSuccessMessage}}</h2>
         <h2 v-if="formErrorMessage" class="form-message" style="color: red">{{formErrorMessage}}</h2>
@@ -118,14 +118,14 @@ const closeOverlay = ()=>{
         density="compact"
         />
 
-        <v-select :disabled="loading" v-if="students" clearable multiple chips v-model="selectedStudents" class="select" label="STUDENTS" variant="outlined" 
+        <v-select :disabled="loading" v-if="students" clearable multiple chips v-model="selectedStudents" class="select" label="STUDENTS" 
         :items="students" item-title="user.last_name" item-value="st_id" persistent-hint hint="Select the students who did not attend class for the specified date">
           <template v-slot:item="{ props, item }">
               <v-list-item v-bind="props" :subtitle="item.raw.st_id"></v-list-item>
           </template>
         </v-select>
         
-        <v-btn :loading="loading" :disabled="checkInput" @click="uploadAttendance" size="small" type="submit" class="submit-btn">UPLOAD</v-btn>
+        <v-btn :loading="loading" :disabled="checkInput" @click="uploadAttendance" size="small" color="green"  class="mt-5" type="submit">UPLOAD</v-btn>
       </div>
 </div>
 
@@ -150,7 +150,7 @@ const closeOverlay = ()=>{
           <td class="table-data">{{assign['subject']['name']}}</td>
           <td class="table-data">{{assign['students_class']['name']}}</td>
           <td class="table-data">{{assign['students_class']['students_year']}}</td>
-          <td class="table-data" v-if="termNumber === userAuthStore.activeTerm" @click="showOverlay(assign['students_class']['name'], assign['students_class']['students'], assign['students_class']['students_year'], assign['subject']['name'])"><button class="page-btn">UPLOAD</button></td>
+          <td class="table-data" v-if="termNumber === userAuthStore.activeTerm" @click="showOverlay(assign['students_class']['name'], assign['students_class']['students'], assign['students_class']['students_year'], assign['subject']['name'])"><v-btn size="small" color="blue" >UPLOAD</v-btn></td>
           <td style=" padding: 0">
             <v-list class="pa-0">
               <v-list-group>
@@ -186,9 +186,6 @@ const closeOverlay = ()=>{
 
 @import url('../assets/css/tables.css');
 
-.page-btn{
-  padding: .5em 1em;
-}
 
 .overlay{
   position: absolute;
@@ -216,12 +213,6 @@ const closeOverlay = ()=>{
   max-height: 700px;
 }
 
-.close-btn{
-  position: absolute;
-  right: 0;
-  top: 0;
-}
-
 .info{
   font-size: .7rem;
   text-align: center;
@@ -235,7 +226,6 @@ const closeOverlay = ()=>{
 .form-message{
   font-size: .8rem;
   margin-top: 1em;
-  margin-bottom: 1em;
   text-align: center;
   border: 1px solid;
   padding: .1em 1em;
@@ -254,26 +244,12 @@ const closeOverlay = ()=>{
 .input-field{
   color: black;
   font-weight: bold;
-  margin-top: 5em;
+  margin-top: 2em;
   width: 250px !important;
-  max-height: 80px !important;
+  max-height: 100px !important;
   font-size: .7rem;
   font-family:monospace;
 }
-
-.submit-btn{
-  background-color: lightseagreen;
-  color: white;
-  font-weight: bold;
-  margin-top: 1em;
-  margin-bottom: 1em;
-}
-
-.submit-btn:hover{
-  background-color: mediumseagreen;
-  color: yellow;
-}
-
 
 
 

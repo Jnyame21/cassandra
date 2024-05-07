@@ -23,7 +23,7 @@ def students_file_path(instance, filename):
     if DEBUG:
         return f"{get_school_folder(instance.school.name)}/students/{user_folder}/{filename}"
     else:
-        return f"media/{get_school_folder(instance.school.name)}/students/{user_folder}/{filename}"
+        return f"{get_school_folder(instance.school.name)}/students/{user_folder}/{filename}"
 
 
 def staff_file_path(instance, filename):
@@ -32,21 +32,21 @@ def staff_file_path(instance, filename):
     if DEBUG:
         return f"{get_school_folder(instance.school.name)}/staff/{user_folder}/{filename}"
     else:
-        return f"media/{get_school_folder(instance.school.name)}/staff/{user_folder}/{filename}"
+        return f"{get_school_folder(instance.school.name)}/staff/{user_folder}/{filename}"
 
 
 def school_image_path(instance, filename):
     if DEBUG:
         return f"{get_school_folder(instance.name)}/images/{filename}"
     else:
-        return f"media/{get_school_folder(instance.name)}/images/{filename}"
+        return f"{get_school_folder(instance.name)}/images/{filename}"
 
 
 def school_file_path(instance, filename):
     if DEBUG:
         return f"{get_school_folder(instance.name)}/files/{filename}"
     else:
-        return f"media/{get_school_folder(instance.name)}/files/{filename}"
+        return f"{get_school_folder(instance.name)}/files/{filename}"
 
 
 def head_file_path(instance, filename):
@@ -55,7 +55,7 @@ def head_file_path(instance, filename):
     if DEBUG:
         return f"{get_school_folder(instance.school.name)}/head/{user_folder}/{filename}"
     else:
-        return f"media/{get_school_folder(instance.school.name)}/head/{user_folder}/{filename}"
+        return f"{get_school_folder(instance.school.name)}/head/{user_folder}/{filename}"
 
 
 class File(models.Model):
@@ -297,15 +297,16 @@ class StudentAttendance(models.Model):
         unique_together = ('school', 'subject', 'academic_year', 'academic_term', 'teacher', 'date', 'students_class')
 
 
-class StaffNotification(models.Model):
+class Notification(models.Model):
     content = models.CharField(max_length=500, verbose_name='Message', blank=False)
-    sent_by_hod = models.ForeignKey(Staff, verbose_name='HOD', on_delete=models.SET_NULL, null=True)
-    sent_by_head = models.ForeignKey(Head, verbose_name='HEAD', on_delete=models.SET_NULL, null=True)
-    send_to = models.ManyToManyField(Staff, related_name='send_to', verbose_name='Sent To')
-    date_time = models.DateTimeField(verbose_name='Timestamp', auto_now_add=True)
+    from_head = models.ForeignKey(Head, related_name='from_head', verbose_name='From Head', on_delete=models.SET_NULL, null=True, blank=True)
+    from_staff = models.ForeignKey(Staff, related_name='from_staff', verbose_name='From Staff', on_delete=models.SET_NULL, null=True, blank=True)
+    from_student = models.ForeignKey(Student, related_name='from_student', verbose_name='From Student', on_delete=models.SET_NULL, null=True, blank=True)
+    to_staff = models.ManyToManyField(Staff, related_name='to_staff', verbose_name='To Staff')
+    to_student = models.ManyToManyField(Student, related_name='to_student', verbose_name='To Student')
+    date_time = models.DateTimeField(verbose_name='At', auto_now_add=True)
 
     def __str__(self):
         return self.content
-
 
 

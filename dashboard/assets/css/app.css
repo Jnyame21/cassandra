@@ -296,6 +296,12 @@ div:hover{
   color: white;
 }
 
+.close-btn{
+  position: absolute !important;
+  right: 0 !important;
+  top: 0 !important;
+}
+
 @media screen and (min-width: 576px) {
   .nav-btn{
     font-size: .65rem !important;

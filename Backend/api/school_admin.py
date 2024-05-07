@@ -373,7 +373,7 @@ def admin_staff(request):
                 })
 
             else:
-                file_path = f"media/{get_school_folder(sch_admin_data['school']['name'])}/staff/{sch_admin_data['user']['username']}/{filename}"
+                file_path = f"{get_school_folder(sch_admin_data['school']['name'])}/staff/{sch_admin_data['user']['username']}/{filename}"
                 if default_storage.exists(file_path):
                     default_storage.delete(file_path)
 
@@ -700,7 +700,7 @@ def admin_students(request):
                 })
 
             else:
-                file_path = f"media/{get_school_folder(sch_admin_data['school']['name'])}/staff/{sch_admin_data['user']['username']}/{filename}"
+                file_path = f"{get_school_folder(sch_admin_data['school']['name'])}/staff/{sch_admin_data['user']['username']}/{filename}"
                 if default_storage.exists(file_path):
                     default_storage.delete(file_path)
 

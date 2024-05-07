@@ -68,7 +68,7 @@ const checkInput = computed(()=>{
 </script>
 
 <template>
-    <div class="flex-all w-100">
+    <div class="w-100 form-container" >
         <form class="form" v-if="userAuthStore.hodSubjectAssignmentUpload.staff">
             <p class="mt-10 info" v-if="userAuthStore.userData && !userAuthStore.userData['school']['semesters']">NB: All subject assignment will be for the current trimester</p>
             <h2 v-if="formSuccessMessage" class="form-message" style="color: green">{{formSuccessMessage}}</h2>
@@ -99,6 +99,12 @@ const checkInput = computed(()=>{
 </template>
 
 <style scoped>
+
+.form-container{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
 
 .form{
     width: 90%;

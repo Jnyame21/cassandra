@@ -41,7 +41,7 @@ interface states {
     };
     headDepartments: any;
     headPrograms: any;
-    staffNotifications: any;
+    notifications: any;
     headNotificationsStaff: any;
     hodPerformance: any;
     headStudentsPerformance: any;
@@ -61,6 +61,12 @@ interface states {
     };
     adminHeads: any;
     teacherStudentsAttendance: any;
+
+    // Notification
+    newNotification: Boolean;
+    notificationStudentsClasses: any;
+    notificationStudents: any;
+    notificationStaff: any;
 }
 
 export const useUserAuthStore = defineStore('userAuth',{
@@ -102,7 +108,6 @@ export const useUserAuthStore = defineStore('userAuth',{
             },
             headDepartments: null,
             headPrograms: null,
-            staffNotifications: null,
             headNotificationsStaff: null,
             hodPerformance: null,
             headStudentsPerformance: null,
@@ -122,6 +127,13 @@ export const useUserAuthStore = defineStore('userAuth',{
             },
             adminHeads: null,
             teacherStudentsAttendance: null,
+
+            // Notification
+            notifications: null,
+            newNotification: false,
+            notificationStudentsClasses: null,
+            notificationStudents: null,
+            notificationStaff: null,
         }
 
     },
@@ -174,7 +186,7 @@ export const useUserAuthStore = defineStore('userAuth',{
             }
             this.headPrograms= null
             this.headNotificationsStaff = null
-            this.staffNotifications = null
+            this.notifications = null
             this.headDepartments = null
             this.hodPerformance = null
             this.headStudentsPerformance = null
@@ -196,6 +208,11 @@ export const useUserAuthStore = defineStore('userAuth',{
             this.adminHeads = null
             this.teacherStudentsAttendance = null
 
+            // Notification
+            this.newNotification = false
+            this.notificationStudentsClasses = null
+            this.notificationStudents = null
+            this.notificationStaff = null
         },
 
         async getStudentData(){
@@ -293,16 +310,13 @@ export const useUserAuthStore = defineStore('userAuth',{
                 })
         },
 
-        async staffNotification(){
-            await axiosInstance.get("staff/notification")
+        async getNotifications(){
+            await axiosInstance.get("notification")
                 .then(response =>{
-                    if (this.userData && this.userData['role']==='head'){
-                        this.headNotificationsStaff = response.data['head_staff_data']
-                        this.staffNotifications = response.data['messages']
-                    }
-                    else{
-                        this.staffNotifications = response.data
-                    }
+                    this.newNotification = response.data['new_notification']
+                    this.notifications = response.data['notifications']
+                    this.notificationStudentsClasses = response.data['classes']
+                    this.notificationStaff = response.data['staff']
                 })
                 .catch(e =>{
                     return Promise.reject()
@@ -397,18 +411,18 @@ export const useUserAuthStore = defineStore('userAuth',{
 
                 }
                 else{
-                    this.message = "Oops! your username or password is wrong. Try again"
+                    this.message = "Oops! the username or password is wrong."
                     return Promise.reject()
                 }
             }
             catch (e) {
                 if (e.response && e.response.status === 401 ){
-                    this.message = "Oops! your username or password is wrong."
+                    this.message = "Oops! the username or password is wrong."
                     return Promise.reject(e)
                 }
 
                 else{
-                    this.message = "Oops! something went wrong. Check you internet connection"
+                    this.message = "Oops! something went wrong"
                     return Promise.reject(e)
                 }
             }

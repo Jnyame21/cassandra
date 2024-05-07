@@ -109,14 +109,12 @@ const deletesubjectAssignment = async(subjectName: string, studentsClassName: st
                       <v-virtual-scroll class="v-scroll" height="22vh" :items="atten['students_present']">
                         <template v-slot:default="{ item }" >
                           <v-list-item style="position: relative">
-                            <div class="student-info-container">
-                              <img class="profile-img" :src="item['img']">
-                              <div class="flex-all-c">
-                                <p class="user-name">{{item['user']['first_name']+' '+item['user']['last_name']}}</p>
-                                <p class="user-name">{{item['st_id']}}</p>
-                              </div>
-                            </div>
-                            
+                            <v-list-item-title>
+                              <p class="user-name">{{item['user']['first_name']+' '+item['user']['last_name']}}</p>
+                            </v-list-item-title>
+                            <v-list-item-subtitle>
+                              <p class="user-name">{{item['st_id']}}</p>
+                            </v-list-item-subtitle>
                           </v-list-item>
                         </template>
                       </v-virtual-scroll>
@@ -134,21 +132,19 @@ const deletesubjectAssignment = async(subjectName: string, studentsClassName: st
                       <v-virtual-scroll class="v-scroll" height="22vh" :items="atten['students_absent']">
                         <template v-slot:default="{ item }" >
                           <v-list-item style="position: relative">
-                            <div class="student-info-container">
-                              <img class="profile-img" :src="item['img']">
-                              <div class="flex-all-c">
-                                <p class="user-name">{{item['user']['first_name']+' '+item['user']['last_name']}}</p>
-                                <p class="user-name">{{item['st_id']}}</p>
-                              </div>
-                            </div>
-                            
+                            <v-list-item-title>
+                              <p class="user-name">{{item['user']['first_name']+' '+item['user']['last_name']}}</p>
+                            </v-list-item-title>
+                            <v-list-item-subtitle>
+                              <p class="user-name">{{item['st_id']}}</p>
+                            </v-list-item-subtitle>
                           </v-list-item>
                         </template>
                       </v-virtual-scroll>
                   </v-list-group>
                 </v-list>
             </td>
-            <td><v-btn @click="deletesubjectAssignment(atten['subject']['name'], atten['students_class']['name'], atten['date'])" size="small" density="comfortable" class="delete-btn">Delete</v-btn></td>
+            <td><v-btn @click="deletesubjectAssignment(atten['subject']['name'], atten['students_class']['name'], atten['date'])" size="small" color="red">Delete</v-btn></td>
         </tr>
         </tbody>
       </v-table>
@@ -159,19 +155,6 @@ const deletesubjectAssignment = async(subjectName: string, studentsClassName: st
 
 @import url('../assets/css/tables.css');
 
-.delete-btn{
-    background-color: red;
-    border-radius: .2em;
-    padding: 0 .5em;
-    font-size: .6rem;
-    color: white;
-    font-weight: bold;
-    font-family: Verdana, Geneva, Tahoma, sans-serif;
-}
-.delete-btn:hover{
-    background-color: mediumseagreen;
-    color: yellow;
-}
 
 .overlay{
   width: 100%;

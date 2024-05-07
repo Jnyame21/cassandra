@@ -6,30 +6,30 @@ export default defineNuxtRouteMiddleware((to, from) => {
                 userAuthStore.getTeacherSubjectAssignments()
                 userAuthStore.getTeacherStudentsAttendance()
                 userAuthStore.getTeacherStudentResults()
-                userAuthStore.staffNotification()
+                userAuthStore.getNotifications()
             }
             
             if (userAuthStore.userData['staff_role']==='hod' && !userAuthStore.staffSubjectAssignment.termOne ){
                 userAuthStore.getHodData()
                 userAuthStore.getHodPerformance()
-                userAuthStore.staffNotification()
             }
 
             if (userAuthStore.userData['role']==='head' && !userAuthStore.headDepartments ){
                 userAuthStore.getHeadData()
                 userAuthStore.getHeadStudentsPerformance()
-                userAuthStore.staffNotification()
+                userAuthStore.getNotifications()
             }
 
             if (userAuthStore.userData['staff_role']==='admin' && !userAuthStore.adminClasses.yearOne ){
                 userAuthStore.getAdminData()
-                userAuthStore.staffNotification()
+                userAuthStore.getNotifications()
             }
 
             if (userAuthStore.userData['role']==='student'){
                 return navigateTo('/student')
             }
         }
+        
         else {
             return navigateTo('/')
         }

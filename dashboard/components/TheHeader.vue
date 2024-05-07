@@ -4,8 +4,8 @@ const userAuthStore = useUserAuthStore()
 const elementsStore = useElementsStore()
 
 const showMessage = ()=>{
-  const overlay = document.getElementById('staffMessage')
-  overlay ? overlay.style.display = 'flex' : null
+  const overlay = document.getElementById('Notification')
+  overlay ? overlay.style.display = 'flex' : console.log('no overlay')
 }
 
 const showOverlay = ()=>{
@@ -36,11 +36,11 @@ const showOverlay = ()=>{
             <p v-if="userAuthStore.userData && userAuthStore.userData['school']['semesters']" class="year-info">ACADEMIC CALENDAR: {{userAuthStore.activeAcademicYear}} SEMESTER: {{userAuthStore.activeTerm}}</p>
             <p v-if="userAuthStore.userData && !userAuthStore.userData['school']['semesters']" class="year-info">ACADEMIC CALENDAR: {{userAuthStore.activeAcademicYear}} TRIMESTER: {{userAuthStore.activeTerm}}</p>
           </div>
-          <div v-if="userAuthStore.userData['role']=== 'staff' || userAuthStore.userData['role']=== 'head' " class="flex-all">
-            <v-icon @click="showMessage" class="message" color="yellow" icon="mdi-bell"/>
-            <StaffMessage id="staffMessage" />
+          <div class="flex-all">
+            <v-icon @click="showMessage" class="notice" color="yellow" icon="mdi-bell"/>
+            <NoticeOverlay id="Notification" />
           </div>
-          <button @click="showOverlay()" class="logout-btn page-btn">LOGOUT<v-icon icon="mdi-logout"/></button>
+          <button @click="showOverlay()" class="logout-btn">LOGOUT<v-icon icon="mdi-logout"/></button>
         </div>
       </header>
 </template>
@@ -53,7 +53,7 @@ const showOverlay = ()=>{
   color: yellow;
   font-family: monospace;
 }
-.message{
+.notice{
     box-shadow: 0px 0px 2px black;
     border-radius: .1em;
     cursor: pointer;
@@ -64,7 +64,7 @@ const showOverlay = ()=>{
     box-shadow: 1px 1px 4px black;
   }
   
-  #staffMessage{
+  #Notification{
     display: none;
   }
   
@@ -127,10 +127,14 @@ const showOverlay = ()=>{
 }
 
 .logout-btn{
-    font-size: .7rem;
-    padding: .2em .5em;
-    margin-right: 1em;
-    margin-top: .8em;
+  background-color: lightseagreen;
+  box-shadow: 1px 1px 5px black;
+  font-size: .7rem;
+  padding: .2em .5em;
+  margin-left: .5em;
+  margin-right: .5em;
+  border-radius: .2em;
+  color: white;
 }
 
 @media screen and (min-width: 576px) {
@@ -142,5 +146,7 @@ const showOverlay = ()=>{
     }
    
 }
+
+
 
 </style>

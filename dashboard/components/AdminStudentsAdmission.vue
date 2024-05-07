@@ -274,9 +274,7 @@ const showForm = (element: any)=>{
     font-weight: bold;
     margin-bottom: 6em;
 }
-.btn:hover{
-    background-color: mediumseagreen;
-}
+
 #inputForm .form, #fileForm .form{
     background-color: white;
     border-radius: .3em;
@@ -300,12 +298,6 @@ const showForm = (element: any)=>{
     height: 0px;
 }
 
-
-.close-btn{
-    position: absolute;
-    right: 0;
-    top: 0;
-}
 
 .info{
     font-size: .7rem;
@@ -355,11 +347,6 @@ const showForm = (element: any)=>{
 
 }
 
-.submit-btn:hover{
-    background-color: mediumseagreen;
-    color: yellow;
-}
-
 .upload-btn-container{
     display: flex;
     flex-direction: row;
@@ -376,11 +363,6 @@ const showForm = (element: any)=>{
     padding: .1em .6em;
     text-transform: uppercase;
     font-weight: bold;
-}
-
-.upload-btn:hover{
-    background-color: mediumseagreen;
-    color: white;
 }
 
 .line{

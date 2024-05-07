@@ -55,15 +55,15 @@ const showOverlay = (head_id: any)=>{
         <p v-if="formErrorMessage" class="mt-5" style="color: red">{{ formErrorMessage }}</p>
       </v-card-text>
       <v-card-actions>
-        <v-btn :loading="loading" class="overlay-btn mr-5" elevation="4" @click="deleteHead">YES</v-btn>
-        <v-btn :disabled="loading" class="overlay-btn ml-5" elevation="4" @click="hidOverlay">NO</v-btn>
+        <v-btn :loading="loading" color="red" class="mr-5" elevation="4" @click="deleteHead">YES</v-btn>
+        <v-btn :disabled="loading" color="blue" class="ml-5" elevation="4" @click="hidOverlay">NO</v-btn>
       </v-card-actions>
     </v-card>
   </div>
     <div style="width: 100%; position: relative; height: 100%">
       <TheLoader v-if="!userAuthStore.adminHeads" />
       <NoData :message="'No data yet'"  v-if="userAuthStore.adminHeads && userAuthStore.adminHeads.length === 0 "/>
-      <v-table fixed-header height="55dvh"  v-if="userAuthStore.adminHeads && userAuthStore.adminHeads.length > 0 ">
+      <v-table fixed-header height="60dvh"  v-if="userAuthStore.adminHeads && userAuthStore.adminHeads.length > 0 ">
         <thead>
         <tr>
           <th class="table-head">NAME</th>
@@ -91,7 +91,7 @@ const showOverlay = (head_id: any)=>{
             <img class="profile-img" :src="head['img']">
           </td>
           <td class="table-data"  v-if="userAuthStore.userData['school']['delete_staff']">
-            <v-btn @click="showOverlay(head['head_id'])" size="x-small" class="edit-btn remove">delete</v-btn>
+            <v-btn @click="showOverlay(head['head_id'])" color="red" size="x-small">delete</v-btn>
           </td>            
         </tr>
         </tbody>
@@ -103,23 +103,8 @@ const showOverlay = (head_id: any)=>{
 
 @import url('../assets/css/tables.css');
 
-.edit-btn{
-  font-size: .7rem;
-  padding: .1em .5em;
-}
-
 .username{
   text-transform: none;
-}
-.remove{
-  font-size: .5rem;
-  background-color: red;
-  color: white;
-  margin-left: 2em;
-}
-.remove:hover{
-  color: yellow;
-  background-color: seagreen;
 }
 
 .overlay{
@@ -135,18 +120,6 @@ const showOverlay = (head_id: any)=>{
   z-index: 10;
 }
 
-.overlay-btn{
-  background-color: lightseagreen;
-  color: yellow;
-  font-family: Verdana, "sans-serif";
-  font-size: .7rem;
-  margin-right: 2em;
-  margin-left: 2em;
-
-}
-.overlay-btn:hover{
-  background-color: mediumseagreen;
-}
 
 
 </style>

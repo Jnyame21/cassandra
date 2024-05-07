@@ -116,6 +116,15 @@ class SpecificStudentSerializer(serializers.ModelSerializer):
         return data
 
 
+class SpecificStudentWithoutImageSerializer(serializers.ModelSerializer):
+    user = UserSerializer()
+    program = SpecificProgramSerializer()
+
+    class Meta:
+        model = Student
+        fields = ('user', 'st_id', 'gender', 'has_completed', 'current_year', 'program')
+    
+
 # Staff Serializers
 class StaffSerializer(serializers.ModelSerializer):
     user = UserSerializer()
@@ -173,6 +182,15 @@ class SpecificStaffSerializer(serializers.ModelSerializer):
 
         return data
 
+class SpecificStaffWithoutImageSerializer(serializers.ModelSerializer):
+    user = UserSerializer()
+    subjects = SubjectsSerializer(many=True)
+    department = DepartmentNameSerializer()
+
+    class Meta:
+        model = Staff
+        fields = ('staff_id', 'contact', 'gender', 'user', 'subjects', 'department', 'role')
+    
 
 # Department Serializers
 class DepartmentSerializer(serializers.ModelSerializer):
@@ -295,10 +313,10 @@ class SubjectAssignmentWithoutStudentsSerializer(serializers.ModelSerializer):
         
 # Results Serializers
 class ResultsSerializer(serializers.ModelSerializer):
-    student = SpecificStudentSerializer()
+    student = SpecificStudentWithoutImageSerializer()
     subject = SubjectsSerializer()
     academic_year = AcademicYearSerializer()
-    teacher = SpecificStaffSerializer()
+    teacher = SpecificStaffWithoutImageSerializer()
 
     class Meta:
         model = Result
@@ -321,20 +339,51 @@ class StudentResultsSerializer(serializers.ModelSerializer):
 
 
 # Students Attendance
+class StudentAttendanceStudentSerializer(serializers.ModelSerializer):
+    user = UserSerializer()
+
+    class Meta:
+        model = Student
+        fields = ('user', 'st_id')
+
 class StudentsAttendanceSerializer(serializers.ModelSerializer):
     students_class = ClasseWithoutStudentsSerializer()
     subject = SubjectsSerializer()
     teacher = SpecificStaffSerializer()
-    students_present = SpecificStudentSerializer(many=True)
-    students_absent = SpecificStudentSerializer(many=True)
+    students_present = StudentAttendanceStudentSerializer(many=True)
+    students_absent = StudentAttendanceStudentSerializer(many=True)
 
     class Meta:
         model = StudentAttendance
         fields = '__all__'
 
 
-# Staff Message Serializer
-class NotificationStaff(serializers.ModelSerializer):
+# Student Notification Serializer
+class StudentNotificationSerializer(serializers.ModelSerializer):
+    user = UserSerializer()
+
+    class Meta:
+        model = Student
+        fields = ('st_id', 'img', 'user')
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if settings.DEBUG:
+            if data['img'] and data['img'] != 'null':
+                data['img'] = f"http://localhost:8000{data['img']}"
+            else:
+                data['img'] = f"http://localhost:8000/static/images/staff_img.jpg"
+        else:
+            if data['img'] and data['img'] != 'null':
+                pass
+            else:
+                data['img'] = f"https://eduaap.onrender.com/static/images/staff_img.jpg"
+
+        return data
+    
+    
+# Staff Notification Serializer
+class StaffNotificationSerializer(serializers.ModelSerializer):
     user = UserSerializer()
 
     class Meta:
@@ -357,7 +406,8 @@ class NotificationStaff(serializers.ModelSerializer):
         return data
 
 
-class NotificationHead(serializers.ModelSerializer):
+# Head Notification Serializer
+class HeadNotificationSerializer(serializers.ModelSerializer):
     user = UserSerializer()
 
     class Meta:
@@ -380,16 +430,18 @@ class NotificationHead(serializers.ModelSerializer):
         return data
 
 
-class StaffNotificationSerializer(serializers.ModelSerializer):
-    sent_by_hod = NotificationStaff()
-    sent_by_head = NotificationHead()
-    send_to = NotificationStaff(many=True)
+class NotificationSerializer(serializers.ModelSerializer):
+    from_head = HeadNotificationSerializer()
+    from_staff = StaffNotificationSerializer()
+    from_student = StudentNotificationSerializer()
+    to_staff = StaffNotificationSerializer(many=True)
+    to_student = StudentNotificationSerializer(many=True)
 
     class Meta:
-        model = StaffNotification
+        model = Notification
         fields = "__all__"
-
-
+        
+        
 class FileSerializer(serializers.ModelSerializer):
     class Meta:
         model = File
