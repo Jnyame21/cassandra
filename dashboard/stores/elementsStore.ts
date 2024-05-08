@@ -27,7 +27,7 @@ export const useElementsStore = defineStore('elementsStore', {
     getters: {
         getBaseUrl: ()=>{
             if (process.env.NODE_ENV=== 'production'){
-                return "https://cassandra.onrender.com"
+                return "https://cassandra-o5ft.onrender.com"
             }else{
                 return 'http://localhost:8000'
             }

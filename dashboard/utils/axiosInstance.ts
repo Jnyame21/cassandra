@@ -6,7 +6,7 @@ import { useUserAuthStore } from "../stores/userAuthStore";
 
 const baseURL =
   process.env.NODE_ENV === 'production'
-    ? "https://cassandra.onrender.com" // Production base URL
+    ? "https://cassandra-o5ft.onrender.com" // Production base URL
     : "http://localhost:8000"; // Development base URL
 
 export const defaultAxiosInstance = axios.create({

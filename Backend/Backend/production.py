@@ -6,14 +6,14 @@ import json
 DEBUG = False
 
 ALLOWED_HOSTS = [
-    'cassandra.onrender.com',
-    'localhost',
+    'cassandra-o5ft.onrender.com',
+    # 'localhost',
 ]
 
 # Cors Config
 CORS_ALLOWED_ORIGINS = [
-    'https://cassandra.vercel.app',
-    'http://localhost:3000',
+    'https://cassandra-teal.vercel.app',
+    # 'http://localhost:3000',
 ]
 
 # Media Config (Google Cloud Storage)
