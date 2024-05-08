@@ -5,16 +5,16 @@ import { ref } from 'vue'
 const userAuthStore = useUserAuthStore()
 const elementsStore = useElementsStore()
 const subjectName = ref('')
-const teacherName = ref('not assigned yet')
-const teacherImg = ref('')
-const teacherGender = ref('')
-const teacherContact = ref('')
-const teacherEmail = ref('')
-const teacherDepartment = ref('')
+const teacherName: any = ref(null)
+const teacherImg: any = ref(null)
+const teacherGender: any = ref(null)
+const teacherContact: any = ref(null)
+const teacherEmail: any = ref(null)
+const teacherDepartment: any = ref(null)
 
 const subjectInfo = (subject: string, teacher: string, img: any, gender: any, email: any, contact: any, department: any)=>{
   subjectName.value = subject
-  if (teacher != 'null'){
+  if (teacher !== 'null'){
     teacherName.value = teacher
     teacherImg.value = img
     teacherGender.value = gender
@@ -28,7 +28,7 @@ const subjectInfo = (subject: string, teacher: string, img: any, gender: any, em
 
 const closeBtn = ()=>{
   const overlay = document.getElementById('subjectOverlay')
-  teacherName.value = 'No teacher has been assigned to this subject yet'
+  teacherName.value = null
   teacherImg.value = ''
   teacherGender.value = ''
   teacherContact.value = ''
@@ -44,17 +44,18 @@ const closeBtn = ()=>{
   <div id="subjectOverlay" class="overlay">
     <div class="info-container">
       <v-btn @click="closeBtn" color="red" size="small" class="close-btn">X</v-btn>
-      <div class="flex-all-c ma-5">
+      <div class="flex-all-c ma-5 mt-5">
         <h4 class="subject-name"><strong>{{subjectName}}</strong></h4>
-        <p class="title" v-if="teacherName === 'No teacher has been assigned to this subject yet'">No teacher has been assigned to this subject yet</p>
-        <div class="teacher-info" v-if="teacherName != 'No teacher has been assigned to this subject yet'">
+        <p class="title message" v-if="!teacherName && userAuthStore.userData['school']['semesters']">No teacher has been assigned to teach this subject yet for the {{userAuthStore.activeAcademicYear}} academic year, semeter {{userAuthStore.activeTerm}}</p>
+        <p class="title message" v-if="!teacherName && !userAuthStore.userData['school']['semesters']">No teacher has been assigned to teach this subject yet for the {{userAuthStore.activeAcademicYear}} academic year, trimester {{userAuthStore.activeTerm}}</p>
+        <div class="teacher-info" v-if="teacherName">
           <h4  class="title">TEACHER INFO</h4>
           <p class="title">NAME: <strong>{{teacherName}}</strong></p>
-          <p class="title">GENDER: <strong>{{teacherGender}}</strong></p>
-          <p class="title">DEPARTMENT: <strong>{{teacherDepartment}}</strong></p>
-          <p class="title">PHONE NO: <strong>{{teacherContact}}</strong></p>
-          <p class="title">EMAIL: <strong>{{teacherEmail}}</strong></p>
-          <p class="title"><img class="teacher-img" :src="teacherImg"></p>
+          <p class="title" v-if="teacherGender">GENDER: <strong>{{teacherGender}}</strong></p>
+          <p class="title" v-if="teacherDepartment">DEPARTMENT: <strong>{{teacherDepartment}}</strong></p>
+          <p class="title" v-if="teacherContact">PHONE NO: <strong>{{teacherContact}}</strong></p>
+          <p class="title" v-if="teacherEmail">EMAIL: <strong>{{teacherEmail}}</strong></p>
+          <p class="title"  v-if="teacherImg"><img class="teacher-img" :src="teacherImg"></p>
         </div>
       </div>
     </div>
@@ -89,28 +90,17 @@ const closeBtn = ()=>{
   font-size: .6rem;
 }
 
-.close-btn{
-  position: absolute;
-  right: 0;
-  top: 0;
-  background-color: red;
-  width: 25px;
-  border-radius: .3em;
-  color: white;
-}
-
-.close-btn:hover{
-  background-color: black;
-}
 .teacher-info h4{
   font-size: .8rem;
   font-family: Verdana, Geneva, Tahoma, sans-serif;
   color: red;
 }
+
 .title{
   font-size: .8rem;
   margin-top: .5em;
   text-align: center;
+  font-weight: bold;
 }
 .subject-name{
   font-size: 1.2rem;
@@ -124,6 +114,12 @@ const closeBtn = ()=>{
   width: 50px;
   height: 50px;
   border-radius: 50%;
+}
+
+.message{
+  color: red !important;
+  text-align: center !important;
+  font-family: Verdana, Geneva, Tahoma, sans-serif;
 }
 
 .subject-container{

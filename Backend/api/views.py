@@ -30,6 +30,7 @@ import io
 from pprint import pprint
 import pytz
 from dateutil import parser
+from email_validator import validate_email
 from api.utils import *
 
 
@@ -106,6 +107,11 @@ def get_user_data(request):
         elif data['altContact'] and data['altContact'] != 'null' and len(data['altContact']) != 10:
             return Response({'ms': 'The second phone number must be a 10 digit number'}, status=201)
 
+        try:
+            validate_email(data['email'])
+        except Exception as e:
+            return Response({'ms': "Invalid email address. NB: You can leave the email field empty if you don't have an email address"}, status=201)
+        
         try:
             staff = user.staff
             with transaction.atomic():

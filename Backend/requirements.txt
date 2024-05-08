@@ -13,6 +13,8 @@ django-cors-headers==4.3.1
 django-storages==1.14.2
 djangorestframework==3.14.0
 djangorestframework-simplejwt==5.3.1
+dnspython==2.6.1
+email_validator==2.1.1
 et-xmlfile==1.1.0
 etext==0.0.1
 frozenlist==1.4.0

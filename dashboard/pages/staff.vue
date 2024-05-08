@@ -38,7 +38,7 @@ onBeforeMount(()=>{
 
 })
 
-const hidOverlay = async()=>{
+const updateStaffData = async()=>{
   loading.value = true
   const formData = new FormData()
   formData.append('password', password.value)
@@ -154,7 +154,7 @@ const changePage = (page: string)=>{
         </div>
       </v-card-text>
       <v-card-actions class="flex-all">
-        <v-btn class="overlay-btn" :disabled="checkInput" :loading="loading" elevation="4" @click="hidOverlay()">DONE</v-btn>
+        <v-btn class="overlay-btn" :disabled="checkInput" @click="updateStaffData" :loading="loading" elevation="4">DONE</v-btn>
       </v-card-actions>
     </v-card>
   </div>    

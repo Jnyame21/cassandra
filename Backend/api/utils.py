@@ -77,7 +77,12 @@ def get_student_transcript(student, request):
 
     # School logo
     sch_logo = doc.add_paragraph()
-    sch_logo.add_run().add_picture(f"{student_data['school']['sch_logo'].replace(f'{base_url(request)}/', '')}", height=Inches(1.0))
+    print(student_data['school']['sch_logo'])
+    if settings.DEBUG:
+        sch_logo.add_run().add_picture(f"{student_data['school']['sch_logo'].replace(f'{base_url(request)}/', '')}", height=Inches(1.0))
+    else:
+        sch_logo.add_run().add_picture(f"{student_data['school']['sch_logo'].replace(f'{base_url(request)}/media/', '')}", height=Inches(1.0))
+    
     sch_logo.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
     sch_logo.paragraph_format.space_before = Pt(20)
     sch_logo.paragraph_format.space_after = Pt(0)
@@ -653,7 +658,10 @@ def get_student_transcript(student, request):
 
     sign_cell = grad_sign_table.rows[1].cells[1]
     sign_cell_para = sign_cell.paragraphs[0]
-    sign_cell_para.add_run().add_picture(f"{student_data['school']['head_signature'].replace(f'{base_url(request)}', '').replace('/', '', 1)}", height=Inches(0.93))
+    if settings.DEBUG:
+        sign_cell_para.add_run().add_picture(f"{student_data['school']['head_signature'].replace(f'{base_url(request)}', '').replace('/', '', 1)}", height=Inches(0.93))
+    else:
+        sign_cell_para.add_run().add_picture(f"{student_data['school']['head_signature'].replace(f'{base_url(request)}/media/', '').replace('/', '', 1)}", height=Inches(0.93))
     sign_cell_para.add_run().add_break()
     sign_name = sign_cell_para.add_run(student_data['school']['head_name'])
     sign_cell_para.add_run().add_break()
