@@ -23,10 +23,12 @@ const router = useRouter()
 const userAuthStore = useUserAuthStore()
 const loading = ref(false)
 
-let intervalTime = setInterval(()=>{
+let intervalTime = 0
+if (process.env.NODE_ENV == 'production'){
+  intervalTime = setInterval(()=>{
       userAuthStore.startUpServer()
   }, 60*1000)
-
+}
 
 onBeforeUnmount(()=>{
   clearInterval(intervalTime)

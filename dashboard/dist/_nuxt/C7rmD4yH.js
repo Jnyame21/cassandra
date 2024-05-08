@@ -1,0 +1,1 @@
+import{aU as a,F as s,q as t}from"./CkHxpEjH.js";const i=a((r,u)=>{{const e=s();if(e.isAuthenticated&&e.userData&&e.userData.role==="student")return t("/student");if(e.isAuthenticated&&e.userData&&e.userData.role==="staff")return t("/staff");if(e.isAuthenticated&&e.userData&&e.userData.role==="head")return t("/staff")}});export{i as default};

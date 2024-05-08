@@ -1,31 +1,31 @@
 <script setup lang="ts">
 
-const userAuthStore = useUserAuthStore()
-
 
 </script>
 
 <template>
-    <footer class="footer" v-if="userAuthStore.userData">
-        <p class="footer-text">© 2024 EduAAP</p>
-      </footer>
+    <footer class="footer">
+        <div class="footer-content">
+            <p class="footer-text">© 2024 Cassandra</p>
+        </div>
+    </footer>
 </template>
 
 <style scoped>
 
-.footer{
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
+.footer {
+    background-color: seagreen;
+    padding: 5px;
+    width: 100%;
     height: 5vh;
     height: 5dvh;
-    align-items: center;
-    background-color: seagreen;
-}
-
-.footer-text{
-    font-size: .6rem;
+    text-align: center;
+    position: absolute;
+    bottom: 0;
     color: yellow;
 }
+
+
+
 
 </style>

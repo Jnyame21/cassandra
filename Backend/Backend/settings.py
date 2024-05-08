@@ -73,7 +73,7 @@ DATABASES = {
     },
 
     # 'default': dj_database_url.config(
-    #     default=os.environ.get("EDUAAP_DB"),
+    #     default=os.environ.get("cassandra_DB"),
     #     conn_max_age=600
     # )
 }

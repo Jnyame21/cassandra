@@ -87,7 +87,7 @@ class StudentSerializer(serializers.ModelSerializer):
             if data['img'] and data['img'] != 'null':
                 pass
             else:
-                data['img'] = f"https://eduaap.onrender.com/static/images/students_img.jpg"
+                data['img'] = f"https://cassandra.onrender.com/static/images/students_img.jpg"
 
         return data
 
@@ -111,7 +111,7 @@ class SpecificStudentSerializer(serializers.ModelSerializer):
             if data['img'] and data['img'] != 'null':
                 pass
             else:
-                data['img'] = f"https://eduaap.onrender.com/static/images/students_img.jpg"
+                data['img'] = f"https://cassandra.onrender.com/static/images/students_img.jpg"
 
         return data
 
@@ -147,7 +147,7 @@ class StaffSerializer(serializers.ModelSerializer):
             if data['img'] and data['img'] != 'null':
                 pass
             else:
-                data['img'] = f"https://eduaap.onrender.com/static/images/staff_img.jpg"
+                data['img'] = f"https://cassandra.onrender.com/static/images/staff_img.jpg"
 
         return data
 
@@ -178,7 +178,7 @@ class SpecificStaffSerializer(serializers.ModelSerializer):
             if data['img'] and data['img'] != 'null':
                 pass
             else:
-                data['img'] = f"https://eduaap.onrender.com/static/images/staff_img.jpg"
+                data['img'] = f"https://cassandra.onrender.com/static/images/staff_img.jpg"
 
         return data
 
@@ -232,7 +232,7 @@ class HeadSerializer(serializers.ModelSerializer):
             if data['img'] and data['img'] != 'null':
                 pass
             else:
-                data['img'] = f"https://eduaap.onrender.com/static/images/staff_img.jpg"
+                data['img'] = f"https://cassandra.onrender.com/static/images/staff_img.jpg"
 
         return data
 
@@ -255,7 +255,7 @@ class SpecificHeadSerializer(serializers.ModelSerializer):
             if data['img'] and data['img'] != 'null':
                 pass
             else:
-                data['img'] = f"https://eduaap.onrender.com/static/images/staff_img.jpg"
+                data['img'] = f"https://cassandra.onrender.com/static/images/staff_img.jpg"
 
         return data
 
@@ -377,7 +377,7 @@ class StudentNotificationSerializer(serializers.ModelSerializer):
             if data['img'] and data['img'] != 'null':
                 pass
             else:
-                data['img'] = f"https://eduaap.onrender.com/static/images/staff_img.jpg"
+                data['img'] = f"https://cassandra.onrender.com/static/images/staff_img.jpg"
 
         return data
     
@@ -401,7 +401,7 @@ class StaffNotificationSerializer(serializers.ModelSerializer):
             if data['img'] and data['img'] != 'null':
                 pass
             else:
-                data['img'] = f"https://eduaap.onrender.com/static/images/staff_img.jpg"
+                data['img'] = f"https://cassandra.onrender.com/static/images/staff_img.jpg"
 
         return data
 
@@ -425,7 +425,7 @@ class HeadNotificationSerializer(serializers.ModelSerializer):
             if data['img'] and data['img'] != 'null':
                 pass
             else:
-                data['img'] = f"https://eduaap.onrender.com/static/images/staff_img.jpg"
+                data['img'] = f"https://cassandra.onrender.com/static/images/staff_img.jpg"
 
         return data
 

@@ -34,7 +34,7 @@ from api.utils import *
 
 
 def root(request):
-    return HttpResponse("<h1>Welcome to EduAAP</h1>")
+    return HttpResponse("<h1>Welcome to Cassandra, a school management system</h1>")
 
 @api_view(['GET'])
 # @permission_classes([IsAuthenticated])

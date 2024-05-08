@@ -62,7 +62,7 @@ def get_student_transcript(student, request):
     verdana2.font.name = 'Verdana'
 
     # Top Bar
-    top_bar_paragraph = doc.add_paragraph("Powered By: EduAAP")
+    top_bar_paragraph = doc.add_paragraph("Powered By: cassandra")
     top_bar_paragraph.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
     top_bar_paragraph.paragraph_format.space_after = Pt(0)
     top_bar_paragraph.runs[0].font.size = Pt(7.5)
@@ -697,7 +697,7 @@ def get_student_transcript(student, request):
             cell_xml.get_or_add_tcPr().append(shd)
 
     # Bottom Bar
-    bottom_bar_paragraph = doc.add_paragraph("Powered By: EduAAP")
+    bottom_bar_paragraph = doc.add_paragraph("Powered By: cassandra")
     bottom_bar_paragraph.runs[0].font.size = Pt(7.5)
     bottom_bar_paragraph.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
     bottom_bar_paragraph.paragraph_format.space_after = Pt(0)

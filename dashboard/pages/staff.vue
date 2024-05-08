@@ -28,7 +28,7 @@ onBeforeUnmount(()=>{
 
 onBeforeMount(()=>{
   if (userAuthStore.isAuthenticated && userAuthStore.userData){
-    document.title = "EduAAP"
+    document.title = "Cassandra"
   }
   document.body.style.overflow = 'hidden'
   rozmachAuth.value = localStorage.getItem('RozmachAuth')

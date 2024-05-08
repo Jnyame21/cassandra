@@ -63,7 +63,7 @@ const showOverlay = (head_id: any)=>{
     <div style="width: 100%; position: relative; height: 100%">
       <TheLoader v-if="!userAuthStore.adminHeads" />
       <NoData :message="'No data yet'"  v-if="userAuthStore.adminHeads && userAuthStore.adminHeads.length === 0 "/>
-      <v-table fixed-header height="60dvh"  v-if="userAuthStore.adminHeads && userAuthStore.adminHeads.length > 0 ">
+      <v-table fixed-header height="45dvh"  v-if="userAuthStore.adminHeads && userAuthStore.adminHeads.length > 0 ">
         <thead>
         <tr>
           <th class="table-head">NAME</th>

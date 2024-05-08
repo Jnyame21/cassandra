@@ -68,7 +68,7 @@ const showOverlay = (staffId: any)=>{
   </div>
     <div style="width: 100%; position: relative; height: 100%">
       <TheLoader v-if="!props.staff || props.staff.length ===0 " />
-      <v-table fixed-header height="50dvh" v-if="props.staff && props.staff.length > 0">
+      <v-table fixed-header height="45dvh" v-if="props.staff && props.staff.length > 0">
         <thead>
         <tr>
           <th class="table-head">NAME</th>

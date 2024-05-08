@@ -6,14 +6,14 @@ import json
 DEBUG = False
 
 ALLOWED_HOSTS = [
-    'eduaap.onrender.com',
-    # 'localhost',
+    'cassandra.onrender.com',
+    'localhost',
 ]
 
 # Cors Config
 CORS_ALLOWED_ORIGINS = [
-    'https://eduaap.vercel.app',
-    # 'http://localhost:3000',
+    'https://cassandra.vercel.app',
+    'http://localhost:3000',
 ]
 
 # Media Config (Google Cloud Storage)
@@ -26,14 +26,14 @@ else:
     raise ValueError("GCS_CREDENTIALS environment variable is not set")
 
 
-GS_MEDIA_URL = 'https://storage.googleapis.com/eduaap-bkt/'
+GS_MEDIA_URL = 'https://storage.googleapis.com/cassandra-bkt/'
 
 
 STORAGES = {
     "default": {
         "BACKEND": "storages.backends.gcloud.GoogleCloudStorage",
         "OPTIONS": {
-            "bucket_name": "eduaap-bkt",
+            "bucket_name": "cassandra-bkt",
             "project_id": "vivid-vent-387111",
             "default_acl": 'publicRead',
         },

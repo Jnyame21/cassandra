@@ -21,7 +21,7 @@ onBeforeUnmount(()=>{
 
 onBeforeMount(()=>{
   if (userAuthStore.isAuthenticated){
-    document.title = "EduAAP"
+    document.title = "cassandra"
   }
   
   document.body.style.overflow = 'hidden'

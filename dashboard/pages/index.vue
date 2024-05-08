@@ -11,8 +11,8 @@ definePageMeta({
 })
 
 useSeoMeta({
-    title: "EduAAP  | LOGIN",
-    description: "Login to your Academic Access Point (AAP)"
+    title: "Cassandra | Login",
+    description: "Login to Cassandra, the school management system."
 })
 
 useHead({
@@ -81,7 +81,7 @@ const authenticate = async ()=>{
   <div class="container img-container flex-c align-center justify-center" style="height: 100dvh">
     <div style="height: 90dvh" class="row-wrapper">
       <section class="flex-all-c form-container">
-        <h1 class="portal-name">ACADEMIC ACCESS POINT</h1>
+        <h1 class="portal-name">CASSANDRA</h1>
         <img class="sch-logo" src="/login_logo.jpg" alt="school logo">
         <div class="flex-c align-center" style="background-color: transparent">
           <v-form class="flex-c justify-start align-center" @submit.prevent="authenticate">
@@ -127,9 +127,7 @@ const authenticate = async ()=>{
         </div>
       </section>
     </div>
-    <footer class="footer-container">
-      <h6 class="footer-text">© 2024</h6>
-    </footer>
+    <TheFooter/>
   </div>
 </template>
 
@@ -144,7 +142,7 @@ const authenticate = async ()=>{
 .portal-name{
   color: yellow;
   cursor: default;
-  font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif
+  font-family:Georgia, 'Times New Roman', Times, serif
 }
 
 
@@ -192,18 +190,13 @@ const authenticate = async ()=>{
   background-image: url('/login_logo_main.jpg');
 }
 
-.footer-container{
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  width: 100%;
-  position: absolute;
-  bottom: 0;
-}
-
 .footer-text{
   color: yellow;
   cursor: default;
+}
+
+.footer {
+  background-color: black;
 }
 
 @media screen and (min-width: 576px) {
