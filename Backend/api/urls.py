@@ -12,6 +12,7 @@ from api.query import *
 
 urlpatterns = [
     path('', root, name='root'),
+    path('start_up', keep_server_running),
 
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),  # Token refresh
     path('support', user_help),  # Support/Help

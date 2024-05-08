@@ -2,6 +2,10 @@
 import {computed, onBeforeMount, onBeforeUnmount, reactive} from "vue";
 import { useRouter } from "vue-router";
 
+
+
+const userAuthStore = useUserAuthStore()
+
 definePageMeta({
     middleware: ['check-login']
 })
@@ -25,7 +29,6 @@ onBeforeMount(() => {
   document.body.style.overflow = 'hidden';
 })
 
-const userAuthStore = useUserAuthStore()
 const router = useRouter()
 const data = reactive({
   form: false,

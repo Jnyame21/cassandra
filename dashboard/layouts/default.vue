@@ -23,6 +23,15 @@ const router = useRouter()
 const userAuthStore = useUserAuthStore()
 const loading = ref(false)
 
+let intervalTime = setInterval(()=>{
+      userAuthStore.startUpServer()
+  }, 60*1000)
+
+
+onBeforeUnmount(()=>{
+  clearInterval(intervalTime)
+})
+
 
 const hidOverlay = async ()=>{
   const overlay = document.getElementById('session-alert')

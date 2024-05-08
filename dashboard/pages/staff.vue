@@ -38,7 +38,6 @@ onBeforeMount(()=>{
 
 })
 
-
 const hidOverlay = async()=>{
   loading.value = true
   const formData = new FormData()

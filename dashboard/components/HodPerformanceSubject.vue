@@ -57,5 +57,6 @@ const changeSection = (term: string)=>{
 
 <style scoped>
 
+
 </style>
 

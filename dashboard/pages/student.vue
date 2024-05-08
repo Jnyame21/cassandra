@@ -32,7 +32,6 @@ onBeforeMount(()=>{
 
 })
 
-
 const hidOverlay = ()=>{
   const overlay = document.getElementById('welcome')
   if (overlay){

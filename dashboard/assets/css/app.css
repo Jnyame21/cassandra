@@ -201,7 +201,7 @@ wd-5{
 }
 
 .page-nav-container{
-  justify-content: space-evenly !important;
+  justify-content: flex-start !important;
   border-bottom: 2px solid whitesmoke;
   background-color: whitesmoke;
 }
@@ -314,14 +314,39 @@ div:hover{
   }
 }
 
-@media screen and (min-width: 991px) {
+@media screen and (min-width: 767px) {
+  .page-nav-container{
+    justify-content: center !important;
+  }
   .nav-btn{
     font-size: .7rem !important;
+    margin: 0em 1em !important;
+  }
+}
+
+@media screen and (min-width: 991px) {
+  .nav-btn{
+    font-size: .8rem !important;
+    margin: 0em 2em !important;
   }
   .nav-btn-1{
     font-size: .6rem !important;
   }
   .nav-btn-2{
     font-size: .6rem !important;
+  }
+}
+
+@media screen and (min-width: 1200px) {
+  .nav-btn{
+    font-size: .8rem !important;
+    margin: 0em 3em !important;
+  }
+}
+
+@media screen and (min-width:2000px) {
+  .nav-btn{
+    font-size: .8rem !important;
+    margin: 0em 4em !important;
   }
 }

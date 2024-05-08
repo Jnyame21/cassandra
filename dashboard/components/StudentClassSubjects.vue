@@ -62,7 +62,7 @@ const closeBtn = ()=>{
 <section class="d-flex flex-column h-100 w-100 justify-center align-center">
   <TheLoader v-if="userAuthStore.studentData && !userAuthStore.studentData['subjects']" />
   <p class="notice" v-if="userAuthStore.userData && userAuthStore.userData['current_yr'] === 'COMPLETED'">YOU HAVE COMPLETED SCHOOL</p>
-  <div v-if="userAuthStore.studentData && userAuthStore.userData['current_yr'] !== 'COMPLETED' && userAuthStore.studentData['subjects']"  class="subject-container">
+  <div v-if="userAuthStore.userData && userAuthStore.userData['current_yr'] !== 'COMPLETED' && userAuthStore.studentData && userAuthStore.studentData['subjects']"  class="subject-container">
     <v-card v-for="(subject, index) in userAuthStore.studentData.subjects" @click="subjectInfo(subject['name'], subject['teacher'], subject['teacher_img'], subject['teacher_gender'], subject['teacher_email'], subject['teacher_contact'], subject['teacher_department'])" class="subject-card" :key="index">
       <img class="subject-img" src="/login_logo.jpg" alt="subject image">
       <p class="subject-title">{{subject['name']}}</p>

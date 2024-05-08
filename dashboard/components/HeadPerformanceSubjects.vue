@@ -44,23 +44,30 @@ const changeSection = (term: string)=>{
 
 <style scoped>
 
+.subsection-nav-container{
+  justify-content: flex-start !important;
+}
+
 @media screen and (min-width: 576px) {
+  .nav-btn-1{
+    margin: 0em 1.5em !important;
+    font-size: .6rem !important;
+  }
+}
+
+@media screen and (min-width: 767px) {
+  .subsection-nav-container{
+    justify-content: center !important;
+  }
   .nav-btn-1{
     margin: 0em 2em !important;
     font-size: .6rem !important;
   }
 }
 
-@media screen and (min-width: 767px) {
-  .nav-btn-1{
-    margin: 0em 3em !important;
-    font-size: .6rem !important;
-  }
-}
-
 @media screen and (min-width: 991px) {
   .nav-btn-1{
-    margin: 0em 4em !important;
+    margin: 0em 2em !important;
     font-size: .7rem !important;
   }
 }

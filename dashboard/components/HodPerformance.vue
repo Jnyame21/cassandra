@@ -53,16 +53,34 @@ const changeSection = (term: string)=>{
 
 <style scoped>
 
-
+.section-nav-container{
+  justify-content: flex-start !important;
+}
 
 @media screen and (min-width: 576px) {
   .nav-btn-1{
     font-size: .55rem !important;
-    margin: 0 2em !important;
+    margin: 0 1em !important;
   }
 }
 
 @media screen and (min-width: 767px) {
+  .section-nav-container{
+    justify-content: center !important;
+  }
+  .nav-btn-1{
+    font-size: .6rem !important;
+    margin: 0 1.5em !important;
+  }
+}
+
+@media screen and (min-width: 991px) {
+  .nav-btn-1{
+    font-size: .6rem !important;
+    margin: 0 2em !important;
+  }
+}
+@media screen and (min-width: 2000px) {
   .nav-btn-1{
     font-size: .6rem !important;
     margin: 0 3em !important;

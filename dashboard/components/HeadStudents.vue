@@ -39,7 +39,15 @@ const changeSection = (term: string)=>{
 
 <style scoped>
 
+.section-nav-container{
+  justify-content: flex-start !important;
+}
+
 @media screen and (min-width: 576px) {
+  .section-nav-container{
+    justify-content: center !important;
+  }
+
   .btn-1{
     margin: 0em 2em !important;
     font-size: .6rem !important;
@@ -57,6 +65,7 @@ const changeSection = (term: string)=>{
     font-size: .7rem !important;
   }
 }
+
 
 
 </style>

@@ -33,6 +33,7 @@ const changeTerm = (term: number)=>{
 
 <style scoped>
 
+
 .nav-btn-1{
   font-size: .6rem !important;
 }

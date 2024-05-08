@@ -63,7 +63,7 @@ const changeYear = async ()=>{
         :items="userAuthStore.studentData.results.academicYears" class="select" density="compact" variant="outlined"
         item-title="name" item-value="name" :disabled="loading"
         />
-        <v-btn @click="changeYear" :disabled="checkInput" :loading="loading" class="year-btn" size="small">CHANGE</v-btn>
+        <v-btn @click="changeYear" :disabled="checkInput" :loading="loading" color="green" size="small">CHANGE</v-btn>
       </div>
       
     </div>
@@ -82,18 +82,6 @@ const changeYear = async ()=>{
     width: 250px;
     color: black !important;
     height: 40px;
-}
-
-.year-btn{
-    background-color: seagreen;
-    color: white;
-    font-size: .6rem;
-    font-weight: bold;
-}
-
-.year-btn:hover{
-    background-color: mediumseagreen;
-    color: yellow;
 }
 
 .section-nav-container{

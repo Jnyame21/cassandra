@@ -449,6 +449,15 @@ export const useUserAuthStore = defineStore('userAuth',{
                 return Promise.reject()
             }
         },
+        async startUpServer(){
+            defaultAxiosInstance.get('start_up')
+            .then(response =>{
+                return Promise.resolve()
+            })
+            .catch(e =>{
+                return Promise.reject()
+            })
+        },
     },
 })
 

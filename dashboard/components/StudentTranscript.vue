@@ -50,7 +50,7 @@ const getTranscript = async()=>{
     <div v-if="userAuthStore.userData" class="btn-container flex-all-c">
         <p style="color: green" v-if="successMessage" class="message">{{successMessage}}</p>
         <p v-if="errorMessage" style="color: red" class="message">{{errorMessage}}</p>
-        <v-btn :loading="loading" @click="getTranscript()" class="trans-btn" density="comfortable">DOWNLOAD</v-btn>
+        <v-btn :loading="loading" @click="getTranscript()" color="green">DOWNLOAD</v-btn>
         <p>Click to download your transcript as a DOCX (Microsoft Word Document) file.</p>
     </div>
 </div>
@@ -66,17 +66,6 @@ const getTranscript = async()=>{
 .message{
     font-size: .6rem !important;
 }
-.trans-btn{
-    background-color: lightseagreen;
-    color: white;
-    margin-top: 5em;
-    font-family: Verdana, Geneva, Tahoma, sans-serif;
-    font-size: .7rem;
-}
-.trans-btn:hover{
-    background-color: mediumseagreen;
-    color: yellow;
-}
 
 .btn-container p{
     font-size: .65rem;
@@ -91,4 +80,6 @@ const getTranscript = async()=>{
         font-size: .8rem;
     }
 }
+
+
 </style>

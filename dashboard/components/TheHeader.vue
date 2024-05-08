@@ -96,7 +96,7 @@ const showOverlay = ()=>{
     width: max-content;
     display: flex;
     padding: .2em;
-    margin-left: 1em;
+    margin-left: .1em;
 }
 
 .user-img{

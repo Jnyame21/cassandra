@@ -29,8 +29,8 @@ watch(()=> userAuthStore.staffStudentResultsEdit, (newValue, oldValue)=>{
       <button v-for="(resultsAssign, index) in resultData" :key="index" class="nav-btn-1" 
       @click="changeSection(`section${index+1}`)" :class="{'nav-btn-1-active': sectionPage===`section${index+1}`}"
       >
-      <span>{{ resultsAssign['class_name'] }} {{resultsAssign['subject']}}</span>
-      <span>FORM {{ resultsAssign['students_year'] }}</span>
+      <p class="subject-name">{{ resultsAssign['class_name'] }} FORM {{ resultsAssign['students_year'] }}</p>
+      <p>{{resultsAssign['subject']}}</p>
       </button>
     </div>
   
@@ -52,49 +52,42 @@ watch(()=> userAuthStore.staffStudentResultsEdit, (newValue, oldValue)=>{
 }
 .section-nav-container{
   height: 15% !important;
+  justify-content: flex-start !important;
 }
 
 .nav-btn-1{
-  font-size: .45rem !important;
+  font-size: .5rem !important;
+  min-width: 300px !important;
 }
 
 @media screen and (min-width: 576px) {
   .nav-btn-1{
     margin: 0 1.5em !important;
-    font-size: .5rem !important;
-  }
-}
-
-@media screen and (min-width: 767px) {
-  .nav-btn-1{
-    margin: 0 2em !important;
     font-size: .55rem !important;
   }
 }
 
-@media screen and (min-width: 991px) {
+@media screen and (min-width: 767px) {
+
   .nav-btn-1{
-    margin: 0 3em !important;
+    margin: 0 2em !important;
     font-size: .6rem !important;
   }
 }
 
 @media screen and (min-width: 1200px) {
+  .section-nav-container{
+    justify-content: center !important;
+  }
+  
+}
+
+@media screen and (min-width: 2000px) {
+  
   .nav-btn-1{
-    font-size: .65rem !important;
+    margin: 0 3em !important;
   }
 }
 
-@media screen and (min-width: 2600px) {
-  .nav-btn-1{
-    font-size: .7rem !important;
-  }
-}
-
-@media screen and (min-width: 3600px) {
-  .nav-btn-1{
-    font-size: .75rem !important;
-  }
-}
 
 </style>

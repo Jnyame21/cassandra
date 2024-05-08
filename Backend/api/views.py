@@ -34,13 +34,12 @@ from api.utils import *
 
 
 def root(request):
-    # user = User.objects.get(username='Eone739')
-    # user.set_password('Eone739')
-    # user.save()
-        
-    
-    return HttpResponse("<h1>Yeah process successfull</h1>")
-    # return HttpResponse("<h1>EduAAP</h1>")
+    return HttpResponse("<h1>Welcome to EduAAP</h1>")
+
+@api_view(['GET'])
+# @permission_classes([IsAuthenticated])
+def keep_server_running(request):
+    return Response(status=200)
 
 
 # LOGIN
@@ -278,11 +277,11 @@ def notification(request):
         try:
             from_obj = request.user.staff
             from_obj_type = 'staff'
-        except User.head.RelatedObject.DoesNotExist:
+        except User.staff.RelatedObjectDoesNotExist:
             try:
                 from_obj = request.user.student
                 from_obj_type = 'student'
-            except User.head.RelatedObject.DoesNotExist:
+            except User.head.RelatedObjectDoesNotExist:
                 return Response(status=401)
                 
     if request.method == 'POST':
@@ -359,10 +358,6 @@ def notification(request):
             notifications_sent = NotificationSerializer(Notification.objects.filter(from_head=from_obj), many=True).data
             for item in notifications_sent:
                 del notifications_sent[notifications_sent.index(item)]['from_head']
-            notifications_received = NotificationSerializer(Notification.objects.filter(to_head=from_obj), many=True).data
-            for item in notifications_received:
-                del notifications_received[notifications_received.index(item)]['to_staff']
-                del notifications_received[notifications_received.index(item)]['to_student']
         elif from_obj_type == 'staff':
             notifications_sent = NotificationSerializer(Notification.objects.filter(from_staff=from_obj), many=True).data
             for item in notifications_sent:

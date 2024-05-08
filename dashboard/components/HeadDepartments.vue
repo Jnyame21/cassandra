@@ -26,7 +26,6 @@ const changeSection = (term: string)=>{
       <v-icon icon="mdi-history" v-if="department['department']['name'] === 'ARTS' "/>
       <v-icon icon="mdi-flask" v-if="department['department']['name'] === 'SCIENCE' "/>
       <v-icon icon="mdi-finance" v-if="department['department']['name'] === 'BUSINESS' "/>
-      <v-icon icon="mdi-finance" v-if="department['department']['name'] === 'ECONOMICS' "/>
       <span>{{department['department']['name']}}</span>
     </button>
     </div>
@@ -42,25 +41,41 @@ const changeSection = (term: string)=>{
 
 <style scoped>
 
+.section-nav-container{
+  justify-content: flex-start !important;
+}
+
 @media screen and (min-width: 576px) {
   .nav-btn-1{
-    margin: 0em 2em !important;
+    margin: 0em 1em !important;
     font-size: .6rem !important;
   }
 }
 
 @media screen and (min-width: 767px) {
+  .section-nav-container{
+    justify-content: center !important;
+  }
+
   .nav-btn-1{
-    margin: 0em 3em !important;
+    margin: 0em 1.5em !important;
     font-size: .6rem !important;
   }
 }
 
 @media screen and (min-width: 991px) {
   .nav-btn-1{
-    margin: 0em 4em !important;
+    margin: 0em 2em !important;
     font-size: .7rem !important;
   }
 }
+
+@media screen and (min-width: 2000px) {
+  .nav-btn-1{
+    margin: 0em 3em !important;
+    font-size: .7rem !important;
+  }
+}
+
 
 </style>
