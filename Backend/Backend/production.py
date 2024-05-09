@@ -3,7 +3,7 @@ from google.oauth2 import service_account
 import json
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = [
     'cassandra-o5ft.onrender.com',
