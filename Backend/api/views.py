@@ -36,9 +36,9 @@ from api.utils import *
 
 def root(request):
     return HttpResponse("<h1>Welcome to Cassandra, a school management system</h1>")
+        
 
 @api_view(['GET'])
-# @permission_classes([IsAuthenticated])
 def keep_server_running(request):
     return Response(status=200)
 
@@ -153,7 +153,8 @@ def get_user_data(request):
 
         try:
             staff = user.staff
-            # Get current academic year
+            
+            # Get the current academic year
             get_current_academic_year(staff, user_data)
 
             staff_data = StaffSerializer(staff).data
@@ -163,7 +164,7 @@ def get_user_data(request):
             user_data['school'] = staff_data['school']
             user_data['staff_id'] = staff_data['staff_id']
             try:
-                department = Department.objects.get(teachers=staff)
+                department = Department.objects.select_related('hod').get(teachers=staff)
                 user_data['department'] = DepartmentNameSerializer(department).data['name']
                 if department.hod == staff:
                     user_data['staff_role'] = 'hod'
@@ -270,7 +271,7 @@ def get_user_data(request):
                 return Response(user_data)
 
 
-# Notification
+# Notifications
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 def notification(request):

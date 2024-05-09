@@ -752,7 +752,7 @@ def get_student_transcript(student, request):
         return default_storage.url(save_file)
 
 
-# Get current academic year
+# Get the current academic year
 def get_current_academic_year(school_user, user_data):
     academic_years = AcademicYear.objects.filter(school=school_user.school).order_by('-start_date')
     current_date = timezone.now().date()
