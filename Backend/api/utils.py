@@ -1,4 +1,5 @@
 import io
+import os
 from datetime import datetime, timedelta
 from api.models import *
 from api.serializer import *
@@ -62,7 +63,7 @@ def get_student_transcript(student, request):
     verdana2.font.name = 'Verdana'
 
     # Top Bar
-    top_bar_paragraph = doc.add_paragraph("Powered By: cassandra")
+    top_bar_paragraph = doc.add_paragraph("Powered By: Cassandra")
     top_bar_paragraph.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
     top_bar_paragraph.paragraph_format.space_after = Pt(0)
     top_bar_paragraph.runs[0].font.size = Pt(7.5)
@@ -77,11 +78,17 @@ def get_student_transcript(student, request):
 
     # School logo
     sch_logo = doc.add_paragraph()
-    print(student_data['school']['sch_logo'])
-    if settings.DEBUG:
-        sch_logo.add_run().add_picture(f"{student_data['school']['sch_logo'].replace(f'{base_url(request)}/', '')}", height=Inches(1.0))
-    else:
-        sch_logo.add_run().add_picture(f"{student_data['school']['sch_logo'].replace(f'{base_url(request)}/media/', '')}", height=Inches(1.0))
+    sch_logo.add_run().add_picture(f"media/{get_school_folder(student_data['school']['name'])}/images/{get_school_folder(student_data['school']['name'])}_logo.png", height=Inches(1.0))
+    # if os.environ['DJANGO_SETTINGS_MODULE'].split('.')[1] == 'development':
+    #     sch_logo.add_run().add_picture(f"media/{get_school_folder}/images/{get_school_folder}_logo.png", height=Inches(1.0))
+    # try:
+    #     sch_logo.add_run().add_picture(f"{student_data['school']['sch_logo'].replace('https://storage.googleapis.com/cassandra-bkt/', '')}", height=Inches(1.0))
+    # except Exception as e:
+    #     print(e)
+    # if settings.DEBUG:
+    #     sch_logo.add_run().add_picture(f"{student_data['school']['sch_logo']}", height=Inches(1.0))
+    # else:
+    #     sch_logo.add_run().add_picture(f"{student_data['school']['sch_logo'].replace(f'{base_url(request)}/media/', '')}", height=Inches(1.0))
     
     sch_logo.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
     sch_logo.paragraph_format.space_before = Pt(20)
@@ -658,10 +665,15 @@ def get_student_transcript(student, request):
 
     sign_cell = grad_sign_table.rows[1].cells[1]
     sign_cell_para = sign_cell.paragraphs[0]
-    if settings.DEBUG:
-        sign_cell_para.add_run().add_picture(f"{student_data['school']['head_signature'].replace(f'{base_url(request)}', '').replace('/', '', 1)}", height=Inches(0.93))
-    else:
-        sign_cell_para.add_run().add_picture(f"{student_data['school']['head_signature'].replace(f'{base_url(request)}/media/', '').replace('/', '', 1)}", height=Inches(0.93))
+    sign_cell_para.add_run().add_picture(f"media/{get_school_folder(student_data['school']['name'])}/images/{get_school_folder(student_data['school']['name'])}_signature.png", height=Inches(0.93))
+    # try:(f"media/{get_school_folder}/images/{get_school_folder}_logo.png", height=Inches(1.0))
+    #     if settings.DEBUG:
+    #         sign_cell_para.add_run().add_picture(f"media/{get_school_folder}/images/{get_school_folder}_signature.png", height=Inches(0.93))
+    #     else:
+    #         sign_cell_para.add_run().add_picture(f"{student_data['school']['head_signature'].replace(f'{base_url(request)}/media/', '').replace('/', '', 1)}", height=Inches(0.93))
+    # except Exception as e:
+    #     print(f"Exception 2: {e}")
+        
     sign_cell_para.add_run().add_break()
     sign_name = sign_cell_para.add_run(student_data['school']['head_name'])
     sign_cell_para.add_run().add_break()
@@ -705,7 +717,7 @@ def get_student_transcript(student, request):
             cell_xml.get_or_add_tcPr().append(shd)
 
     # Bottom Bar
-    bottom_bar_paragraph = doc.add_paragraph("Powered By: cassandra")
+    bottom_bar_paragraph = doc.add_paragraph("Powered By: Cassandra")
     bottom_bar_paragraph.runs[0].font.size = Pt(7.5)
     bottom_bar_paragraph.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
     bottom_bar_paragraph.paragraph_format.space_after = Pt(0)

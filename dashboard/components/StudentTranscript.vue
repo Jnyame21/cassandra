@@ -51,7 +51,6 @@ const getTranscript = async()=>{
         <p style="color: green" v-if="successMessage" class="message">{{successMessage}}</p>
         <p v-if="errorMessage" style="color: red" class="message">{{errorMessage}}</p>
         <v-btn :loading="loading" @click="getTranscript()" color="green">DOWNLOAD</v-btn>
-        <p>Click to download your transcript as a DOCX (Microsoft Word Document) file.</p>
     </div>
 </div>
 </template>
@@ -65,6 +64,7 @@ const getTranscript = async()=>{
 
 .message{
     font-size: .6rem !important;
+    text-align: center;
 }
 
 .btn-container p{

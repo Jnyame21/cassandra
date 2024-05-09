@@ -20,33 +20,37 @@ def get_school_folder(school_name: str):
 def students_file_path(instance, filename):
     # Construct the folder path based on the user's username
     user_folder = instance.user.username
-    if DEBUG:
-        return f"{get_school_folder(instance.school.name)}/students/{user_folder}/{filename}"
-    else:
-        return f"{get_school_folder(instance.school.name)}/students/{user_folder}/{filename}"
+    return f"{get_school_folder(instance.school.name)}/students/{user_folder}/{filename}"
+    # if DEBUG:
+    #     return f"{get_school_folder(instance.school.name)}/students/{user_folder}/{filename}"
+    # else:
+    #     return f"{get_school_folder(instance.school.name)}/students/{user_folder}/{filename}"
 
 
 def staff_file_path(instance, filename):
     # Construct the folder path based on the user's username
     user_folder = instance.user.username
-    if DEBUG:
-        return f"{get_school_folder(instance.school.name)}/staff/{user_folder}/{filename}"
-    else:
-        return f"{get_school_folder(instance.school.name)}/staff/{user_folder}/{filename}"
+    return f"{get_school_folder(instance.school.name)}/staff/{user_folder}/{filename}"
+    # if DEBUG:
+    #     return f"{get_school_folder(instance.school.name)}/staff/{user_folder}/{filename}"
+    # else:
+    #     return f"{get_school_folder(instance.school.name)}/staff/{user_folder}/{filename}"
 
 
 def school_image_path(instance, filename):
-    if DEBUG:
-        return f"{get_school_folder(instance.name)}/images/{filename}"
-    else:
-        return f"{get_school_folder(instance.name)}/images/{filename}"
+    return f"{get_school_folder(instance.name)}/images/{filename}"
+    # if DEBUG:
+    #     return f"{get_school_folder(instance.name)}/images/{filename}"
+    # else:
+    #     return f"{get_school_folder(instance.name)}/images/{filename}"
 
 
 def school_file_path(instance, filename):
-    if DEBUG:
-        return f"{get_school_folder(instance.name)}/files/{filename}"
-    else:
-        return f"{get_school_folder(instance.name)}/files/{filename}"
+    return f"{get_school_folder(instance.name)}/files/{filename}"
+    # if DEBUG:
+    #     return f"{get_school_folder(instance.name)}/files/{filename}"
+    # else:
+    #     return f"{get_school_folder(instance.name)}/files/{filename}"
 
 
 def head_file_path(instance, filename):

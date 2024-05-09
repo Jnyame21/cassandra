@@ -217,7 +217,7 @@ const showForm = (element: any)=>{
         </div>
             
         </div>
-            <v-btn :loading="loading" :disabled="checkInput" @click="inputUpload" class="submit-btn">SUBMIT</v-btn>
+            <v-btn :loading="loading" :disabled="checkInput" @click="inputUpload" color="green" class="submit-btn">SUBMIT</v-btn>
         </div>
     </div>
 
@@ -233,7 +233,7 @@ const showForm = (element: any)=>{
             </v-select>
 
             <div class="flex-all-c mt-16">
-                <v-btn :loading="getFileLoading" :disabled="loading || !departmentName" @click="generateFile" class="submit-btn">GET FILE</v-btn>
+                <v-btn :loading="getFileLoading" :disabled="loading || !departmentName" @click="generateFile" color="green" class="submit-btn">GET FILE</v-btn>
                 <p class="hint mt-0">Click to get an excel file based on the selected department</p>
             </div>
 
@@ -242,15 +242,15 @@ const showForm = (element: any)=>{
             <v-file-input :disabled="loading" @change="fileChange"  clearable  show-size class="file-field" label="upload an excel file" density="compact"
             variant="outlined" accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
             </v-file-input>
-            <v-btn :loading="loading" :disabled="!fileToUpload || !departmentName" @click="uploadFile" class="submit-btn">UPLOAD</v-btn>
+            <v-btn :loading="loading" :disabled="!fileToUpload || !departmentName" @click="uploadFile" color="green" class="submit-btn">UPLOAD</v-btn>
         </div>
     </div>
 
 
     <div class="w-100 h-100">
         <div class="flex-all w-100 h-100">
-            <v-btn size="small" class="btn mr-5" @click="showForm('staffInputForm')">INPUT DATA</v-btn>
-            <v-btn size="small" class="btn ml-5" @click="showForm('staffFileForm')">USE FILE</v-btn>
+            <v-btn size="small" color="blue" class="mr-5" @click="showForm('staffInputForm')">INPUT DATA</v-btn>
+            <v-btn size="small" color="blue" class="ml-5" @click="showForm('staffFileForm')">USE FILE</v-btn>
         </div>
     </div>
 </template>
@@ -292,14 +292,6 @@ const showForm = (element: any)=>{
 
 .hint{
     font-size: .7rem;
-}
-
-.btn{
-    background-color: lightseagreen;
-    color: white;
-    font-size: .5rem;
-    font-weight: bold;
-    margin-bottom: 6em;
 }
 
 #staffInputForm .form, #staffFileForm .form{
@@ -360,12 +352,8 @@ const showForm = (element: any)=>{
 }
 
 .submit-btn{
-    background-color: lightseagreen;
-    color: white;
-    font-weight: bold;
     margin-top: 1em;
     margin-bottom: 1em;
-
 }
 
 .upload-btn-container{
@@ -374,16 +362,6 @@ const showForm = (element: any)=>{
     align-items: center;
     justify-content: space-between;
     padding: 0;
-}
-
-.upload-btn{
-    font-size: .6rem;
-    background-color: lightseagreen;
-    height: fit-content;
-    border-radius: .3em;
-    padding: .1em .6em;
-    text-transform: uppercase;
-    font-weight: bold;
 }
 
 .line{
@@ -409,9 +387,6 @@ const showForm = (element: any)=>{
     .select{
         margin-right: 5em;
         margin-left: 5em;
-    }
-    .btn{
-        font-size: .6rem;
     }
     .wrap-1{
         width: 50%;

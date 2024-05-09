@@ -121,7 +121,7 @@ const checkInput = computed(()=>{
                 />
             </div>
             </div>
-            <v-btn :loading="loading" :disabled="checkInput" @click.prevent="createClass" type="submit" class="submit-btn">SUBMIT</v-btn>
+            <v-btn :loading="loading" :disabled="checkInput" @click.prevent="createClass" type="submit" color="green" class="submit-btn">SUBMIT</v-btn>
         </form>
     </div>
 
@@ -196,10 +196,7 @@ const checkInput = computed(()=>{
 }
 
 .submit-btn{
-    background-color: lightseagreen;
-    color: white;
-    font-weight: bold;
-    margin-top: 3em;
+    margin-top: 2em;
     margin-bottom: 1em;
 }
 

@@ -122,7 +122,7 @@ const checkInput2 = computed(()=>{
                     />
                 </div>
             </div>
-            <v-btn v-if="userAuthStore.userData && userAuthStore.userData['school']['semesters']" :loading="loading" :disabled="checkInput1" @click.prevent="createYear" type="submit" class="submit-btn">SUBMIT</v-btn>
+            <v-btn v-if="userAuthStore.userData && userAuthStore.userData['school']['semesters']" :loading="loading" :disabled="checkInput1" @click.prevent="createYear" color="green" type="submit" class="submit-btn">SUBMIT</v-btn>
 
                 <!-- trimesters -->
             <div class="fields-container" v-if="userAuthStore.userData && !userAuthStore.userData['school']['semesters']">
@@ -171,7 +171,7 @@ const checkInput2 = computed(()=>{
                     />
                 </div>
             </div>
-            <v-btn v-if="userAuthStore.userData && !userAuthStore.userData['school']['semesters']" :loading="loading" :disabled="checkInput2" @click.prevent="createYear" type="submit" class="submit-btn">SUBMIT</v-btn>
+            <v-btn v-if="userAuthStore.userData && !userAuthStore.userData['school']['semesters']" :loading="loading" :disabled="checkInput2" @click.prevent="createYear" color="green" type="submit" class="submit-btn">SUBMIT</v-btn>
         </form>
     </div>
 
@@ -247,16 +247,8 @@ const checkInput2 = computed(()=>{
 }
 
 .submit-btn{
-    background-color: lightseagreen;
-    color: white;
-    font-weight: bold;
-    margin-top: 3em;
+    margin-top: 2em;
     margin-bottom: 1em;
-}
-
-.submit-btn:hover{
-    background-color: mediumseagreen;
-    color: yellow;
 }
 
 @media screen and (min-width: 776px) {

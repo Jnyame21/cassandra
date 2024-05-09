@@ -16,6 +16,7 @@ const selectedGender = ref('')
 const gender = ref([
     'MALE', 'FEMALE'
 ])
+
 const formErrorMessage = ref('')
 const formSuccessMessage = ref('')
 const loading = ref(false)
@@ -110,7 +111,7 @@ const checkInput = computed(()=>{
             
             </div>
             
-            <v-btn :loading="loading" :disabled="checkInput" @click="createHead" type="submit" class="submit-btn">SUBMIT</v-btn>
+            <v-btn :loading="loading" :disabled="checkInput" @click="createHead" color="green" type="submit" class="submit-btn">SUBMIT</v-btn>
         </div>
     </div>
 
@@ -160,16 +161,8 @@ const checkInput = computed(()=>{
 }
 
 .submit-btn{
-    background-color: lightseagreen;
-    color: white;
-    font-weight: bold;
     margin-top: 1em;
     margin-bottom: 1em;
-}
-
-.submit-btn:hover{
-    background-color: mediumseagreen;
-    color: yellow;
 }
 
 @media screen and (min-width: 776px) {
