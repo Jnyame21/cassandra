@@ -40,12 +40,8 @@ const hidOverlay = async ()=>{
 
   if (overlay && elementsStore.overlayPath && elementsStore.logout){
       userAuthStore.logoutUser()
-      await router.push(`${elementsStore.overlayPath}`)
+      await router.push('/')
       overlay.style.display = 'none'
-      elementsStore.overlayMessage = ''
-      elementsStore.overlayMessageColor = null
-      elementsStore.overlayPath = null
-      elementsStore.logout = null
 
   }else if (overlay && elementsStore.overlayPath && !elementsStore.logout){
       await router.push(`${elementsStore.overlayPath}`)
@@ -77,7 +73,7 @@ const logout = async ()=>{
   loading.value = true
   userAuthStore.logoutUser()
   userAuthStore.message = 'Your have been logged out!'
-  await router.push(elementsStore.overlayPath)
+  await router.push('/')
   loading.value = false
   overlay? overlay.style.display = 'none' : null
   
@@ -92,13 +88,13 @@ const logout = async ()=>{
 </script>
 
 <template>
-  <v-app style="background-color: seagreen">
+  <v-app style="background-color: seagreen; overflow: hidden">
     <div class="container" style="background-color: white">
     <!-- Logout Overlay -->
       <div id="logout" class="overlay">
         <v-card class="d-flex flex-column align-center">
           <v-card-text style="font-size: .8rem; font-family: sans-serif; text-align: left; line-height: 1.2; font-weight: bold">
-            <p v-if="userAuthStore.userData">{{userAuthStore.userData['first_name']}}! are you sure you want to logout?</p>
+            <p v-if="userAuthStore.userData">Are you sure you want to logout?</p>
           </v-card-text>
           <v-card-actions>
             <v-btn class="mr-5" color="red" elevation="4" @click="logout()">YES</v-btn>
@@ -110,13 +106,17 @@ const logout = async ()=>{
       <!-- Session Overlay -->
       <div id="session-alert" class="overlay">
           <div class="overlay-card d-flex flex-column align-center">
-            <h4 id="company-name">Rozmach</h4>
-            <p class="overlay-text">{{elementsStore.overlayMessage}}</p>
+            <p class="overlay-text" :style="`color: ${elementsStore.overlayMessageColor}`">{{elementsStore.overlayMessage}}!</p>
             <div>
-              <v-btn class="overlay-btn" @click="hidOverlay()">OK</v-btn>
+              <v-btn class="mt-5 mb-3" @click="hidOverlay()" color="black" variant="flat">OK</v-btn>
             </div>
           </div>
-        </div>
+      </div>
+      <!-- Loading Overlay -->
+      <div id="LoadingOverlay" class="overlay">
+        <v-progress-circular :size="50" :width="10" indeterminate color="blue" />
+      </div>
+
       <slot/>
     </div>
     </v-app>
@@ -137,21 +137,22 @@ div:hover{
   display: none;
   align-items: center;
   justify-content: center;
-  z-index: 10;
+  z-index: 1000 !important;
 }
-
 .overlay-card{
   background-color: white;
   border-radius: .3em;
-  width: max-content;
+  width: 90%;
+  max-width: 500px;
   padding: .5em .5em;
 }
-
-
 .overlay-text{
   margin-top: 1em;
   margin-bottom: 1em;
-  font-size: 9rem;
+  font-weight: bold;
+  text-align: center;
+  font-family: Verdana, Geneva, Tahoma, sans-serif;
+  font-size: .7rem;
 }
 
 

@@ -1,8 +1,8 @@
 import axios from "axios";
 import { jwtDecode } from "jwt-decode";
-import { useRouter } from "vue-router";
 import { useUserAuthStore } from "../stores/userAuthStore";
-
+import { useElementsStore } from "../stores/elementsStore";
+import router from "./router";
 
 const baseURL =
   process.env.NODE_ENV === 'production'
@@ -24,8 +24,8 @@ export const axiosInstance = axios.create({
 axiosInstance.interceptors.request.use(
   async (config) => {
     const userAuthStore = useUserAuthStore();
+    const elementsStore = useElementsStore()
     const oldAuthTokens = userAuthStore.authTokens;
-    const Router = useRouter();
 
     if (oldAuthTokens && oldAuthTokens.access) {
       const currentTimestamp = Date.now() + 30000;
@@ -43,12 +43,12 @@ axiosInstance.interceptors.request.use(
             config.headers.Authorization = `Bearer ${newAuthTokens.access}`;
           }else{
             userAuthStore.logoutUser()
-            Router.push('/')
+            router.push('/')
           }
         })
         .catch(e =>{
           userAuthStore.logoutUser()
-          Router.push('/')
+          router.push('/')
         })
         
       } else {

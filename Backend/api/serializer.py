@@ -30,20 +30,39 @@ class SchoolSerializer(serializers.ModelSerializer):
 class SpecificSchoolSerializer(serializers.ModelSerializer):
     class Meta:
         model = School
-        fields = ['name']
+        fields = ('name', 'date_created')
 
 
+class GradingSystemSerializer(serializers.ModelSerializer):
+    school = SpecificSchoolSerializer()
+    class Meta:
+        model = GradingSystem
+        fields = '__all__'
+
+
+class EducationalLevelSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EducationalLevel
+        fields = '__all__'
+
+
+class AcademicYearDivisionSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = AcademicYearDivision
+        fields = '__all__'
+        
+        
 class AcademicYearSerializer(serializers.ModelSerializer):
-    # school = SchoolSerializer()
-
+    period_division = AcademicYearDivisionSerializer()
+    
     class Meta:
         model = AcademicYear
         fields = '__all__'
 
-
+        
 # Course Serializers
 class SubjectsSerializer(serializers.ModelSerializer):
-    # schools = SchoolSerializer(many=True)
 
     class Meta:
         model = Subject
@@ -52,7 +71,6 @@ class SubjectsSerializer(serializers.ModelSerializer):
 
 class ProgramSerializer(serializers.ModelSerializer):
     subjects = SubjectsSerializer(many=True)
-    # schools = SchoolSerializer(many=True)
 
     class Meta:
         model = Program
@@ -62,13 +80,14 @@ class ProgramSerializer(serializers.ModelSerializer):
 class SpecificProgramSerializer(serializers.ModelSerializer):
     class Meta:
         model = Program
-        fields = ['name']
+        fields = ('name', 'date_created')
 
 
 #  Student Serializers
 class StudentSerializer(serializers.ModelSerializer):
     school = SchoolSerializer()
     user = UserSerializer()
+    level = EducationalLevelSerializer()
     st_class = 'ClassSerializer'
     program = SpecificProgramSerializer()
 
@@ -94,11 +113,12 @@ class StudentSerializer(serializers.ModelSerializer):
 
 class SpecificStudentSerializer(serializers.ModelSerializer):
     user = UserSerializer()
+    level = EducationalLevelSerializer()
     program = SpecificProgramSerializer()
 
     class Meta:
         model = Student
-        fields = ('user', 'img', 'st_id', 'gender', 'has_completed', 'current_year', 'program', 'dob')
+        fields = ('user', 'img', 'st_id', 'gender', 'has_completed', 'current_year', 'program', 'dob', 'level', 'date_created')
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
@@ -118,16 +138,18 @@ class SpecificStudentSerializer(serializers.ModelSerializer):
 
 class SpecificStudentWithoutImageSerializer(serializers.ModelSerializer):
     user = UserSerializer()
+    level = EducationalLevelSerializer()
     program = SpecificProgramSerializer()
 
     class Meta:
         model = Student
-        fields = ('user', 'st_id', 'gender', 'has_completed', 'current_year', 'program')
+        fields = ('user', 'st_id', 'gender', 'has_completed', 'current_year', 'program', 'level', 'date_created')
     
 
 # Staff Serializers
 class StaffSerializer(serializers.ModelSerializer):
     user = UserSerializer()
+    level = EducationalLevelSerializer()
     school = SchoolSerializer()
     subjects = SubjectsSerializer(many=True)
 
@@ -155,17 +177,18 @@ class StaffSerializer(serializers.ModelSerializer):
 class DepartmentNameSerializer(serializers.ModelSerializer):
     class Meta:
         model = Department
-        fields = ['name']
+        fields = ('name', 'date_created')
 
 
 class SpecificStaffSerializer(serializers.ModelSerializer):
     user = UserSerializer()
+    level = EducationalLevelSerializer()
     subjects = SubjectsSerializer(many=True)
     department = DepartmentNameSerializer()
 
     class Meta:
         model = Staff
-        fields = ('staff_id', 'contact', 'img', 'gender', 'user', 'subjects', 'department', 'role', 'dob')
+        fields = ('staff_id', 'contact', 'img', 'gender', 'user', 'subjects', 'department', 'role', 'dob', 'level', 'date_created')
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
@@ -186,10 +209,11 @@ class SpecificStaffWithoutImageSerializer(serializers.ModelSerializer):
     user = UserSerializer()
     subjects = SubjectsSerializer(many=True)
     department = DepartmentNameSerializer()
+    level = EducationalLevelSerializer()
 
     class Meta:
         model = Staff
-        fields = ('staff_id', 'contact', 'gender', 'user', 'subjects', 'department', 'role')
+        fields = ('staff_id', 'contact', 'gender', 'user', 'subjects', 'department', 'role', 'level', 'date_created')
     
 
 # Department Serializers
@@ -209,7 +233,7 @@ class SpecificDepartmentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Department
-        fields = ('name', 'subjects')
+        fields = ('name', 'subjects', 'date_created')
         
 
 # Head Serializers
@@ -239,10 +263,11 @@ class HeadSerializer(serializers.ModelSerializer):
 
 class SpecificHeadSerializer(serializers.ModelSerializer):
     user = UserSerializer()
+    level = EducationalLevelSerializer()
 
     class Meta:
         model = Head
-        fields = ('head_id', 'contact', 'img', 'gender', 'user', 'role', 'dob')
+        fields = ('head_id', 'contact', 'img', 'gender', 'user', 'role', 'dob', 'level', 'date_created')
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
@@ -264,7 +289,9 @@ class SpecificHeadSerializer(serializers.ModelSerializer):
 class ClasseSerializer(serializers.ModelSerializer):
     students = SpecificStudentSerializer(many=True)
     program = SpecificProgramSerializer()
+    head_teacher = SpecificStaffWithoutImageSerializer()
     academic_years = AcademicYearSerializer(many=True)
+    students_level = EducationalLevelSerializer()
 
     class Meta:
         model = Classe
@@ -275,6 +302,7 @@ class ClasseWithSubjectsSerializer(serializers.ModelSerializer):
     students = SpecificStudentSerializer(many=True)
     subjects = SubjectsSerializer(many=True)
     program = SpecificProgramSerializer()
+    head_teacher = SpecificStaffSerializer()
     academic_years = AcademicYearSerializer(many=True)
 
     class Meta:
@@ -292,52 +320,81 @@ class ClasseWithoutStudentsSerializer(serializers.ModelSerializer):
 # Subject Assignment Serializers
 class SubjectAssignmentSerializer(serializers.ModelSerializer):
     students_class = ClasseSerializer()
-    subject = SubjectsSerializer()
+    subjects = SubjectsSerializer(many=True)
+    assigned_by = SpecificStaffWithoutImageSerializer()
     teacher = SpecificStaffSerializer()
 
     class Meta:
         model = SubjectAssignment
-        fields = ('students_class', 'subject', 'teacher', 'academic_term')
+        fields = ('students_class', 'subjects', 'teacher', 'academic_term', 'date_created', 'assigned_by')
 
 
 class SubjectAssignmentWithoutStudentsSerializer(serializers.ModelSerializer):
     students_class = ClasseWithoutStudentsSerializer()
-    subject = SubjectsSerializer()
+    subjects = SubjectsSerializer(many=True)
+    assigned_by = SpecificStaffWithoutImageSerializer()
     teacher = SpecificStaffSerializer()
 
     class Meta:
         model = SubjectAssignment
-        fields = ('students_class', 'subject', 'teacher', 'academic_term')
+        fields = ('students_class', 'subjects', 'teacher', 'academic_term', 'date_created', 'assigned_by')
 
 
         
-# Results Serializers
-class ResultsSerializer(serializers.ModelSerializer):
+# Exams Serializers
+class ExamsSerializer(serializers.ModelSerializer):
     student = SpecificStudentWithoutImageSerializer()
     subject = SubjectsSerializer()
     academic_year = AcademicYearSerializer()
     teacher = SpecificStaffWithoutImageSerializer()
 
     class Meta:
-        model = Result
+        model = Exam
         fields = "__all__"
         
-class ResultsSerializerWithoutStudentTeacher(serializers.ModelSerializer):
+class ExamsSerializerWithoutStudentTeacher(serializers.ModelSerializer):
     subject = SubjectsSerializer()
 
     class Meta:
-        model = Result
-        fields = ('subject', 'student_year', 'academic_term', 'score')
+        model = Exam
+        fields = ('subject', 'student_year', 'academic_term', 'score', 'date_created')
 
 
-class StudentResultsSerializer(serializers.ModelSerializer):
+class StudentExamsSerializer(serializers.ModelSerializer):
     subject = SubjectsSerializer()
 
     class Meta:
-        model = Result
-        fields = ('subject', 'score')
+        model = Exam
+        fields = ('subject', 'score', 'date_created')
 
 
+# Assessment Serializers
+class AssessmentSerializer(serializers.ModelSerializer):
+    student = SpecificStudentWithoutImageSerializer()
+    subject = SubjectsSerializer()
+    academic_year = AcademicYearSerializer()
+    teacher = SpecificStaffWithoutImageSerializer()
+
+    class Meta:
+        model = Assessment
+        fields = "__all__"
+        
+class AssessmentSerializerWithoutStudentTeacher(serializers.ModelSerializer):
+    subject = SubjectsSerializer()
+
+    class Meta:
+        model = Assessment
+        fields = ('subject', 'student_year', 'academic_term', 'score', 'date', 'percentage', 'title', 'total_score', 'description', 'comment')
+
+
+class StudentAssessmentSerializer(serializers.ModelSerializer):
+    subject = SubjectsSerializer()
+
+    class Meta:
+        model = Assessment
+        fields = ('subject', 'score', 'date', 'percentage', 'title', 'total_score', 'description', 'comment')
+        
+        
 # Students Attendance
 class StudentAttendanceStudentSerializer(serializers.ModelSerializer):
     user = UserSerializer()
@@ -348,15 +405,12 @@ class StudentAttendanceStudentSerializer(serializers.ModelSerializer):
 
 class StudentsAttendanceSerializer(serializers.ModelSerializer):
     students_class = ClasseWithoutStudentsSerializer()
-    subject = SubjectsSerializer()
-    teacher = SpecificStaffSerializer()
     students_present = StudentAttendanceStudentSerializer(many=True)
     students_absent = StudentAttendanceStudentSerializer(many=True)
 
     class Meta:
         model = StudentAttendance
-        fields = '__all__'
-
+        fields = ('date', 'students_class', 'students_present', 'students_absent')
 
 # Student Notification Serializer
 class StudentNotificationSerializer(serializers.ModelSerializer):
@@ -456,3 +510,26 @@ class FileSerializer(serializers.ModelSerializer):
         return data
 
 
+# Universities serializer
+class UniversitySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = University
+        fields = '__all__'
+        
+class KnustProgramSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = KnustProgram
+        fields = '__all__'
+        
+class UGProgramSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UGProgram
+        fields = '__all__'
+        
+class UCCProgramSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UCCProgram
+        fields = '__all__'
+        
+        
+        

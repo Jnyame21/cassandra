@@ -33,7 +33,7 @@ const userAuthStore = useUserAuthStore()
         </tbody>
       </v-table>
 
-      <!-- semesters -->
+      <!-- trimesters -->
       <v-table fixed-header height="55dvh" v-if="!userAuthStore.userData['school']['semesters'] && userAuthStore.adminStaff.academicYears">
         <thead>
         <tr>

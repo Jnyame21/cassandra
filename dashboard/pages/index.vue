@@ -2,8 +2,6 @@
 import {computed, onBeforeMount, onBeforeUnmount, reactive} from "vue";
 import { useRouter } from "vue-router";
 
-
-
 const userAuthStore = useUserAuthStore()
 
 definePageMeta({
@@ -39,9 +37,8 @@ const data = reactive({
   lockField: false,
 })
 
-let checkInput = computed(()=>{
+let isFormValid = computed(()=>{
   return !(data.username && data.password)
-
 })
 
 const authenticate = async ()=>{
@@ -56,7 +53,6 @@ const authenticate = async ()=>{
         router.push('/staff')
       },2000)
     }
-
     else if (userAuthStore.isAuthenticated && userAuthStore.userData['role']==='student' ){
       data.password = ''
       data.loading = false;
@@ -78,18 +74,19 @@ const authenticate = async ()=>{
 </script>
 
 <template>
-  <div class="container img-container flex-c align-center justify-center" style="height: 100dvh">
-    <div style="height: 90dvh" class="row-wrapper">
-      <section class="flex-all-c form-container">
-        <h1 class="portal-name">CASSANDRA</h1>
-        <img class="sch-logo" src="/login_logo.jpg" alt="school logo">
-        <div class="flex-c align-center" style="background-color: transparent">
-          <v-form class="flex-c justify-start align-center" @submit.prevent="authenticate">
-            <div class="form-message-container">
-              <h6 class="form-message" style="color: yellow" v-if="userAuthStore.message && userAuthStore.isAuthenticated">{{userAuthStore.message}}</h6>
-              <h6 class="form-message" style="color: red" v-if="userAuthStore.message && !userAuthStore.isAuthenticated">{{userAuthStore.message}}</h6>
-            </div>
-            <v-text-field
+  <div class="container flex-c flex-column" style="min-height: 100vh">
+    <div class="img-container flex-c align-center justify-center">
+      <div class="row-wrapper">
+        <section class="flex-all-c form-container">
+          <h1 class="portal-name">CASSANDRA</h1>
+          <img class="sch-logo" src="/login_logo.jpg" alt="school logo">
+          <div class="flex-c align-center" style="background-color: transparent">
+            <v-form class="flex-c justify-start align-center" @submit.prevent="authenticate">
+              <div class="form-message-container">
+                <h6 class="form-message" style="color: yellow; text-transform: uppercase" v-if="userAuthStore.message && userAuthStore.isAuthenticated">{{userAuthStore.message}}</h6>
+                <h6 class="form-message" style="color: red" v-if="userAuthStore.message && !userAuthStore.isAuthenticated">{{userAuthStore.message}}</h6>
+              </div>
+              <v-text-field
                 :disabled="data.lockField"
                 class="form-text-field username"
                 v-model="data.username"
@@ -98,151 +95,123 @@ const authenticate = async ()=>{
                 density="comfortable"
                 type="text"
                 clearable
-                @focus="checkInput"
                 prepend-inner-icon="mdi-account-outline"
-            ></v-text-field>
-            <v-text-field
+              ></v-text-field>
+              <v-text-field
                 :append-inner-icon="data.visible ? 'mdi-eye-off-outline' : 'mdi-eye-outline'"
                 @click:append-inner="data.visible = !data.visible"
                 :disabled="data.lockField"
                 :type="data.visible ? 'text' : 'password'"
                 clearable
-                @focus="checkInput"
                 density="comfortable"
                 class="form-text-field password"
                 hint="Enter your password"
                 v-model="data.password"
                 label="PASSWORD"
                 prepend-inner-icon="mdi-lock-outline"
-            ></v-text-field>
-            <!-- <p class="forgot-password">forgotten password ?</p> -->
-            <v-btn
-              class="submit-btn"
-              type="submit"
-              prepend-icon="mdi-lock-open-outline"
-              :loading="data.loading"
-              :disabled="checkInput">LOGIN
-            </v-btn>
-          </v-form>
-        </div>
-      </section>
+              ></v-text-field>
+              <v-btn
+                class="submit-btn"
+                type="submit"
+                prepend-icon="mdi-lock-open-outline"
+                :loading="data.loading"
+                :disabled="isFormValid">LOGIN
+              </v-btn>
+            </v-form>
+          </div>
+        </section>
+      </div>
     </div>
-    <TheFooter/>
+    <TheFooter class="footer"/>
   </div>
 </template>
 
 <style scoped>
+.container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
 
-.sch-logo{
+.img-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background-size: cover;
+  background-image: url('/login_logo_main.jpg');
+  background-position: center;
+  flex-grow: 1;
+}
+.row-wrapper {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.form-container {
+  border-radius: 1em;
+  background-color: #333333; 
+  padding: 2em;
+}
+.portal-name {
+  color: yellow;
+  font-size: 2.5rem; 
+  font-weight: 700; 
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5); 
+  font-family: 'Roboto', sans-serif; 
+  margin-bottom: 1em;
+}
+
+.sch-logo {
   width: 50px;
   height: 50px;
   border-radius: 50%;
 }
 
-.portal-name{
-  color: yellow;
-  cursor: default;
-  font-family:Georgia, 'Times New Roman', Times, serif
-}
-
-
-.form-message-container{
+.form-message-container {
   margin-bottom: 1em;
   margin-top: 1em;
 }
 
-.form-message{
+.form-message {
   font-size: .7rem;
   border: 1px solid;
   padding: .1em 1em;
 }
 
-.form-container{
-  border-radius: 1em;
-}
-.form-text-field{
+.form-text-field {
   width: 250px;
   font-weight: bold;
   margin-top: .5em;
   color: yellow !important;
-  
 }
 
-.submit-btn{
+.submit-btn {
   margin-top: 2em;
   font-weight: bold;
 }
 
-.forgot-password{
+.forgot-password {
   color: white;
   font-size: 1rem;
 }
 
-.forgot-password:hover{
+.forgot-password:hover {
   color: yellow;
   cursor: pointer;
-}
-.img-container{
-  width: 100%;
-  height: 100%;
-  border-radius: 0 !important;
-  background-size: cover;
-  background-image: url('/login_logo_main.jpg');
-}
-
-.footer-text{
-  color: yellow;
-  cursor: default;
 }
 
 .footer {
   background-color: black;
-}
-
-@media screen and (min-width: 576px) {
-
-  .form-message{
-      font-size: .8rem;
-  }
-
-  .form-text-field{
-      width: 300px;        
-  }
-
-  .footer-text{
-      font-size: .8rem;
-  }
-}
-
-@media screen and (min-width: 767px) {
-
-  .form-message{
-      font-size: .9rem;
-  }
-
-  .img-container{
-      width: 100%;
-      height: 100%;
-      border-radius: 1em;
-      background-size: cover;
-  }
-
-  .form-container{
-    margin-right: 10%;
-  }
-
-  .form-text-field{
-      width: 350px;
-  }
-}
-
-@media screen and (min-width: 991px){
-  .form-container{
-    margin-right: 30%;
-  }
+  color: yellow;
+  text-align: center;
+  padding: 1em;
 }
 
 
 
 </style>
+
    

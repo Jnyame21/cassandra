@@ -13,16 +13,14 @@ const { message } = defineProps<Props>()
 <template>
 <div class="w-100 h-100 flex-all-c">
     <h4 class="no-data">
-        <p>{{ message }}</p>
+        <p v-if="message">{{ message }}</p>
+        <p v-if="!message">No Data Yet</p>
     </h4>
 </div>
 </template>
 
 <style scoped>
 
-.no-data{
-    margin-top: 7em;
-}
 
 
 </style>

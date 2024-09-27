@@ -59,8 +59,8 @@ const submitProblem = async ()=>{
 
 .help-card{
   width: 90%;
-  max-width: 500px !important;
-  background-color: seagreen;
+  max-width: 700px !important;
+  background-color: #333333;
 }
 
 .help-btn{

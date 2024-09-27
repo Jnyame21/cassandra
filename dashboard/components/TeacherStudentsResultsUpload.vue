@@ -1,67 +1,121 @@
 <script setup lang="ts">
 import axiosInstance from '../utils/axiosInstance';
 import { ref, computed, watch } from 'vue';
+import { AxiosError } from 'axios';
 
 const userAuthStore = useUserAuthStore()
-const subjectName = ref('')
-const studentsClass = ref('')
+const elementsStore = useElementsStore()
 const studentsYear: any = ref(null)
 const formErrorMessage = ref('')
-const formSuccessMessage = ref('')
 const selectedStudents: any = ref([])
-const singleValue = ref('')
-const multipleValue = ref([])
 const score: any = ref(null)
-const multiple = ref(false)
-const loading = ref(false)
 const fileToUpload: any = ref(null)
-const getFileLoading = ref(false)
-const show = ref(true)
+const typeSelected:any = ref(null)
+const uploadTypeSelected:any = ref(null)
+const assessmentTitle:any = ref(null)
+const subjectSelected:any = ref(null)
+const assessmentTitleSelected:any = ref(null)
+const currentAssessment:any = ref(null)
+const currentExams:any = ref(null)
+const assessmentPercentage:any = ref(null)
+const assessmentTotalScore:any = ref(null)
+const assessmentDescription:any = ref(null)
+const assessmentComment:any = ref(null)
+const assessmentDate:any = ref(null)
+const timeOutId:any = ref(null)
 
+
+interface props {
+    subjects: string[],
+    className: string,
+    students: any[];
+}
+const { subjects, className, students } = defineProps<props>()
 
 const clearMessage = ()=>{
-    setTimeout(()=>{
-        formSuccessMessage.value = ''
+    if (timeOutId.value){
+        clearTimeout(timeOutId.value)
+    }
+    timeOutId.value = setTimeout(()=>{
         formErrorMessage.value = ''
     }, 15000)
 }
 
-// Generate an excel file
-const generateFile = async()=>{
-    getFileLoading.value = true
-    formErrorMessage.value = ''
-    formSuccessMessage.value = ''
-    const data = {
-        'students_year': studentsYear.value, 
-        'students_class': studentsClass.value, 
-        'subject': subjectName.value, 
-        'st_id': selectedStudents.value, 
-        'score': 'generate', 
-        'year': userAuthStore.activeAcademicYear, 
-        'term': userAuthStore.activeTerm
+const typeOptions = [
+    {'option': 'ASSESSMENT', 'value': 'assessment'},
+    {'option': 'EXAMS', 'value': 'exam'},
+]
+
+const uploadOptions = [
+    {'option': 'INPUT DATA HERE', 'value': 'noFile'},
+    {'option': 'USE AN EXCEL FILE', 'value': 'file'},
+]
+
+watch(()=>userAuthStore.teacherData.studentsWithoutAssessments, (newValue, oldValue)=>{
+    if (newValue){
+        const assessment = newValue.find(item => item['class_name'] === className)
+        assessment ? currentAssessment.value = assessment['assignments'] : null
     }
+}, {immediate: true})
+
+watch(()=>userAuthStore.teacherData.studentsWithoutExams, (newValue, oldValue)=>{
+    if (newValue){
+        const exams = newValue.find(item => item['class_name'] === className)
+        exams ? currentExams.value = exams['exams'] : null
+    }
+}, {immediate: true})
+
+// Generate an excel file
+const generateFile = async(generateStudents:any)=>{
+    elementsStore.ShowLoadingOverlay()
+    formErrorMessage.value = ''
+    const formData = new FormData()
+    formData.append('studentsYear', studentsYear.value)
+    formData.append('studentsClassName', className)
+    formData.append('subject', subjectSelected.value)
+    formData.append('selectedStudents', JSON.stringify(generateStudents))
+    formData.append('type', 'getFile')
+    formData.append('year', userAuthStore.activeAcademicYear)
+    formData.append('term', userAuthStore.activeTerm)
     
     try{
-        const response = await axiosInstance.post('teacher/results/upload/', data)
-        if (response.status === 200){
-            formSuccessMessage.value = response.data.message
-            userAuthStore.staffStudentsResultsFileGenerated = true
+        if (typeSelected.value == 'exam'){
+            const response = await axiosInstance.post('teacher/exams', formData)
             const link = document.createElement('a');
             link.href = response.data.file_path;
             link.download = response.data.filename
+            elementsStore.HideLoadingOverlay()
             link.click()
-        }else if (response.status === 201){
-            formErrorMessage.value = response.data['ms']
-        }else{
-            formErrorMessage.value = 'Oops! an error occurred while generating the file. Try again later'
+        }
+        else if (typeSelected.value == 'assessment'){
+            assessmentTitleSelected.value === 'New' ? formData.append('new', 'yes') : formData.append('new', 'no')
+            assessmentTitleSelected.value === 'New' ? formData.append('title', assessmentTitle.value) : formData.append('title', assessmentTitleSelected.value)
+            const response = await axiosInstance.post('teacher/assessments', formData)
+            const link = document.createElement('a');
+            link.href = response.data.file_path;
+            link.download = response.data.filename
+            elementsStore.HideLoadingOverlay()
+            link.click()
         }
     }
-    catch{
-        formErrorMessage.value = 'Something went wrong. Try again later'
-    }
-    finally{
-        getFileLoading.value = false
-        clearMessage()
+    catch (error){
+        elementsStore.HideLoadingOverlay()
+        if (error instanceof AxiosError){
+            if(error.response){
+                if (error.response.status === 400 && error.response.data.message){
+                    elementsStore.ShowOverlay(error.response.data.message, 'red', null, null)
+                }
+                else{
+                    elementsStore.ShowOverlay('Oops! something went wrong. Try again later', 'red', null, null)
+                }
+            }
+            else if (!error.response && (error.code === 'ECONNABORTED' || !navigator.onLine)){
+                elementsStore.ShowOverlay('A network error occurred! Please check you internet connection', 'red', null, null)
+            }
+            else{
+                elementsStore.ShowOverlay('An unexpected error occurred!', 'red', null, null)
+            }
+        }
     }
 }
 
@@ -70,246 +124,313 @@ const fileChange = (event: any)=>{
     fileToUpload.value = file || null
 }
 
-// Upload student results using the generated excel file
-const uploadFile = async()=>{
-    loading.value = true
+const handleSelectionChange = (selectionType:string)=>{
+    typeSelected.value === 'assessment' && uploadTypeSelected.value === 'noFile' && selectionType === 'subject' ? assessmentTitleSelected.value = null : null 
+    typeSelected.value === 'exam' && uploadTypeSelected.value === 'noFile' ? selectedStudents.value = [] : null 
+    typeSelected.value === 'assessment' && uploadTypeSelected.value === 'noFile' ? selectedStudents.value = [] : null 
+}
+
+const upload = async()=>{
     formErrorMessage.value = ''
-    formSuccessMessage.value = ''
-    
-    const formData = new FormData();
-    formData.append('students_year', studentsYear.value);
-    formData.append('students_class', studentsClass.value);
-    formData.append('subject', subjectName.value);
-    formData.append('st_id', fileToUpload.value); 
-    formData.append('score', 'upload');
-    formData.append('year', userAuthStore.activeAcademicYear);
-    formData.append('term', userAuthStore.activeTerm.toString());
 
-    try{
-        const response = await axiosInstance.post('teacher/results/upload/', formData)
-        if (response.status === 200){
-            userAuthStore.userData['staff_role']==='hod'? userAuthStore.getHodPerformance() : null
-            userAuthStore.staffStudentResultsSubjectAssignment = response.data.data[0]
-            userAuthStore.staffStudentResultsEdit = response.data.data[1]
-            formSuccessMessage.value = response.data.message
+    const formData = new FormData()
+    formData.append('year', userAuthStore.activeAcademicYear)
+    formData.append('term', userAuthStore.activeTerm)
+    formData.append('studentsClassName', className)
+    formData.append('subject', subjectSelected.value)
+    if (uploadTypeSelected.value === 'file'){
+            formData.append('file', fileToUpload.value)
+            formData.append('type', 'uploadWithFile')
+        }else if (uploadTypeSelected.value === 'noFile'){
+            formData.append('selectedStudents', selectedStudents.value)
+            formData.append('type', 'uploadWithoutFile')
+            formData.append('score', score.value)
         }
-        else if (response.status === 201){
-            formErrorMessage.value = response.data.message
+    if (typeSelected.value === 'exam'){
+        if (score.value > 100){
+            formErrorMessage.value = 'The exams score cannot be greater than 100'
+            clearMessage()
+            return;
+        }else if (score.value <0){
+            formErrorMessage.value = 'The exams score cannot be negative'
+            clearMessage()
+            return;
         }
-        else if (response.status === 202){
-            formErrorMessage.value = response.data.message
+
+        elementsStore.ShowLoadingOverlay()
+        try{
+            const response = await axiosInstance.post('teacher/exams', formData)
+            await userAuthStore.getTeacherStudentsExams()
+            selectedStudents.value = null
+            score.value = null
+            fileToUpload.value = null
+            elementsStore.HideLoadingOverlay()
+            elementsStore.ShowOverlay(response.data.message, 'green', null, null)
         }
-    }
-
-    catch{
-        formErrorMessage.value = "Something went wrong!"
-    }
-
-    finally{
-        loading.value = false
-        clearMessage()
-    }
-}
-
-// Upload by select and input data
-const inputUpload = async()=>{
-    loading.value = true
-    formErrorMessage.value = ''
-    formSuccessMessage.value = ''
-    score.value = Number(score.value)
-
-    if (typeof score.value === 'number' && score.value <=100 && score.value >0){
-        if (multiple.value){
-            singleValue.value = ''
-            await userAuthStore.teacherUploadResults(multipleValue.value, subjectName.value, score.value)
-            .then(response =>{
-                userAuthStore.getTeacherStudentResults()
-                userAuthStore.userData['staff_role']==='hod'? userAuthStore.getHodPerformance() : null
-                formSuccessMessage.value = `Result for students with IDs [${multipleValue.value}] uploaded and saved successfully`
-                multipleValue.value = []
-                multiple.value = false
-                score.value = null
-                loading.value = false
-            })
-            .catch(e =>{
-                formErrorMessage.value = 'Oops! something went wrong while generating the file. Try again'
-                loading.value = false
-            })
-        }
-        else if (!multiple.value) {
-            multipleValue.value = []
-            await userAuthStore.teacherUploadResults(singleValue.value, subjectName.value, score.value)
-            .then(response =>{
-                userAuthStore.getTeacherStudentResults()
-                userAuthStore.userData['staff_role']==='hod'? userAuthStore.getHodPerformance() : null
-                const st = singleValue.value
-                formSuccessMessage.value = `Result for student with ID ${st} uploaded and saved successfully`
-                singleValue.value = ''
-                score.value = null
-                loading.value = false
-            })
-            .catch(e =>{
-                formErrorMessage.value = 'Oops! something went wrong. try again'
-                loading.value = false
-            })
-        }
-    }
-    else if (typeof score.value === 'number' && score.value >100){
-        formErrorMessage.value = 'The exams score must not exceed 100'
-        loading.value = false
-    }
-    else if (typeof score.value === 'number' && score.value <0){
-        formErrorMessage.value = 'The exams score can not be negative'
-        loading.value = false
-    }
-    else{
-        formErrorMessage.value = 'The exams score must be a number'
-        loading.value = false
-    }
-    clearMessage()
-}
-
-const checkInput = computed(()=>{
-
-    return !(multipleValue.value && score.value) && !(singleValue.value && score.value);
-    
-})
-
-const closeOverlay = (element: string)=>{
-    const overlay = document.getElementById(element)
-    if (overlay){
-        selectedStudents.value = []
-        multipleValue.value = []
-        score.value = null
-        formErrorMessage.value = ''
-        formSuccessMessage.value = ''
-        singleValue.value = ''
-        loading.value = false
-        show.value = true
-        multiple.value = false
-        fileToUpload.value = null
-        userAuthStore.staffStudentsResultsFileGenerated = false
-        overlay.style.display = 'none'
-
-    }
-}
-
-const showForm = (subject: string, className: string, students: [], index: number, Year: any, element: string)=>{
-    subjectName.value = subject
-    studentsClass.value = className
-    studentsYear.value = Year
-    selectedStudents.value = students
-    
-    if (students.length > 0){
-        watch(()=> userAuthStore.staffStudentResultsSubjectAssignment, (newValue)=>{
-        if (newValue){
-            const newsubjectAssignment = newValue[index]
-            if (newsubjectAssignment && newsubjectAssignment['students']){
-
-                selectedStudents.value = newsubjectAssignment['students']
+        catch (error){
+            elementsStore.HideLoadingOverlay()
+            if (error instanceof AxiosError){
+                if(error.response){
+                    if (error.response.status === 400 && error.response.data.message){
+                        elementsStore.ShowOverlay(error.response.data.message, 'red', null, null)
+                    }
+                    else{
+                        elementsStore.ShowOverlay('Oops! something went wrong. Try again later', 'red', null, null)
+                    }
+                }
+                else if (!error.response && (error.code === 'ECONNABORTED' || !navigator.onLine)){
+                    elementsStore.ShowOverlay('A network error occurred! Please check you internet connection', 'red', null, null)
+                }
+                else if (error.code === 'ERR_NETWORK' && navigator.onLine) {
+                    elementsStore.ShowOverlay('The excel file was modified. Please re-select the file before uploading.', 'red', null, null)
+                    fileToUpload.value = null 
+                }
+                else{
+                    elementsStore.ShowOverlay('An unexpected error occurred!', 'red', null, null)
                 }
             }
-        })
+        }
     }
-    else{
-        formErrorMessage.value = `You have already uploaded results for students in this class`
-        show.value = false
+    else if (typeSelected.value === 'assessment'){
+        if (assessmentComment.value.length > 100){
+            formErrorMessage.value = "The title of the assessment must not exceed 100 characters"
+            clearMessage()
+            return;
+        }
+        formData.append('comment', assessmentComment.value)
+        if (uploadTypeSelected.value === 'noFile'){
+            if (score.value < 0){
+                formErrorMessage.value = 'The assessment score cannot be negative'
+                clearMessage()
+                return;
+            }else{
+                if (assessmentTitleSelected.value === 'New'){
+                    if (score.value > assessmentTotalScore.value){
+                        formErrorMessage.value = 'The student(s) score cannot be greater than the total assessment score'
+                        clearMessage()
+                        return;
+                    }
+                }else {
+                    const assessment = userAuthStore.teacherData.studentsWithAssessments.find(item => item['class_name'] === className)
+                    if (assessment){
+                        const assessmentSubject = assessment['assignments'].find(item => item['subject'] === subjectSelected.value)
+                        if (assessmentSubject){
+                            const _assessmentTitle = assessmentSubject['assessments'].find(item => item['title'] === assessmentTitleSelected.value)
+                            if (_assessmentTitle && score.value > Number(_assessmentTitle['total_score'])){
+                                formErrorMessage.value = 'The student(s) score cannot be greater than the total assessment score'
+                                clearMessage()
+                                return;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        if (assessmentTitleSelected.value === 'New'){
+            if (assessmentTitle.value.length > 100 || assessmentDescription.value.length > 150){
+                if (assessmentTitle.value.length > 100){
+                    formErrorMessage.value = "The title of the assessment must not exceed 100 characters"
+                }else if (assessmentDescription.value.length > 150){
+                    formErrorMessage.value = "The description of the assessment must not exceed 150 characters"
+                }
+                clearMessage()
+                return;
+            }
+            formData.append('title', assessmentTitle.value)
+            formData.append('new', 'yes')
+            formData.append('description', assessmentDescription.value)
+            formData.append('totalScore', assessmentTotalScore.value)
+            formData.append('percentage', assessmentPercentage.value)
+            formData.append('date', assessmentDate.value)
+        }else{
+            formData.append('new', 'no')
+            formData.append('title', assessmentTitleSelected.value)
+        }
+
+        elementsStore.ShowLoadingOverlay()
+        try{
+            const response = await axiosInstance.post('teacher/assessments', formData)
+            await userAuthStore.getTeacherStudentsAssessments()
+            selectedStudents.value = null
+            assessmentTitleSelected.value === 'New' ? assessmentTitleSelected.value = assessmentTitle.value : null
+            score.value = null
+            assessmentComment.value = ''
+            fileToUpload.value = null
+            elementsStore.HideLoadingOverlay()
+            elementsStore.ShowOverlay(response.data.message, 'green', null, null)
+        }
+        catch(error){
+            elementsStore.HideLoadingOverlay()
+            if (error instanceof AxiosError){
+                if(error.response){
+                    if (error.response.status === 400 && error.response.data.message){
+                        elementsStore.ShowOverlay(error.response.data.message, 'red', null, null)
+                    }
+                    else{
+                        elementsStore.ShowOverlay('Oops! something went wrong. Try again later', 'red', null, null)
+                    }
+                }
+                else if (!error.response && (error.code === 'ECONNABORTED' || !navigator.onLine)){
+                    elementsStore.ShowOverlay('A network error occurred! Please check you internet connection', 'red', null, null)
+                }
+                else if (error.code === 'ERR_NETWORK' && navigator.onLine) {
+                    elementsStore.ShowOverlay('The excel file was modified. Please re-select the file before uploading.', 'red', null, null)
+                    fileToUpload.value = null 
+                }
+                else{
+                    elementsStore.ShowOverlay('An unexpected error occurred!', 'red', null, null)
+                }
+            }
+        }
     }
+}
 
-    const formOverlay = document.getElementById(element)
-    formOverlay ? formOverlay.style.display = 'flex' : null
+const isFormValid = computed(()=>{
+    if (typeSelected.value === 'exam' && uploadTypeSelected.value === 'noFile'){
+        return !(subjectSelected.value && selectedStudents.value?.length >0 && score.value);
+    }
+    else if (typeSelected.value === 'exam' && uploadTypeSelected.value === 'file'){
+        return !(subjectSelected.value && fileToUpload.value);
+    }
+    else if (typeSelected.value === 'assessment' && uploadTypeSelected.value === 'noFile'){
+        if (assessmentTitleSelected.value && assessmentTitleSelected.value !== 'New'){
+            return !(subjectSelected.value && selectedStudents.value?.length >0 && score.value);
+        }else if (typeSelected.value === 'assessment' && assessmentTitleSelected.value === 'New'){
+            return !(subjectSelected.value && assessmentTitle.value && assessmentPercentage.value && assessmentTotalScore.value && assessmentDate.value &&  selectedStudents.value?.length >0 && score.value);
+        }else{
+            return true;
+        }
+    }
+    else if (typeSelected.value === 'assessment' && uploadTypeSelected.value === 'file'){
+        if (assessmentTitleSelected.value && assessmentTitleSelected.value !== 'New'){
+            return !(subjectSelected.value && fileToUpload.value);
+        }else if (assessmentTitleSelected.value && assessmentTitleSelected.value === 'New'){
+            return !(subjectSelected.value && assessmentTitle.value && assessmentPercentage.value && assessmentDate.value && assessmentTotalScore.value && fileToUpload.value);
+        }else{
+        return true;
+        }
+    }else{
+        return true;
+    }
+})
 
+const closeOverlay = ()=>{
+    selectedStudents.value = []
+    score.value = null
+    assessmentComment.value = ''
+    assessmentTitleSelected.value = null
+    subjectSelected.value = null
+    formErrorMessage.value = ''
+    assessmentDate.value = null
+    fileToUpload.value = null
+    const overlay = document.getElementById(`teacherStudentsResultsOverlay${className}`)
+    overlay ? overlay.style.display = 'none' : null
 }
 
 
 </script>
 
 <template>
-    <div id="singleForm" class="overlay">
-        <form style="position: relative">
-            <v-btn @click.prevent="closeOverlay('singleForm')" :disabled="loading || getFileLoading" color="red" size="small" class="close-btn flex-all">X</v-btn>
-            <h2 class="info mt-3"><strong>CLASS:</strong> {{studentsClass}} FORM {{studentsYear}}</h2>
-            <h2 class="info"><strong>SUBJECT:</strong> {{subjectName}}</h2>
-            <h2 v-if="formSuccessMessage" class="form-message" style="color: green">{{formSuccessMessage}}</h2>
-            <h2 v-if="formErrorMessage" class="form-message" style="color: red">{{formErrorMessage}}</h2>
-            <v-select :disabled="loading" v-if="!multiple && show" v-model="singleValue" class="select" label="STUDENT" variant="outlined" 
-            :items="selectedStudents" item-title="name" item-value="st_id" persistent-hint hint="Select the student you want to upload result for">
-            <template v-slot:item="{ props, item }">
-                <v-list-item v-bind="props" :subtitle="item.raw.st_id"></v-list-item>
-            </template>
-            </v-select>
-            <v-select :disabled="loading" v-if="multiple && show" multiple clearable v-model="multipleValue" chips class="select" label="STUDENT" variant="outlined" 
-            :items="selectedStudents" item-title="name" item-value="st_id" persistent-hint hint="Select the student you want to upload result for">
-            <template v-slot:item="{ props, item }">
-                <v-list-item v-bind="props" :subtitle="item.raw.st_id"></v-list-item>
-            </template>
-            </v-select>
-            
-            <div class="flex-all-c" v-if="show">
+    <div :id="`teacherStudentsResultsOverlay${className}`" class="overlay">
+        <form class="form">
+            <div class="h-5">
+                <v-btn @click.prevent="closeOverlay()" color="red" variant="flat" size="small" class="close-btn flex-all">X</v-btn>
+            </div>
+            <div class="top-container">
+                <h2 class="info mb-2"><strong>CLASS:</strong> {{className}}</h2>
+                <h2 v-if="formErrorMessage" class="form-message" style="color: red">{{formErrorMessage}}</h2>
+            </div>
+            <div class="input-container">
+                <v-select v-model="typeSelected" class="select" label="TYPE" @update:modelValue="handleSelectionChange('assessmentTitle')"
+                :items="typeOptions" item-title="option" item-value="value" density="comfortable" persistent-hint hint="Select whether you want to upload students Assessments or Exams">
+                </v-select>
+                <v-select v-model="uploadTypeSelected" class="select" label="DATA" 
+                :items="uploadOptions" item-title="option" item-value="value" density="comfortable" persistent-hint hint="Select whether you want to input the data here or use an excel file">
+                </v-select>
+                <v-select v-model="subjectSelected" class="select" label="SUBJECT" @update:modelValue="handleSelectionChange('subject')"
+                :items="subjects" item-title="name" item-value="name" density="comfortable" persistent-hint hint="Select the subject">
+                </v-select>
                 
-                <p class="checkbox">Check this box if you want to upload results for multiple students with same score</p>
-                <v-checkbox :disabled="loading" v-model="multiple" />
+                <!-- assessment -->
+                <div v-if="typeSelected === 'assessment' && uploadTypeSelected && subjectSelected">
+                    <div v-for="(assess_subject, index) in currentAssessment" :key="index">
+                        <v-select v-if="subjectSelected === assess_subject['subject'] " @update:modelValue="handleSelectionChange('assessmentTitle')" clearable v-model="assessmentTitleSelected" class="select" label="ASSESSMENT" 
+                            :items="assess_subject['assessments']" item-title="title" item-value="title" density="comfortable" persistent-hint hint="Select the type of assessment">
+                        </v-select>
+                        <div v-for="(assess_title, ind) in assess_subject['assessments']" :key="ind">
+                            <v-text-field v-if="subjectSelected === assess_subject['subject'] && assess_title['title'] === assessmentTitleSelected && assessmentTitleSelected === 'New' " v-model="assessmentTitle" class="input-field" density="comfortable" persistent-hint hint="Enter the title of the assessment" label="TITLE"/>
+                            <v-text-field v-if="subjectSelected === assess_subject['subject'] && assess_title['title'] === assessmentTitleSelected && assessmentTitleSelected === 'New' " v-model="assessmentDate" class="input-field" type="date" density="comfortable" persistent-hint hint="Enter a date for the assessment" label="DATE"/>
+                            <v-text-field v-if="subjectSelected === assess_subject['subject'] && assess_title['title'] === assessmentTitleSelected && assessmentTitleSelected === 'New' " type="number" v-model="assessmentTotalScore" class="input-field" density="comfortable" persistent-hint hint="Enter the total score of the assessment" label="TOTAL SCORE"/>
+                            <v-text-field v-if="subjectSelected === assess_subject['subject'] && assess_title['title'] === assessmentTitleSelected && assessmentTitleSelected === 'New' " type="number" v-model="assessmentPercentage" class="input-field" density="comfortable" persistent-hint hint="Enter the percentage the assessment will constitute in the overall results" label="PERCENTAGE"/>
+                            <v-text-field v-if="subjectSelected === assess_subject['subject'] && assess_title['title'] === assessmentTitleSelected && assessmentTitleSelected === 'New' " v-model="assessmentDescription" class="input-field" density="comfortable" persistent-hint hint="Enter a description for the assessment if any" label="DESCRIPTION(OPTIONAL)"/>
+
+                            <v-select v-if="uploadTypeSelected ==='noFile' && subjectSelected === assess_subject['subject'] && assess_title['title'] === assessmentTitleSelected && assessmentTitleSelected !== 'New' " multiple clearable v-model="selectedStudents" chips class="select" label="STUDENT(S)" 
+                            :items="assess_title['students']" item-title="name" item-value="st_id" density="comfortable" persistent-hint hint="Select the student(s) you want to upload assessment for">
+                                <template v-slot:item="{ props, item }">
+                                    <v-list-item v-bind="props" :subtitle="item.raw.st_id"></v-list-item>
+                                </template>
+                            </v-select>
+                            <v-select v-if="uploadTypeSelected ==='noFile' && subjectSelected === assess_subject['subject'] && assess_title['title'] === assessmentTitleSelected && assessmentTitleSelected === 'New' " multiple clearable v-model="selectedStudents" chips class="select" label="STUDENT(S)" 
+                            :items="students" item-title="name" item-value="st_id" density="comfortable" persistent-hint hint="Select the student(s) you want to upload assessment for">
+                                <template v-slot:item="{ props, item }">
+                                    <v-list-item v-bind="props" :subtitle="item.raw.st_id"></v-list-item>
+                                </template>
+                            </v-select>
+
+                            <v-text-field v-if="uploadTypeSelected ==='noFile' && subjectSelected === assess_subject['subject'] && assess_title['title'] === assessmentTitleSelected" type="number" v-model="score" class="input-field" density="comfortable" persistent-hint hint="Enter the student(s) score" label="STUDENT(S) SCORE"/>
+                            <v-text-field v-if="uploadTypeSelected ==='noFile' && subjectSelected === assess_subject['subject'] && assess_title['title'] === assessmentTitleSelected" v-model="assessmentComment" class="input-field" density="comfortable" persistent-hint hint="Comment on the student(s) score if any" label="COMMENT"/>
+                            
+                            <!-- by file -->
+                            <div class="flex-all-c mt-5" v-if="uploadTypeSelected ==='file' && subjectSelected === assess_subject['subject'] && assess_title['title'] === assessmentTitleSelected && assessmentTitleSelected !== 'New'">
+                                <v-btn @click.prevent="generateFile(assess_title['students'])" color="blue" variant="flat" class="submit-btn" size="small">GET FILE</v-btn>
+                                <p>Click to get an excel file that contains the students data</p>
+                            </div>
+                            <div class="flex-all-c mt-5" v-if="uploadTypeSelected ==='file' && subjectSelected === assess_subject['subject'] && assess_title['title'] === assessmentTitleSelected && assessmentTitleSelected === 'New' && assessmentTitle ">
+                                <v-btn @click.prevent="generateFile(students)" color="blue" variant="flat" class="submit-btn" size="small">GET FILE</v-btn>
+                                <p>Click to get an excel file that contains the students names data</p>
+                            </div>
+                            <hr class="line" v-if="uploadTypeSelected ==='file' && subjectSelected === assess_subject['subject'] && assess_title['title'] === assessmentTitleSelected ">
+                            <v-file-input v-if="uploadTypeSelected ==='file' && subjectSelected === assess_subject['subject'] && assess_title['title'] === assessmentTitleSelected " @change="fileChange"  if-size class="file-field" label="Choose an excel file" density="comfortable"
+                            accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
+                            </v-file-input>
+                        </div>
+                    </div>
+                </div>
+            
+                <!-- exam -->
+                <div v-if="typeSelected === 'exam' && uploadTypeSelected && subjectSelected">
+                    <div v-for="(exam_subject, index) in currentExams" :key="index">
+                        <v-select v-if="uploadTypeSelected ==='noFile' && subjectSelected === exam_subject['subject']" multiple clearable v-model="selectedStudents" chips class="select" label="STUDENT(S)" 
+                        :items="exam_subject['students']" item-title="name" item-value="st_id" persistent-hint hint="Select the student(s) you want to upload exams for">
+                            <template v-slot:item="{ props, item }">
+                                <v-list-item v-bind="props" :subtitle="item.raw.st_id"></v-list-item>
+                            </template>
+                        </v-select>
+                        <v-text-field v-if="uploadTypeSelected ==='noFile' && subjectSelected === exam_subject['subject']" type="number" v-model="score" class="input-field" persistent-hint hint="Enter the student(s) Exam score" label="EXAM SCORE"/>
+                        
+                        <!-- by file -->
+                        <div class="flex-all-c mt-5" v-if="uploadTypeSelected ==='file' && subjectSelected === exam_subject['subject']">
+                            <v-btn @click.prevent="generateFile(exam_subject['students'])" color="blue" variant="flat" class="submit-btn" size="small">GET FILE</v-btn>
+                            <p>Click to get an excel file that contains the students data</p>
+                        </div>
+            
+                        <hr class="line" v-if="uploadTypeSelected ==='file' && subjectSelected === exam_subject['subject']">
+            
+                        <v-file-input v-if="uploadTypeSelected ==='file' && subjectSelected === exam_subject['subject']" @change="fileChange"  show-size class="file-field" label="Choose an excel file" density="comfortable"
+                        accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
+                        </v-file-input>
+                    </div>
+                </div>
             </div>
-            <v-text-field v-if="show" :disabled="loading" type="number" v-model="score" class="input-field" persistent-hint hint="Enter the student(s) exams score" label="EXAMS SCORE" variant="outlined"/>
-            <v-btn v-if="show" :loading="loading" :disabled="checkInput" @click.prevent="inputUpload" type="submit" class="submit-btn">SUBMIT</v-btn>
-        </form>
-    </div>
 
-    <!-- File upload form -->
-    <div id="fileForm" class="overlay">
-        <form style="position: relative">
-            <v-btn @click.prevent="closeOverlay('fileForm')" :disabled="loading || getFileLoading" color="red" size="small" class="close-btn flex-all">X</v-btn>
-            <h2 class="info mt-3"><strong>CLASS:</strong> {{studentsClass}} FORM {{studentsYear}}</h2>
-            <h2 class="info"><strong>SUBJECT:</strong> {{subjectName}}</h2>
-            <h2 v-if="formSuccessMessage" class="form-message" style="color: green">{{formSuccessMessage}}</h2>
-            <h2 v-if="userAuthStore.staffStudentsResultsFileGenerated && !getFileLoading && !loading" class="form-message" style="color: green">Note: you can now edit only the students score, save and upload the same file</h2>
-            <h2 v-if="formErrorMessage" class="form-message" style="color: red">{{formErrorMessage}}</h2>
-            <div class="flex-all-c mt-5">
-                <v-btn v-if="show" :loading="getFileLoading" :disabled="loading" @click.prevent="generateFile" type="submit" class="submit-btn">GET FILE</v-btn>
-                <p v-if="!userAuthStore.staffStudentsResultsFileGenerated && show" class="checkbox">Click to get an excel file that contains the students names and IDs</p>
+            <div class="btn-container flex-all">
+                <v-btn :disabled="isFormValid" @click.prevent="upload" :ripple="false" variant="flat" type="submit" color="green" size="small">SUBMIT</v-btn>
             </div>
-
-            <hr class="line" v-if="show">
-
-            <v-file-input v-if="show" :disabled="loading || getFileLoading" @change="fileChange"  show-size class="file-field" label="Choose an excel file" density="compact"
-            variant="outlined" accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
-            </v-file-input>
-            <v-btn v-if="show" :loading="loading" :disabled="!fileToUpload || getFileLoading" @click.prevent="uploadFile" type="submit" class="submit-btn">UPLOAD</v-btn>
         </form>
-    </div>
-
-
-    <div style="width: 100%">
-      <TheLoader v-if="!userAuthStore.staffStudentResultsSubjectAssignment" />
-
-      <v-table fixed-header class="table-1" v-if="userAuthStore.staffStudentResultsSubjectAssignment">
-        <thead >
-        <tr>
-          <th class="table-head">SUBJECT</th>
-          <th class="table-head">CLASS</th>
-          <th class="table-head">FORM</th>
-          <th class="table-head">UPLOAD</th>
-        </tr>
-        </thead>
-        <tbody>
-        <tr v-for="(resultsAssign, index) in userAuthStore.staffStudentResultsSubjectAssignment" :key="index">
-          <td class="table-data">{{resultsAssign['subject']}}</td>
-          <td class="table-data">{{resultsAssign['class_name']}}</td>
-          <td class="table-data">{{resultsAssign['students_year']}}</td>
-          <td style="padding: 0" class="upload-btn-container">
-            <button @click="showForm(resultsAssign['subject'], resultsAssign['class_name'], resultsAssign['students'], index, resultsAssign['students_year'], 'singleForm')" class="upload-btn">SELECT</button>
-            <button @click="showForm(resultsAssign['subject'], resultsAssign['class_name'], resultsAssign['students'], index, resultsAssign['students_year'], 'fileForm')" class="upload-btn last-btn">FILE</button>
-          </td>
-        </tr>
-        </tbody>
-      </v-table>
     </div>
 </template>
 
 <style scoped>
-
-@import url('../assets/css/tables.css');
-
 
 .overlay{
     position: absolute;
@@ -321,94 +442,77 @@ const showForm = (subject: string, className: string, students: [], index: numbe
     z-index: 5;
     align-items: center;
     justify-content: center;
-    display: none;
+    display: flex;
 }
-
-#singleForm form, #fileForm form{
+.form{
+    position: relative;
     background-color: white;
-    padding: .5em 1em;
+    padding: 0 1em;
     border-radius: .3em;
     display: flex;
     flex-direction: column;
     align-items: center;
-    width: 90%;
-    max-width: 600px;
+    justify-content: center;
+    height: 90% !important;
+    width: 95%;
+    max-width: 800px;
 }
-
+.top-container{
+    width: 100%;
+    height: max-content;
+    margin-bottom: .5em;
+}
+.input-container{
+    overflow-y: auto;
+    overflow-x: hidden;
+    width: 100%;
+    min-height: 50% !important;
+    max-height: 80% !important;
+}
+.btn-container{
+    min-height: 10% !important;
+    max-height: 10% !important;
+}
 .close-btn{
     position: absolute;
     right: 0;
     top: 0;
-    background-color: red;
-    width: 25px;
-    border-radius: .3em;
-    color: white;
-}
-
-.close-btn:hover{
-    background-color: black;
 }
 .info{
-    font-size: .7rem;
+    color: seagreen;
+    font-size: .9rem;
     text-align: center;
     font-family: Verdana, Geneva, Tahoma, sans-serif;
 }
-
 .info strong{
     font-size: .8rem;
-    color: seagreen
+    color: black;
 }
-.form-message{
-    font-size: .8rem;
-    margin-top: 1em;
-    text-align: center;
-    border: 1px solid;
-    padding: .1em 1em;
-}
-
 .select{
     font-weight: bold;
-    margin-top: 2em;
     color: black;
-    min-width: 200px;
-    margin-bottom: 1em;
-    max-height: 100px !important;
+    min-width: 100px !important;
+    max-width: 500px !important;
+    margin: 0 auto;
+    margin-bottom: 2em;
+    text-align: center;
     overflow-y: auto;
 }
-
-.checkbox{
-    font-size: .7rem;
-    color: black;
-    font-family:monospace;
-    text-align: center;
-}
-
 .input-field{
     color: black;
     font-weight: bold;
-    margin-top: 1em;
-    width: 150px;
+    margin: 0 auto;
+    margin-bottom: 2em;
+    min-width: 100px !important;
+    max-width: 500px !important;
+    text-align: center;
     font-size: .7rem;
-    font-family:monospace
+    font-family: Verdana, Geneva, Tahoma, sans-serif
 }
-
 .file-field{
-    min-width: 250px;
+    max-width: 250px;
+    margin: 0 auto;
 }
-
-.submit-btn{
-    background-color: lightseagreen;
-    color: white;
-    font-weight: bold;
-    margin-top: 1em;
-    margin-bottom: 1em;
-}
-
-.submit-btn:hover{
-    background-color: mediumseagreen;
-    color: yellow;
-}
-
 .upload-btn-container{
     display: flex;
     flex-direction: row;
@@ -416,22 +520,6 @@ const showForm = (subject: string, className: string, students: [], index: numbe
     justify-content: space-between;
     padding: 0;
 }
-
-.upload-btn{
-    font-size: .6rem;
-    background-color: lightseagreen;
-    height: fit-content;
-    border-radius: .3em;
-    padding: .1em .6em;
-    text-transform: uppercase;
-    font-weight: bold;
-}
-
-.upload-btn:hover{
-    background-color: mediumseagreen;
-    color: white;
-}
-
 .line{
     margin: 1rem;
     width: 100%;

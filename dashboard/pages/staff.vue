@@ -11,8 +11,8 @@ useHead({
 })
 
 const userAuthStore = useUserAuthStore()
+const elementsStore = useElementsStore()
 const rozmachAuth: any = ref(null)
-const activePage = ref('page1')
 const formErrorMessage = ref('')
 const formSuccessMessage = ref('')
 const password = ref('')
@@ -21,6 +21,7 @@ const email = ref('')
 const altContact = ref('')
 const loading = ref(false)
 const visible = ref(false)
+const onDesk = ref(false)
 
 onBeforeUnmount(()=>{
   document.body.style.overflow = 'auto'
@@ -35,7 +36,39 @@ onBeforeMount(()=>{
   if (rozmachAuth.value){
     rozmachAuth.value = JSON.parse(rozmachAuth.value)
   }
+  elementsStore.activePage = 'TeacherStudentsAttendance'
+})
 
+watch(()=> elementsStore.activePage, (newValue, oldValue)=>{
+  if (newValue.split(',')[0] === 'TeacherCourseWork' && userAuthStore.teacherData.courseWork?.length > 0){
+    userAuthStore.teacherData.currentCourseWork = userAuthStore.teacherData.courseWork[Number(newValue.split(',')[1])]
+  }
+  else if (newValue.split(',')[0] === 'TeacherStudentsAssessments' && userAuthStore.teacherData.studentsWithAssessments){
+    const className = newValue.split(',')[1]
+    const subjectName = newValue.split(',')[2]
+    const assessmentTitle = newValue.split(',')[3]
+    const assessment = userAuthStore.teacherData.studentsWithAssessments.find(item => item['class_name'] === className)
+    if (assessment){
+      const assessmentIndex = userAuthStore.teacherData.studentsWithAssessments.indexOf(assessment)
+      const assessmentSubject = userAuthStore.teacherData.studentsWithAssessments[assessmentIndex]['assignments'].find(item => item['subject'] === subjectName)
+      if (assessmentSubject){
+        const assessmentSubjectIndex = userAuthStore.teacherData.studentsWithAssessments[assessmentIndex]['assignments'].indexOf(assessmentSubject)
+        const currentAssessment = userAuthStore.teacherData.studentsWithAssessments[assessmentIndex]['assignments'][assessmentSubjectIndex]['assessments'].find(item => item['title'] === assessmentTitle)
+        currentAssessment ? userAuthStore.teacherData.currentAssessments = currentAssessment : null
+      }
+    }
+  }
+  else if (newValue.split(',')[0] === 'TeacherStudentsExams' && userAuthStore.teacherData.studentsWithExams){
+    const className = newValue.split(',')[1]
+    const subjectName = newValue.split(',')[2]
+    const exams = userAuthStore.teacherData.studentsWithExams.find(item => item['class_name'] === className)
+    if (exams){
+      const examIndex = userAuthStore.teacherData.studentsWithExams.indexOf(exams)
+      const examSubject = userAuthStore.teacherData.studentsWithExams[examIndex]['exams'].find(item => item['subject'] === subjectName)
+      
+      examSubject ? userAuthStore.teacherData.currentExams = examSubject : null
+    }
+  }
 })
 
 const updateStaffData = async()=>{
@@ -75,10 +108,19 @@ const checkInput = computed(()=>{
   return !(contact.value && password.value)
 })
 
-const changePage = (page: string)=>{
-  activePage.value = page
+if (window.innerWidth > 1000){
+    onDesk.value = true
+}else{
+    onDesk.value = false
 }
 
+window.addEventListener('resize', (event)=>{
+  if (window.innerWidth > 1000){
+    onDesk.value = true;
+  }else{
+    onDesk.value = false;
+  }
+});
 
 </script>
 
@@ -158,14 +200,17 @@ const changePage = (page: string)=>{
       </v-card-actions>
     </v-card>
   </div>    
-  <TheHeader/>
-  <main class="main">
-    
-     <!-- Tabs -->
+  <TheHeader v-if="userAuthStore.userData"/>
+  <main class="main" v-if="userAuthStore.userData">
+    <StaffNavContainerMob v-if="!onDesk"/>
+    <StaffNavContainerDesk v-if="onDesk"/>
     <div class="pages-container">
-
-      <div class="page-nav-container">
-        <!-- Head -->
+      <TeacherCourseWork v-show="elementsStore.activePage.split(',')[0] ==='TeacherCourseWork' "/>
+      <TeacherStudentsAttendance v-show="elementsStore.activePage ==='TeacherStudentsAttendance' "/>
+      <TeacherStudentsAssessments v-show="elementsStore.activePage.split(',')[0] ==='TeacherStudentsAssessments' "/>
+      <TeacherStudentsExams v-show="elementsStore.activePage.split(',')[0] ==='TeacherStudentsExams' "/>
+      <HelpForm v-show="elementsStore.activePage ==='Help' "/>
+      <!-- <div class="page-nav-container">
         <button class="nav-btn" @click="changePage('page1')" :class="{'nav-btn-active': activePage==='page1'}"
         v-if="userAuthStore.userData && userAuthStore.userData['role'] && userAuthStore.userData['role'] === 'head'">
         <v-icon icon="mdi-eye"/>
@@ -197,7 +242,6 @@ const changePage = (page: string)=>{
         </button>
 
 
-        <!-- Staff -->
         <button class="nav-btn" @click="changePage('page1')" :class="{'nav-btn-active': activePage==='page1'}"
         v-if="userAuthStore.userData && userAuthStore.userData['staff_role']=== 'teacher' || userAuthStore.userData && userAuthStore.userData['staff_role']=== 'hod'"
         ><v-icon icon="mdi-book-open-outline"/>
@@ -229,7 +273,6 @@ const changePage = (page: string)=>{
         </button>
 
 
-        <!-- Admin -->
         <button class="nav-btn" @click="changePage('page1')" :class="{'nav-btn-active': activePage==='page1'}"
         v-if="userAuthStore.userData && userAuthStore.userData['staff_role']=== 'admin'"
         ><v-icon icon="mdi-calendar"/>
@@ -254,7 +297,6 @@ const changePage = (page: string)=>{
           HEAD
         </button>
 
-        <!-- Admin -->
 
         <button class="nav-btn" @click="changePage('page6')" :class="{'nav-btn-active': activePage==='page6'}"
         v-if="userAuthStore.userData && userAuthStore.userData['role']=== 'staff' "
@@ -263,9 +305,7 @@ const changePage = (page: string)=>{
         </button>
       </div>
 
-      <!-- Pages -->
 
-      <!-- Head -->
       <div class="pages" :style="activePage==='page1' ? {'display': 'flex'}: {'display': 'none'}"
       v-if="userAuthStore.userData && userAuthStore.userData['role'] && userAuthStore.userData['role'] === 'head'"
       ><HeadOverview />
@@ -292,7 +332,6 @@ const changePage = (page: string)=>{
       </div>
 
 
-        <!-- Staff -->
       <div class="pages" :style="activePage==='page1' ? {'display': 'flex'}: {'display': 'none'}"
       v-if="userAuthStore.userData && userAuthStore.userData['staff_role']=== 'teacher' || userAuthStore.userData && userAuthStore.userData['staff_role']=== 'hod' "
       ><TeacherCourseWork />
@@ -318,7 +357,6 @@ const changePage = (page: string)=>{
       ><HodPerformance />
       </div>
 
-      <!-- Admin -->
       <div class="pages" :style="activePage==='page1' ? {'display': 'flex'}: {'display': 'none'}"
       v-if="userAuthStore.userData && userAuthStore.userData['staff_role']=== 'admin' "
       ><AdminCalendar />
@@ -339,12 +377,12 @@ const changePage = (page: string)=>{
       ><AdminHead />
       </div>
 
-        <!-- Admin -->
 
       <div class="pages" :style="activePage==='page6' ? {'display': 'flex'}: {'display': 'none'}"
       v-if="userAuthStore.userData && userAuthStore.userData['role'] && userAuthStore.userData['role']=== 'staff' "
       ><HelpForm />
-      </div>
+
+      </div> -->
     </div>
 
   </main>

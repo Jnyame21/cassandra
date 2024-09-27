@@ -5,7 +5,6 @@ export default defineNuxtConfig({
 
   build: {
     transpile: ['vuetify'],
-    
   },
 
   modules: [
@@ -34,5 +33,7 @@ export default defineNuxtConfig({
     '/': { ssr: false },
     '/student': { ssr: false },
     '/staff': { ssr: false },
-  }
+  },
+
+  compatibilityDate: '2024-09-07'
 })

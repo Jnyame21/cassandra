@@ -8,7 +8,9 @@ interface states {
     logout: any;
     isLoading: boolean;
     drawer: boolean;
+    navDrawer: boolean;
     activePage: string;
+    errorMessage: boolean;
 }
 
 export const useElementsStore = defineStore('elementsStore', {
@@ -20,7 +22,9 @@ export const useElementsStore = defineStore('elementsStore', {
             logout: null,
             isLoading: true,
             drawer: false,
+            navDrawer: false,
             activePage: 'page1',
+            errorMessage: false,
         }
     },
 
@@ -45,7 +49,17 @@ export const useElementsStore = defineStore('elementsStore', {
                 this.overlayMessageColor = messageColor
                 overlay.style.display = 'flex'
             }
-        }
+        },
+
+        ShowLoadingOverlay(){
+            const overlay = document.getElementById('LoadingOverlay')
+            overlay ? overlay.style.display = 'flex' : null
+        },
+
+        HideLoadingOverlay(){
+            const overlay = document.getElementById('LoadingOverlay')
+            overlay ? overlay.style.display = 'none' : null
+        },
     }
 })
 

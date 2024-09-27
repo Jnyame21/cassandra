@@ -56,12 +56,12 @@ def get_head_data(request):
 @permission_classes([IsAuthenticated])
 def head_students_performance(request):
     head = request.user.head
-    departments = SpecificDepartmentSerializer(Department.objects.filter(school=head.school).prefetch_related("subjects"), many=True).data
+    departments = SpecificDepartmentSerializer(Department.objects.filter(school=head.school).Exam("subjects"), many=True).data
     if not departments:
         return Response(status=401)
     
     academic_year = AcademicYear.objects.get(school=head.school, name=request.GET.get('year'))
-    all_results = ResultsSerializerWithoutStudentTeacher(Result.objects.filter(school=head.school, academic_year=academic_year).order_by('-score'), many=True).data
+    all_results = ExamsSerializerWithoutStudentTeacher(Exam.objects.filter(school=head.school, academic_year=academic_year).order_by('-score'), many=True).data
     
     data = []
     for department in departments:

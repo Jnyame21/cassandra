@@ -76,6 +76,61 @@ wd-5{
   width: 95%;
 }
 
+.h-5{
+  height: 5% !important;
+}
+.h-10 {
+  height: 10% !important;
+}
+.h-15{
+  height: 15% !important;
+}
+.h-20 {
+  height: 20% !important;
+}
+.h-30 {
+  height: 30% !important;
+}
+.h-35{
+  height: 35% !important;
+}
+.h-40 {
+  height: 40% !important;
+}
+.h-45{
+  height: 45% !important;
+}
+.h-55{
+  height: 55% !important;
+}
+.h-60 {
+  height: 60% !important;
+}
+.h-65{
+  height: 65% !important;
+}
+.h-70 {
+  height: 70% !important;
+}
+.h-75{
+  height: 75% !important;
+}
+.h-80 {
+  height: 80% !important;
+}
+.h-85{
+  height: 85% !important;
+}
+.h-90 {
+  height: 90% !important;
+}
+.h-95{
+  height: 95% !important;
+}
+.h-95{
+  height: 100% !important;
+}
+
 .mag-0{
   margin: 0;
 }
@@ -86,17 +141,6 @@ wd-5{
 
 .bgc-primary {
   background-color: seagreen !important;
-}
-
-.page-btn{
-  background-color: lightseagreen;
-  color: white;
-  box-shadow: 1px 1px 2px black;
-  border-radius: .2em;
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  align-items: center;
 }
 
 .page-btn:hover{
@@ -113,15 +157,16 @@ wd-5{
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
+  padding: 0.5rem;
   width: 100% !important;
   height: 100% !important;
 }
 .no-data p{
   text-align: center;
-  margin-top: 5em;
   width: 100% !important;
-  font-size: .7rem !important;
+  font-size: .9rem !important;
   color: red !important;
+  font-family:Verdana, Geneva, Tahoma, sans-serif
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -129,149 +174,193 @@ wd-5{
     scroll-behavior: smooth;
   }
 }
-.container{
-  width: 100%;
-  max-width: 3600px;
-  padding: 0 !important;
-  height: 100%;
-  margin: auto;
-  position: relative;
+/* For the entire scrollbar */
+
+html, body{
+  overflow: hidden !important;
+  padding: 0;
+  margin: 0;
 }
-  
-.row-wrapper {
-  padding: .5em .25em;
-  width: 100%;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: center;
+.container{
+  width: 100%!important;
+  padding: 0 !important;
+  height: 100%!important;
+  margin: auto!important;
+  position: relative!important;
 }
 
-/* Dashboard */
-.main,
-.pages-container,
-.sections-container,
-.subsections-container{
+/* Other */
+.form-message{
+  font-size: .8rem !important;
+  margin-top: 1em !important;
+  text-align: center !important;
+  border: 1px solid !important;
+  padding: .1em 1em !important;
+  font-weight: bold !important;
+}
+
+.score-btn{
+  font-family: Verdana, Geneva, Tahoma, sans-serif !important;
+}
+
+/* main */
+
+.main{
+  height: 85vh !important; 
+  height: 85dvh !important; 
   display: flex !important;
-  flex-direction: column !important;
   justify-content: flex-start !important;
   padding: 0 !important;
   margin: 0 !important;
   width: 100% !important;
 }
-
-.main,
-.pages-container,
-.sections-container,
-.subsections-container{
-  overflow: hidden !important;
+.pages-container{
+  width: 100% !important;
+  background-color: #f2f2f2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: .25em !important;
+  flex-grow: 1;
 }
-
-.main{
-  height: 85vh !important; 
-  height: 85dvh !important; 
-}
-
-.pages-container,
-.sections-container,
-.subsections-container{
-  height: 100% !important;
-  overflow: hidden !important;
-}
-
-.pages,
-.sections,
-.subsections{
-  height: 85% !important;
+.content-wrapper{
+  background-color: #f2f2f2 !important;
   display: flex;
   flex-direction: column !important;
-  justify-content: flex-start !important;
+  align-items: center !important;
+  width: 100% !important;
+  height: 100% !important;
+  justify-content: center !important;
   overflow: auto !important;
 }
-
-.page-nav-container,
-.section-nav-container,
-.subsection-nav-container{
-  overflow-y: hidden !important;
-  overflow-x: auto !important;
-  width: 100% !important;
+.info-wrapper{
   display: flex !important;
-  align-items: center;
-  height: 15% !important;
-}
-
-.page-nav-container{
-  justify-content: flex-start !important;
-  border-bottom: 2px solid whitesmoke;
-  background-color: whitesmoke;
-}
-
-.section-nav-container{
-  justify-content: center !important;
-  border-bottom: 2px solid whitesmoke;
-}
-
-.subsection-nav-container{
-  justify-content: center !important;
-}
-
-.nav-btn,
-.nav-btn-1,
-.nav-btn-2{
-  display: flex !important;
-  flex-direction: column !important;
   align-items: center !important;
   justify-content: center !important;
-  min-width: 100px !important;
-  max-width: 400px !important;
-  text-transform: uppercase;
+  flex-direction: column !important;
+  width: 100% !important;
+  height: 10% !important;
+  font-weight: bold;
+  max-width: 1200px !important;
+  overflow: auto;
+  text-align: center !important;
+  background-color: #333333 !important;
+  font-family:Verdana, Geneva, Tahoma, sans-serif !important;
+  font-size: .9em !important;
+  color: white !important;
+  scrollbar-width: thin !important;
+}
+.info-wrapper h4{
+  color: yellow !important;
+}
+
+.table{
+  height: 90%;
+  width: 100%;
+  max-width: 1200px !important;
+}
+
+
+/* nav sidebar  */
+
+.nav-container, .nav-container-drawer, .nav-list-container{
+  height: 100% !important;
+  width: fit-content !important;
+  z-index: 5 !important;
+}
+.nav-container-drawer{
+  position: absolute !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 85vh !important;
+  height: 85dvh !important;
+  background-color: rgba(0, 0, 0, 0.5) !important;
+}
+.nav-list-container{
+  display: flex;
+  flex-direction: column !important;
+  background-color: #333333 !important;
+  border: 3px solid white !important;
+  max-width: 350px !important;
+}
+.nav-title, .nav-item{
+  font-family: Verdana, Geneva, Tahoma, sans-serif !important;
+  font-weight: bold !important;
+  color: white !important;
+  font-size: .7rem !important;
+}
+.nav-title:hover, .nav-item:hover{
+  background-color: #ff4d4d !important;
+  color: white !important;
+}
+.nav-title{
+  color: yellow !important;
+  font-weight: normal !important;
+  padding: .5em;
+  font-size: .8rem !important;
+}
+.v-list-item__content{
+  width: 100%;
+}
+.nav-link:hover, .nav-link div:hover{
+  cursor: pointer !important;
+}
+.logout-btn {
+  background-color: #ff4d4d !important; 
+  color: white !important; 
+  font-weight: bold !important;
+  border: none !important; 
+  width: 120px !important;
+  border-radius: .3em !important; 
+  cursor: pointer !important; 
+}
+.logout-btn:hover {
+  background-color: #e60000 !important; 
+}
+
+
+/* info drawer */
+.drawer-container{
+  position: absolute !important;
+  left: 0 !important;
+  z-index: 100 !important;
+  width: max-content !important;
+}
+.drawer-list{
+  height: 95dvh !important; 
+  background-color: #333333 !important;
+  border: 3px solid #f2f2f2 !important;
+  padding-top: 0 !important;
+}
+.drawer-head{
+  font-size: .8rem !important;
+  background-color: #ff4d4d !important;
+  color: white !important;
+  font-weight: bold !important;
   text-align: center !important;
   font-family: Verdana, Geneva, Tahoma, sans-serif;
-  border-radius: .4em !important;
-  font-weight: bold !important;
-  margin: 0em 1em !important;
 }
-
-.nav-btn{
-  font-size: .6rem !important;
+.drawer-item{
   color: white !important;
-  font-family: monospace;
-  padding: .1em .5em;
-  background-color: lightseagreen;
 }
-
-.nav-btn:hover, .nav-btn-active{
+.drawer-title{
+  font-size: .8rem !important;
+  font-family: Verdana, Geneva, Tahoma, sans-serif !important;
+  color: white!important;
+}
+.drawer-subtitle{
+  font-size: .75rem !important;
   color: yellow !important;
-  background-color: seagreen;
 }
-
-.nav-btn-1{
-  font-size: .5rem !important;
-  padding: .2em .5em;
-  color: lightseagreen !important;
-  border: 2px solid seagreen !important;
-}
-.nav-btn-1:hover, .nav-btn-1-active{
-  color: yellow !important;
-  background-color: seagreen !important;
-}
-
-.nav-btn-2{
-  color: lightseagreen !important;
-  font-size: .5rem !important;
-  padding: .2em .5em !important;
-}
-
-.nav-btn-2-active, 
-.nav-btn-2:hover{
-  border: 1px solid lightseagreen;
-  border-bottom: 3px solid lightseagreen;
+.subjects{
+  font-size: .55rem !important;
+  text-transform: uppercase !important;
 }
 
 div:hover{
   cursor: default !important;
 }
-
 .overlay{
   width: 100%;
   height: 100%;
@@ -289,13 +378,11 @@ div:hover{
   color: yellow;
   font-family: Verdana, "sans-serif";
   font-size: 1.5vw;
-
 }
 .overlay-btn:hover{
   background-color: lightseagreen;
   color: white;
 }
-
 .close-btn{
   position: absolute !important;
   right: 0 !important;
@@ -303,50 +390,161 @@ div:hover{
 }
 
 @media screen and (min-width: 576px) {
-  .nav-btn{
-    font-size: .65rem !important;
-    padding: .1em 1em;
-  }
-  .page-nav-container,
-  .section-nav-container,
-  .subsection-nav-container{
-    margin-bottom: 1em;
+  .pages-container{
+    padding: .5em !important;
   }
 }
-
 @media screen and (min-width: 767px) {
-  .page-nav-container{
-    justify-content: center !important;
-  }
-  .nav-btn{
-    font-size: .7rem !important;
-    margin: 0em 1em !important;
+  .pages-container{
+    padding: .75em !important;
   }
 }
-
 @media screen and (min-width: 991px) {
-  .nav-btn{
-    font-size: .8rem !important;
-    margin: 0em 2em !important;
-  }
-  .nav-btn-1{
-    font-size: .6rem !important;
-  }
-  .nav-btn-2{
-    font-size: .6rem !important;
+  .pages-container{
+    padding: 1em !important;
   }
 }
-
 @media screen and (min-width: 1200px) {
   .nav-btn{
     font-size: .8rem !important;
     margin: 0em 3em !important;
   }
 }
-
 @media screen and (min-width:2000px) {
   .nav-btn{
     font-size: .8rem !important;
     margin: 0em 4em !important;
   }
 }
+
+
+/* Table */
+
+.table-1{
+  height: 100% !important;
+  width: 100%;
+}
+
+.table-head{
+    font-size: .6rem !important;
+    font-weight: bold !important;
+    color: seagreen !important;
+    text-align: center !important;
+    font-family: monospace !important;
+  }
+  .table-data{
+    font-size: .6rem !important;
+    text-transform: uppercase!important;
+    font-weight: bold !important;
+    text-align: center !important;
+  }
+  .table-data-value{
+    text-align: center !important;
+    font-weight: bold !important;
+    font-size: .7rem !important;
+  }
+  .title{
+    font-size: .6rem;
+    padding: 0 .5em !important;
+    font-weight: bold;
+    color: black;
+  }
+  .profile-img{
+    width: 30px !important;
+    height: 30px !important;
+    border-radius: 50% !important;
+  }
+  .user-name {
+    font-size: .7rem !important;
+    font-family: Verdana, Geneva, Tahoma, sans-serif !important;
+    text-transform: capitalize !important;
+  }
+  div:hover{
+    cursor: default !important;
+  }
+  .v-scroll{
+    min-width: 225px !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  .student-info-container{
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    width: max-content !important;
+    max-width: max-content !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+  }
+
+  
+@media screen and (min-width: 420px) {
+  .table-head{
+    font-size: .7rem !important;
+  }
+  .table-data{
+    font-size: .65em !important;
+  }
+}
+@media screen and (min-width: 576px) {
+  .table-head{
+    font-size: .8rem !important;
+  }
+  .no-data{
+    font-size: .8rem !important;
+  }
+  .table-data{
+    font-size: .7em !important;
+  }
+}
+@media screen and (min-width: 767px) {
+  .table-head{
+    font-size: .85rem !important;
+  }
+  .table-data{
+    font-size: .75em !important;
+  }
+  .no-data{
+    font-size: .9rem !important;
+  }
+  .user-name {
+    font-size: .8rem !important;
+  }
+  .profile-img{
+    width: 40px !important;
+    height: 40px !important;
+  }
+}
+@media screen and (min-width: 992px) {
+  .table-head{
+    font-size: .9rem !important;
+  }
+  .table-data{
+    font-size: .8em !important;
+  }
+  .no-data{
+    font-size: 1rem !important;
+  }
+  .user-name {
+    font-size: .9rem !important;
+  }
+}
+@media screen and (min-width: 2000px) {
+  .table-head{
+    font-size: 1rem !important;
+  }
+  .table-data{
+    font-size: .9em !important;
+  }
+}
+@media screen and (min-width: 3000px) {
+  .table-head{
+    font-size: 1.2rem !important;
+  }
+  .table-data{
+    font-size: 1em !important;
+  }
+}
+
+

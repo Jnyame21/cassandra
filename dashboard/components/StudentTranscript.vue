@@ -10,7 +10,6 @@ const errorMessage = ref('')
 
 const userAuthStore = useUserAuthStore()
 
-
 const clearMessage = ()=>{
     setTimeout(()=>{
         successMessage.value = ''
@@ -47,11 +46,9 @@ const getTranscript = async()=>{
 
 <template>
 <div class="w-100 h-100 flex-all-c">
-    <div v-if="userAuthStore.userData" class="btn-container flex-all-c">
-        <p style="color: green" v-if="successMessage" class="message">{{successMessage}}</p>
-        <p v-if="errorMessage" style="color: red" class="message">{{errorMessage}}</p>
-        <v-btn :loading="loading" @click="getTranscript()" color="green">DOWNLOAD</v-btn>
-    </div>
+    <p style="color: green" v-if="successMessage" class="message">{{successMessage}}</p>
+    <p v-if="errorMessage" style="color: red" class="message">{{errorMessage}}</p>
+    <v-btn :loading="loading" @click="getTranscript()" color="green">DOWNLOAD</v-btn>
 </div>
 </template>
 
@@ -61,15 +58,9 @@ const getTranscript = async()=>{
 .btn-container{
     margin-top: 3em;
 }
-
 .message{
-    font-size: .6rem !important;
+    font-size: .7rem !important;
     text-align: center;
-}
-
-.btn-container p{
-    font-size: .65rem;
-    margin-top: 1em;
 }
 
 @media screen and (min-width: 576px) {

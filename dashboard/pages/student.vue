@@ -10,10 +10,10 @@ useHead({
   ],
 })
 
-
 const userAuthStore = useUserAuthStore()
+const elementsStore = useElementsStore()
 const rozmachAuth: any = ref(null)
-const activePage = ref('page1')
+const onDesk = ref(false)
 
 onBeforeUnmount(()=>{
   document.body.style.overflow = 'auto'
@@ -21,15 +21,54 @@ onBeforeUnmount(()=>{
 
 onBeforeMount(()=>{
   if (userAuthStore.isAuthenticated){
-    document.title = "cassandra"
+    document.title = "Cassandra"
   }
-  
   document.body.style.overflow = 'hidden'
+  elementsStore.activePage = 'StudentSubjects'
+
   rozmachAuth.value = localStorage.getItem('RozmachAuth')
   if (rozmachAuth.value){
     rozmachAuth.value = JSON.parse(rozmachAuth.value)
   }
+})
 
+watch(()=>elementsStore.activePage, (newValue, oldValue)=>{
+  if (newValue.split(',')[0] === 'StudentResults'){
+    const year_results = userAuthStore.studentData.academicYearsData.find(item => item['name'] === newValue.split(',')[1])
+    if (year_results && newValue.split(',')[3] === '1'){
+      userAuthStore.studentData.currentResults = year_results['results']['term_one']
+    }
+    else if (year_results && newValue.split(',')[3] === '2'){
+      userAuthStore.studentData.currentResults = year_results['results']['term_two']
+    }
+    else if (year_results && newValue.split(',')[3] === '3'){
+      userAuthStore.studentData.currentResults = year_results['results']['term_three']
+    }
+  }
+  else if (newValue.split(',')[0] === 'StudentAttendance'){
+    const year_attendance = userAuthStore.studentData.academicYearsData.find(item => item['name'] === newValue.split(',')[1])
+    if (year_attendance && newValue.split(',')[3] === '1'){
+      userAuthStore.studentData.currentAttendance = year_attendance['attendance']['term_one']
+    }
+    else if (year_attendance && newValue.split(',')[3] === '2'){
+      userAuthStore.studentData.currentAttendance = year_attendance['attendance']['term_two']
+    }
+    else if (year_attendance && newValue.split(',')[3] === '3'){
+      userAuthStore.studentData.currentAttendance = year_attendance['attendance']['term_three']
+    }
+  }
+  else if (newValue.split(',')[0] === 'StudentAssessments'){
+    const year_assessments = userAuthStore.studentData.academicYearsData.find(item => item['name'] === newValue.split(',')[1])
+    if (year_assessments && newValue.split(',')[3] === '1'){
+      userAuthStore.studentData.currentAssessments = year_assessments['assessments']['term_one']
+    }
+    else if (year_assessments && newValue.split(',')[3] === '2'){
+      userAuthStore.studentData.currentAssessments = year_assessments['assessments']['term_two']
+    }
+    else if (year_assessments && newValue.split(',')[3] === '3'){
+      userAuthStore.studentData.currentAssessments = year_assessments['assessments']['term_three']
+    }
+  }
 })
 
 const hidOverlay = ()=>{
@@ -40,20 +79,26 @@ const hidOverlay = ()=>{
       localStorage.setItem('RozmachAuth', JSON.stringify(rozmachAuth.value))
     }
     overlay.style.display = 'none'
-
   }
 }
 
-
-const changePage = (page: string)=>{
-
-  activePage.value = page
-
+if (window.innerWidth > 1000){
+    onDesk.value = true
+}else{
+    onDesk.value = false
 }
 
+window.addEventListener('resize', (event)=>{
+  if (window.innerWidth > 1000){
+    onDesk.value = true;
+  }else{
+    onDesk.value = false;
+  }
+});
 
 
 </script>
+
 
 <template>
     <!-- Welcome Overlay-->
@@ -71,28 +116,18 @@ const changePage = (page: string)=>{
       </v-card-actions>
     </v-card>
   </div>
-  <TheHeader />
-  <main class="main">
+  <TheHeader  v-if="userAuthStore.userData"/>
+  <main class="main" v-if="userAuthStore.userData">
+    <StudentNavContainerMob v-if="!onDesk"/>
+    <StudentNavContainerDesk v-if="onDesk"/>
     <div class="pages-container">
-      <div class="page-nav-container">
-        <button class="nav-btn" @click="changePage('page1')" :class="{'nav-btn-active': activePage==='page1'}"><v-icon icon="mdi-account-group-outline"/>MY CLASS</button>
-        <button class="nav-btn" @click="changePage('page2')" :class="{'nav-btn-active': activePage==='page2'}"><v-icon icon="mdi-book-open-outline"/>MY RESULTS</button>
-        <button class="nav-btn" @click="changePage('page3')" :class="{'nav-btn-active': activePage==='page3'}"><v-icon icon="mdi-book-account"/>TRANSCRIPT</button>
-        <button class="nav-btn" @click="changePage('page4')" :class="{'nav-btn-active': activePage==='page4'}"><v-icon icon="mdi-help"/>HELP</button>
-      </div>
-  
-        <div class="pages" :style="activePage==='page1' ? {'display': 'flex'}: {'display': 'none'}">
-          <StudentClass />
-        </div>
-        <div class="pages" :style="activePage==='page2' ? {'display': 'flex'}: {'display': 'none'}">
-          <StudentResults />
-        </div>
-        <div class="pages" :style="activePage==='page3' ? {'display': 'flex'}: {'display': 'none'}">
-          <StudentTranscript />
-        </div>
-        <div class="pages" :style="activePage==='page4' ? {'display': 'flex'}: {'display': 'none'}">
-          <HelpForm />
-        </div>
+      <StudentSubjects v-show="elementsStore.activePage === 'StudentSubjects' " />
+      <StudentClassStudents v-show="elementsStore.activePage === 'StudentClassStudents' " />
+      <StudentResults v-show="elementsStore.activePage.split(',')[0] === 'StudentResults' " />
+      <StudentAttendance v-show="elementsStore.activePage.split(',')[0] === 'StudentAttendance' " />
+      <StudentAssessments v-show="elementsStore.activePage.split(',')[0] === 'StudentAssessments' " />
+      <StudentTranscript v-show="elementsStore.activePage.split(',')[0] === 'StudentTranscript' " />
+      <HelpForm v-show="elementsStore.activePage.split(',')[0] === 'Help'" />
     </div>
   </main>
   <TheFooter/>
@@ -110,11 +145,13 @@ const changePage = (page: string)=>{
   width: 100%;
   background-color: rgba(0,0,0,0.5);
 }
-
 .card{
   width: 80%;
 }
-
+.nav-container{
+  width: 400px;
+  background-color: red;
+}
 #company-name{
   font-size: .7rem;
   font-family: Verdana, "sans-serif";
@@ -123,12 +160,10 @@ const changePage = (page: string)=>{
   text-transform: uppercase;
   color: #007bff;
 }
-
 .overlay-btn{
   background-color: mediumseagreen;
   color: yellow;
 }
-
 .overlay-btn:hover{
   background-color: lightseagreen;
   color: white;
@@ -137,3 +172,4 @@ const changePage = (page: string)=>{
 
 
 </style>
+

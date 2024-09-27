@@ -517,9 +517,9 @@ def get_student_transcript(student, request):
 
             try:
                 academic_year_one = AcademicYear.objects.get(school=student.school, name=academic_year_names[0])
-                results_obj = Result.objects.filter(school=student.school, student=student, subject=st_subject, academic_year=academic_year_one, academic_term=new_counter)
+                results_obj = Exam.objects.filter(school=student.school, student=student, subject=st_subject, academic_year=academic_year_one, academic_term=new_counter)
                 if results_obj.exists():
-                    results = StudentResultsSerializer(results_obj, many=True).data
+                    results = StudentExamsSerializer(results_obj, many=True).data
                     score = float(results[0]['score'])
                     if score >= 80:
                         cell1.paragraphs[0].runs[0].text = 'A1'
@@ -547,10 +547,10 @@ def get_student_transcript(student, request):
 
             try:
                 academic_year_two = AcademicYear.objects.get(school=student.school, name=academic_year_names[1])
-                results_obj = Result.objects.filter(school=student.school, student=student, subject=st_subject, academic_year=academic_year_two,
+                results_obj = Exam.objects.filter(school=student.school, student=student, subject=st_subject, academic_year=academic_year_two,
                                                     academic_term=new_counter)
                 if results_obj.exists():
-                    results = StudentResultsSerializer(results_obj, many=True).data
+                    results = StudentExamsSerializer(results_obj, many=True).data
                     score = float(results[0]['score'])
                     if score >= 80:
                         cell2.paragraphs[0].runs[0].text = 'A1'
@@ -578,10 +578,10 @@ def get_student_transcript(student, request):
 
             try:
                 academic_year_three = AcademicYear.objects.get(school=student.school, name=academic_year_names[2])
-                results_obj = Result.objects.filter(school=student.school, student=student, subject=st_subject, academic_year=academic_year_three,
+                results_obj = Exam.objects.filter(school=student.school, student=student, subject=st_subject, academic_year=academic_year_three,
                                                     academic_term=new_counter)
                 if results_obj.exists():
-                    results = StudentResultsSerializer(results_obj, many=True).data
+                    results = StudentExamsSerializer(results_obj, many=True).data
                     score = float(results[0]['score'])
                     if cell3 is not None:
                         if score >= 80:
@@ -844,19 +844,19 @@ def get_hod_subject_assignments(hod, academic_year):
 
 # Teacher upload results
 def teacher_results_upload(staff, year, term):
-    subject_assignments = SubjectAssignment.objects.select_related('students_class', 'subject').filter(
+    subject_assignments = SubjectAssignment.objects.select_related('students_class').prefetch_related('subjects').filter(
         school=staff.school,
         teacher=staff,
         academic_year=year,
         academic_term=term,
     )
-    results = Result.objects.select_related('student', 'subject').filter(
+    results = Exam.objects.select_related('student', 'subject').filter(
         school=staff.school,
         teacher=staff,
         academic_year=year,
         academic_term=term,
     )
-    serialized_results = ResultsSerializer(results, many=True).data
+    serialized_results = ExamsSerializer(results, many=True).data
     teacher_students_without_results = []
     teacher_students_with_results = []
     serialized_subject_assignments = SubjectAssignmentSerializer(subject_assignments, many=True).data

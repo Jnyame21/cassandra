@@ -15,442 +15,795 @@ from rest_framework.permissions import IsAuthenticated
 from api.models import *
 from api.serializer import *
 from api.utils import *
-
+import json
 
 # TEACHER
-@api_view(['GET', 'POST'])
+@api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def teacher_students_attendance(request):
     teacher = request.user.staff
-    if request.method == 'POST':
-        data = request.data
-        academic_year = AcademicYear.objects.get(school=teacher.school, name=data['year'])
-        subject = Subject.objects.get(schools=teacher.school, name=data['subject'])
-        students_class = Classe.objects.prefetch_related('students').get(school=teacher.school, name=data['className'])
-        if data['type'] == 'create':
-            students = data['absentStudents'].split(',')
-            try:
-                existing_attendance = StudentAttendance.objects.get(
+    data = request.data
+    academic_year = AcademicYear.objects.get(school=teacher.school, name=data['year'])
+    students_class = Classe.objects.prefetch_related('students').get(school=teacher.school, name=data['className'])
+    
+    if data['type'] == 'create':
+        students = data['absentStudents'].split(',')
+        try:
+            existing_attendance = StudentAttendance.objects.get(
+                school=teacher.school,
+                date=data['date'],
+                teacher=teacher,
+                students_class=students_class,
+                academic_year=academic_year,
+                academic_term=int(data['term']),
+            )
+            return Response({
+                'ms': f"You have already uploaded attendance for the date {data['date']}",
+            }, status=201)
+
+        except StudentAttendance.DoesNotExist:
+            with transaction.atomic():
+                attendance = StudentAttendance.objects.create(
                     school=teacher.school,
-                    date=data['date'],
                     teacher=teacher,
-                    subject=subject,
+                    date=data['date'],
                     students_class=students_class,
-                    academic_year=academic_year,
-                    academic_term=int(data['term']),
-                )
-                return Response({
-                    'ms': f"You have already uploaded attendance for the date {data['date']}",
-                }, status=201)
-
-            except StudentAttendance.DoesNotExist:
-                with transaction.atomic():
-                    attendance = StudentAttendance.objects.create(
-                        school=teacher.school,
-                        subject=subject,
-                        teacher=teacher,
-                        date=data['date'],
-                        students_class=students_class,
-                        academic_year=academic_year,
-                        academic_term=int(data['term']),
-                        students_year=students_class.students_year,
-                    )
-                    for st in students_class.students.all():
-                        if st.st_id not in students:
-                            attendance.students_present.add(st)
-                        else:
-                            attendance.students_absent.add(st)
-
-                    attendance.save()
-
-                new_attendance = StudentsAttendanceSerializer(StudentAttendance.objects.get(
-                    school=teacher.school,
                     academic_year=academic_year,
                     academic_term=int(data['term']),
                     students_year=students_class.students_year,
-                    subject=subject,
-                    date=data['date'],
-                    students_class=students_class,
-                    teacher=teacher
-                )).data
+                )
+                    
+                for st in students_class.students.all():
+                    if st.st_id not in students:
+                        attendance.students_present.add(st)
+                    else:
+                        attendance.students_absent.add(st)
 
-                return Response(new_attendance)
+                attendance.save()
 
-        elif data['type'] == 'delete':
-            try:
-                students_class = Classe.objects.get(school=teacher.school, name=data['className'])
-                with transaction.atomic():
-                    student_attendance = StudentAttendance.objects.get(
-                        school=teacher.school,
-                        subject=subject,
-                        academic_year=academic_year,
-                        academic_term=int(data['term']),
-                        students_class=students_class,
-                        teacher=teacher,
-                        date=data['date'],
-                    )
-                    student_attendance.delete()
+            new_attendance = StudentsAttendanceSerializer(StudentAttendance.objects.get(
+                school=teacher.school,
+                academic_year=academic_year,
+                academic_term=int(data['term']),
+                students_year=students_class.students_year,
+                date=data['date'],
+                students_class=students_class,
+                teacher=teacher
+            )).data
 
-                return Response(status=200)
+            return Response(new_attendance)
 
-            except StudentAttendance.DoesNotExist:
-                return Response(status=401)
-
-    else:
-        academic_year = AcademicYear.objects.get(school=teacher.school, name=request.GET.get('year'))
-        term = request.GET.get('term')
-        subject_assignments = SubjectAssignment.objects.prefetch_related('subject').filter(
-            school=teacher.school,
-            academic_year=academic_year,
-            academic_term=term,
-            teacher=teacher,
-        )
-        students_attendance = []
-        if subject_assignments.exists():
-            for assign in subject_assignments:
-                assign_data = SubjectAssignmentWithoutStudentsSerializer(assign).data
-                attendance = StudentsAttendanceSerializer(StudentAttendance.objects.filter(
+    elif data['type'] == 'delete':
+        try:
+            students_class = Classe.objects.get(school=teacher.school, name=data['className'])
+            with transaction.atomic():
+                student_attendance = StudentAttendance.objects.get(
                     school=teacher.school,
                     academic_year=academic_year,
-                    academic_term=term,
-                    students_class=assign.students_class,
-                    subject=assign.subject
-                ).order_by('-date'), many=True).data
+                    academic_term=int(data['term']),
+                    students_class=students_class,
+                    teacher=teacher,
+                    date=data['date'],
+                )
+                    
+                student_attendance.delete()
 
-                students_attendance.append({
-                    'subject': assign_data['subject']['name'],
-                    'class_name': assign_data['students_class']['name'],
-                    'students_year': assign_data['students_class']['students_year'],
-                    'attendance': attendance,
-                })
+            return Response(status=200)
 
-        return Response(students_attendance)
+        except StudentAttendance.DoesNotExist:
+            return Response(status=401)
+
+    # if request.method == 'GET':
+    #     academic_year = AcademicYear.objects.get(school=teacher.school, name=request.GET.get('year'))
+    #     term = int(request.GET.get('term'))
+        # subject_assignments = SubjectAssignment.objects.prefetch_related('subject').filter(
+        #     school=teacher.school,
+        #     academic_year=academic_year,
+        #     academic_term=term,
+        #     teacher=teacher,
+        # )
+        # students_attendance = []
+        
+        # if subject_assignments.exists():
+        #     for assign in subject_assignments:
+        #         assign_data = SubjectAssignmentWithoutStudentsSerializer(assign).data
+        #         attendance = StudentsAttendanceSerializer(StudentAttendance.objects.filter(
+        #             school=teacher.school,
+        #             academic_year=academic_year,
+        #             academic_term=term,
+        #             students_class=assign.students_class,
+        #             subject=assign.subject
+        #         ).order_by('-date'), many=True).data
+
+        #         students_attendance.append({
+        #             'subject': assign_data['subject']['name'],
+        #             'class_name': assign_data['students_class']['name'],
+        #             'students_year': assign_data['students_class']['students_year'],
+        #             'attendance': attendance,
+        #         })
+
+        # return Response(attendance_data)
 
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
-def get_teacher_subject_assignments(request):
-    sch = request.user.staff.school
-    try:
-        year = request.GET.get('year')
-        teacher = request.user.staff
-        academic_year = AcademicYear.objects.get(school=sch, name=year)
-        term1_subjects_assignments = SubjectAssignmentSerializer(
-            SubjectAssignment.objects.filter(teacher=teacher, academic_year=academic_year, academic_term=1), many=True)
-        term2_subjects_assignments = SubjectAssignmentSerializer(
-            SubjectAssignment.objects.filter(teacher=teacher, academic_year=academic_year, academic_term=2), many=True)
-        term3_subjects_assignments = SubjectAssignmentSerializer(
-            SubjectAssignment.objects.filter(teacher=teacher, academic_year=academic_year, academic_term=3), many=True)
-        return Response(
-            {'subject_assignments': {
-                'term1': term1_subjects_assignments.data, 
-                'term2': term2_subjects_assignments.data, 
-                'term3': term3_subjects_assignments.data
-                }
-            }
-        )
-    except request.user.staff.DoesNotExist:
-        return Response(status=401)
+def get_teacher_data(request):
+    teacher = request.user.staff
+    school = teacher.school
+    current_term = int(request.GET.get('term'))
+    current_academic_year = AcademicYear.objects.get(school=school, name=request.GET.get('year'))
+    
+    attendance = StudentAttendance.objects.filter(school=school, teacher=teacher, academic_year=current_academic_year, academic_term=current_term).order_by('-date')
+    attendance_data = StudentsAttendanceSerializer(attendance, many=True).data
+        
+    subject_assignments = SubjectAssignment.objects.select_related('teacher', 'students_class').prefetch_related('subjects').filter(school=school, teacher=teacher, academic_year=current_academic_year, academic_term=current_term)
+    subject_assignments_data = SubjectAssignmentSerializer(subject_assignments, many=True).data
+        
+    return Response({
+        'subject_assignments': subject_assignments_data,
+        'students_attendance': attendance_data,
+    })
 
 
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
-def teacher_student_results(request):
-    sch = request.user.staff.school
-    try:
-        teacher = request.user.staff
-        staff = StaffSerializer(teacher).data
-        if request.method == 'POST':
-            year = request.data['year']
-            term = int(request.data['term'])
-            subject = request.data['subject']
-            academic_year = AcademicYear.objects.get(school=sch, name=year)
-            if request.data['score'] == 'generate':
-                st_class = request.data['students_class']
-                st_year = request.data['students_year']
-                students = request.data['st_id']
+def teacher_assessments(request):
+    teacher = request.user.staff
+    school = teacher.school
+    
+    if request.method == 'GET':
+        current_term = int(request.GET.get('term'))
+        current_academic_year = AcademicYear.objects.get(school=school, name=request.GET.get('year'))
+        students_with_assessments_all = []
+        students_without_assessments_all = []
+            
+        subject_assignments = list(SubjectAssignment.objects.select_related('teacher', 'students_class').prefetch_related('subjects').filter(school=school, teacher=teacher, academic_year=current_academic_year, academic_term=current_term))
+        for assign in subject_assignments:
+            all_students = assign.students_class.students.all()
+            without_assessments_data = {'class_name': assign.students_class.name, 'assignments': []}
+            with_assessments_data = {'class_name': assign.students_class.name, 'assignments': []}
+            for _subject in assign.subjects.all():
+                without_assessments = {'subject': _subject.name, 'assessments': []}
+                with_assessments = {'subject': _subject.name, 'assessments': []}
+                assessment = list(Assessment.objects.filter(school=school, teacher=teacher, subject=_subject, student_class=assign.students_class, academic_year=current_academic_year, academic_term=current_term))
+                assessment_titles = list(set([x.title for x in assessment]))
+                for _title in assessment_titles:
+                    assessments_with_title = list(Assessment.objects.select_related('student__user').filter(school=school, teacher=teacher, title=_title, subject=_subject, student_class=assign.students_class, academic_year=current_academic_year, academic_term=current_term).order_by('-score'))
+                    students_with_assessment = [x.student for x in assessments_with_title]
+                    students_without_assessments_data = [
+                        {'name': f"{x.user.first_name} {x.user.last_name}", 
+                        'st_id': x.st_id,
+                        } for x in all_students if x not in students_with_assessment]
+                    without_assessments['assessments'].append({'title': _title, 'students': students_without_assessments_data})
+                    
+                    students_with_assessments_data = [
+                        {'name': f"{x.student.user.first_name} {x.student.user.last_name}", 
+                        'st_id': x.student.st_id,
+                        'comment': x.comment,
+                        'score': x.score,
+                        } for x in assessments_with_title]
+                    with_assessments['assessments'].append({
+                        'title': _title, 
+                        'students': students_with_assessments_data,
+                        'description': assessments_with_title[0].description,
+                        'percentage': assessments_with_title[0].percentage,
+                        'total_score': assessments_with_title[0].total_score,
+                        'date': assessments_with_title[0].date,
+                        })
+                
+                without_assessments['assessments'].insert(0, {'title': 'New'})
+                without_assessments_data['assignments'].append(without_assessments)
+                with_assessments_data['assignments'].append(with_assessments)
+            
+            students_with_assessments_all.append(with_assessments_data)
+            students_without_assessments_all.append(without_assessments_data)
+            
+        return Response({
+            'with_assessments': students_with_assessments_all,
+            'without_assessments': students_without_assessments_all,
+        })
+    
+    elif request.method == 'POST':
+        year = request.data['year']
+        term = int(request.data['term'])
+        subject_name = request.data['subject']
+        st_class_name = request.data['studentsClassName']
+        current_academic_year = AcademicYear.objects.select_related('period_division').get(school=school, name=year)
+        assessment_title = request.data['title']
+        if request.data['type'] == 'getFile':
+            students = json.loads(request.data['selectedStudents'])
+            if school.students_id:
                 data = [
-                    ['STUDENT NAME', 'STUDENT ID', 'SCORE']
+                    ['STUDENT NAME', 'STUDENT ID', 'SCORE', 'COMMENT']
+                ]
+            else:
+                data = [
+                    ['STUDENT NAME', 'STUDENT USERNAME', 'SCORE', 'COMMENT']
                 ]
 
-                if len(students) == 0:
-                    return Response({
-                        'ms': "You have already uploaded results for students in this class",
-                    }, status=201)
-                    
-                for st in students:
-                    row = [st['name'], st['st_id'], 'not set']
-                    data.append(row)
+            if len(students) == 0:
+                return Response({
+                    'message': f"You have already uploaded all the {subject_name}[{assessment_title}] Assessment scores for all students in this class",
+                }, status=400)
+                
+            subject_obj = Subject.objects.get(schools=school, name=subject_name)
+            for _st in students:
+                row = [_st['name'], _st['st_id'], '']
+                data.append(row)
 
-                wb = Workbook()
-                ws = wb.active
-                ws.title = subject
+            wb = Workbook()
+            ws = wb.active
+            ws.title = subject_name
 
-                ws.merge_cells('A1:I3')
+            ws.merge_cells('A1:I3')
+            ws['A1'].value = f"SUBJECT: [{subject_name}]  ACADEMIC YEAR: [{year}]  CLASS: [{st_class_name}]  {current_academic_year.period_division.name}: [{term}]  ASSESSMENT: [{assessment_title}]"
+            ws['A1'].font = Font(size=14, bold=True)
+            ws['A1'].alignment = Alignment(horizontal='center', vertical='center')
 
-                if sch.semesters:
-                    ws['A1'].value = f"SUBJECT: [{subject}] - ACADEMIC YEAR: [{year}] - CLASS: [{st_class} FORM {st_year}] - SEMESTER: [{term}]"
-                else:
-                    ws['A1'].value = f"SUBJECT: [{subject}] - ACADEMIC YEAR: [{year}] - CLASS: [{st_class} FORM {st_year}] - TRIMESTER: [{term}]"
+            count = 0
+            container = ws['B5:E200']
+            while count < len(data):
+                for row_ws, row_data in zip(container, data):
+                    for cell, item in zip(row_ws, row_data):
+                        cell.value = item
 
-                ws['A1'].font = Font(size=14, bold=True)
-                ws['A1'].alignment = Alignment(horizontal='center', vertical='center')
+                count += 1
 
-                count = 0
-                container = ws['B5:D200']
-                while count < len(data):
-                    for row_ws, row_data in zip(container, data):
-                        for cell, item in zip(row_ws, row_data):
-                            cell.value = item
+            ws.column_dimensions['A'].width = 20
+            ws.column_dimensions['B'].width = 50
+            ws.column_dimensions['C'].width = 25
+            ws.column_dimensions['D'].width = 15
+            ws.column_dimensions['E'].width = 50
 
-                    count += 1
+            for row in ws['A3:F200']:
+                for cell in row:
+                    cell.font = Font(size=14)
+                    cell.alignment = Alignment(horizontal='center', vertical='center')
 
-                ws.column_dimensions['A'].width = 40
-                ws.column_dimensions['B'].width = 50
-                ws.column_dimensions['C'].width = 25
-                ws.column_dimensions['D'].width = 25
+            for row in ws['B3:B200']:
+                for cell in row:
+                    cell.alignment = Alignment(horizontal='left', vertical='center')
 
-                for row in ws['A3:F200']:
-                    for cell in row:
-                        cell.font = Font(size=14)
-                        cell.alignment = Alignment(horizontal='center', vertical='center')
+            for cells in ws['A5:F200'][0]:
+                cells.font = Font(bold=True, size=14)
 
-                for row in ws['B3:B200']:
-                    for cell in row:
-                        cell.alignment = Alignment(horizontal='left', vertical='center')
+            ws.protection.sheet = True
+            for cell in ws.iter_rows(min_row=6, max_row=ws.max_row, min_col=4, max_col=4):
+                cell[0].protection = Protection(locked=False)
+            for cell in ws.iter_rows(min_row=6, max_row=ws.max_row, min_col=5, max_col=5):
+                cell[0].protection = Protection(locked=False)
 
-                for cells in ws['A5:F200'][0]:
-                    cells.font = Font(bold=True, size=14)
+            ws.protection.password = 'teamjn'
 
-                ws.protection.sheet = True
-                for cell in ws.iter_rows(min_row=6, max_row=ws.max_row, min_col=4, max_col=4):
-                    cell[0].protection = Protection(locked=False)
+            filename = f"{subject_name.replace(' ', '-')}-{st_class_name}-{assessment_title}.xlsx"
+            byte_file = io.BytesIO()
+            wb.save(byte_file)
+            file_path = f"{get_school_folder(school.name)}/staff/{teacher.user.username}/{filename}"
+            if default_storage.exists(file_path):
+                default_storage.delete(file_path)
 
-                ws.protection.password = 'teamjn'
-
-                filename = f"{subject.replace(' ', '-')}-{st_class}-FORM-{st_year}-Results.xlsx"
-                byte_file = io.BytesIO()
-                wb.save(byte_file)
-
-                if settings.DEBUG:
-                    file_path = f"{get_school_folder(staff['school']['name'])}/staff/{staff['user']['username']}/{filename}"
-                    if default_storage.exists(file_path):
-                        default_storage.delete(file_path)
-
-                    save_file = default_storage.save(file_path, byte_file)
-
-                    return Response({
-                        'filename': filename,
-                        'message': 'File generated successfully',
-                        'file_path': f"http://localhost:8000{default_storage.url(save_file)}",
-                    })
-
-                else:
-                    file_path = f"{get_school_folder(staff['school']['name'])}/staff/{staff['user']['username']}/{filename}"
-                    if default_storage.exists(file_path):
-                        default_storage.delete(file_path)
-
-                    save_file = default_storage.save(file_path, byte_file)
-
-                    return Response({
-                        'filename': filename,
-                        'message': 'File generated successfully',
-                        'file_path': default_storage.url(save_file),
-                    })
-
-            elif request.data['score'] == 'upload':
-                wb = load_workbook(request.data['st_id'])
-                ws = wb.active
-                ws.protection = False
-
-                if sch.semesters:
-                    if ws[
-                        'A1'].value != f"SUBJECT: [{subject}] - ACADEMIC YEAR: [{year}] - CLASS: [{request.data['students_class']} FORM {request.data['students_year']}] - SEMESTER: [{term}]":
-                        return Response({'message': "Invalid file. You must upload the same file you generated."},
-                                        status=201)
-                else:
-                    if ws[
-                        'A1'].value != f"SUBJECT: [{subject}] - ACADEMIC YEAR: [{year}] - CLASS: [{request.data['students_class']} FORM {request.data['students_year']}] - TRIMESTER: [{term}]":
-                        return Response({'message': "Invalid file. You must upload the same file you generated."},
-                                        status=201)
-
-                df = pd.read_excel(request.data['st_id'])
-                uncleaned_data = df.values.tolist()
-                first_clean_data = []
-                for row in uncleaned_data:
-                    first_clean_row = [item for item in row if not pd.isna(item)]
-                    if first_clean_row:
-                        first_clean_data.append(first_clean_row)
-
-                first_clean_data.pop(0)
-                if not first_clean_data:
-                    return Response({'message': f"There are no students data in the uploaded file"}, status=201)
-
-                students_results = [[float(item) if isinstance(item, (int, float)) else item for item in row] for row in
-                                    first_clean_data]
-                for row in students_results:
-                    for item in row:
-                        if row.index(item) == 2 and not isinstance(item, float):
-                            return Response({
-                                'message': f"You have not assigned a score to {row[0]}"},
-                                status=201)
-                        elif row.index(item) == 2 and item > 100:
-                            return Response({
-                                'message': f"Scores cannot be more than 100. Recheck the score for {row[0]} in the file"},
-                                status=201)
-                        elif row.index(item) == 2 and item < 0:
-                            return Response({
-                                'message': f"Scores cannot be negative. Recheck the score for {row[0]} in the file"},
-                                status=201)
-
-                students_id = []
-                students_score = []
-                for row in students_results:
-                    for item in row:
-                        if row.index(item) == 1:
-                            students_id.append(item)
-                        if row.index(item) == 2:
-                            students_score.append(item)
-
-                students_class = Classe.objects.get(
-                    school=sch,
-                    name=request.data['students_class'],
-                    students_year=request.data['students_year']
-                )
-                with transaction.atomic():
-                    for st_id, st_score in zip(students_id, students_score):
-                        if students_class.students.filter(st_id=st_id).exists():
-                            st_subject = Subject.objects.get(name=subject)
-                            if students_class.subjects.filter(name=st_subject.name).exists():
-                                st = Student.objects.get(st_id=st_id)
-                                try:
-                                    st_result = Result.objects.create(
-                                        student=st,
-                                        subject=st_subject,
-                                        teacher=teacher,
-                                        score=st_score,
-                                        student_year=st.current_year,
-                                        academic_year=academic_year,
-                                        academic_term=term,
-                                        school=sch
-                                    )
-                                    st_result.save()
-
-                                except IntegrityError:
-                                    return Response(
-                                        {
-                                            'message': f"You have already uploaded result for student with ID {st.st_id}"
-                                        }, status=201)
-
-                            else:
-                                transaction.set_rollback(True)
-                                return Response(
-                                    {
-                                        'message': f"Student does not study {subject}"
-                                    },
-                                    status=201)
-
-                        else:
-                            transaction.set_rollback(True)
-                            return Response(
-                                {
-                                    'message': f"Students must be in {request.data['students_class']} {request.data['students_year']}"
-                                },
-                                status=201)
-
-                    data = teacher_results_upload(teacher, academic_year, term)
-                    return Response({'data': data, 'message': "Results uploaded and saved successfully"}, status=200)
-
-            elif request.data['score'] == 'edit':
-                student_classe = Classe.objects.get(
-                    school=sch, name=request.data['student_class'],
-                    students_year=request.data['student_year']
-                )
-                student_subject = Subject.objects.get(schools=sch, name=request.data['subject'])
-                st = student_classe.students.get(st_id=request.data['st_id'])
-                result = Result.objects.get(
-                    student=st,
-                    teacher=teacher,
-                    subject=student_subject,
-                    academic_year=academic_year,
-                    academic_term=term,
-                    school=sch
-                )
-                with transaction.atomic():
-                    try:
-                        mark = float(request.data['mark'])
-                        result.score = mark
-                        result.save()
-
-                    except ValueError:
-                        return Response({'message': "The score must be a number"}, status=202)
-
-                data = teacher_results_upload(teacher, academic_year, term)
-                return Response(data, status=200)
-
+            saved_file = default_storage.save(file_path, byte_file)
+            if settings.DEBUG:
+                return Response({
+                    'filename': filename,
+                    'message': 'File generated successfully',
+                    'file_path': f"http://localhost:8000{default_storage.url(saved_file)}",
+                })
             else:
-                score = float(request.data['score'])
-                academic_year = AcademicYear.objects.get(school=sch, name=year)
+                return Response({
+                    'filename': filename,
+                    'message': 'File generated successfully',
+                    'file_path': default_storage.url(saved_file),
+                })
 
-                if isinstance(request.data['st_id'], list):
-                    students_id = request.data['st_id']
-                    for st_id in students_id:
-                        student = Student.objects.get(school=sch, st_id=st_id)
-                        if student.program.subjects.filter(name=subject).exists():
-                            subject_obj = Subject.objects.get(name=subject)
-                            new_result = Result.objects.create(
-                                student=student,
-                                subject=subject_obj,
-                                student_year=student.current_year,
-                                teacher=teacher,
-                                score=score,
-                                academic_year=academic_year,
-                                academic_term=term,
-                                school=sch
-                            )
-                            new_result.save()
+        elif request.data['type'] == 'uploadWithFile':
+            file = request.data['file']
+            subject_obj = Subject.objects.get(name=subject_name)
+            if request.data['new'] == 'yes':
+                if Assessment.objects.filter(school=school, teacher=teacher, subject=subject_obj, title=assessment_title, academic_year=current_academic_year, academic_term=term).exists():
+                    return Response({'message': f"Assessment with title '{assessment_title}' already exists. Use a different title"}, status=400)
+                description = request.data['description']
+                total_score = float(request.data['totalScore'])
+                percentage = float(request.data['percentage'])
+                date = request.data['date']
+            elif request.data['new'] == 'no':
+                old_assessment = Assessment.objects.filter(school=school, teacher=teacher, subject=subject_obj, title=assessment_title, academic_year=current_academic_year, academic_term=term).first()
+                description = old_assessment.description
+                total_score = old_assessment.total_score
+                percentage = old_assessment.percentage
+                date = old_assessment.date
+                
+            try:
+                wb = load_workbook(file)
+            except Exception:
+                return Response({'message': "Invalid file. Ensure you upload the excel file that you generated"}, status=400)
+            
+            ws = wb.active
+            ws.protection = False
 
-                        else:
-                            return Response(status=404)
+            cleaned_data = []
+            for row in ws.iter_rows(min_row=6, max_row=ws.max_row, min_col=2, max_col=5):
+                data = []
+                for cell in row:
+                    data.append(cell.value)
+                cleaned_data.append(data)
+            
+            if len(cleaned_data) == 0:
+                return Response({'message': f"There are no students data in the uploaded file"}, status=400)
 
-                    response_data = teacher_results_upload(teacher, academic_year, term)
-                    return Response(response_data)
+            valid_rows = [x for x in cleaned_data if x[0] and x[1]]
+            for row in valid_rows:
+                score = row[2]
+                try:
+                    float(score)
+                except Exception:
+                    return Response({'message': f"The scores must be a number. Recheck the score for {row[0]}[{row[1]}] in the file"}, status=400)
+                
+                if score > total_score:
+                    return Response({'message': f"Scores cannot exceed the total score for the assessment. Recheck the score for {row[0]}[{row[1]}] in the file"}, status=400)
+                elif score < 0:
+                    return Response({'message': f"Scores cannot be negative. Recheck the score for {row[0]}[{row[1]}] in the file"}, status=400)
 
-                elif isinstance(request.data['st_id'], str):
-                    student_id = request.data['st_id']
-                    student = Student.objects.get(st_id=student_id)
-                    if student.program.subjects.filter(name=subject).exists():
-                        subject_obj = Subject.objects.get(name=subject)
-                        new_result = Result.objects.create(
+            students_class = Classe.objects.prefetch_related('students').get(school=school, name=st_class_name)
+            with transaction.atomic():
+                assessments_to_create = []
+                for _student in valid_rows:
+                    if students_class.students.filter(school=school, st_id=_student[1]).exists():
+                        student = Student.objects.get(school=school, st_id=_student[1])
+                        st_assessment = Assessment(
                             student=student,
                             subject=subject_obj,
                             teacher=teacher,
-                            score=score,
+                            student_class=students_class,
+                            score=float(_student[2]),
                             student_year=student.current_year,
-                            academic_year=academic_year,
+                            academic_year=current_academic_year,
+                            title=assessment_title,
+                            description=description,
+                            percentage=percentage,
+                            total_score=total_score,
+                            comment=_student[3] if _student[3] else '',
                             academic_term=term,
-                            school=sch
+                            school=school,
+                            date=date,
                         )
-                        new_result.save()
-
-                        response_data = teacher_results_upload(teacher, academic_year, term)
-                        return Response(response_data)
-
+                        assessments_to_create.append(st_assessment)
                     else:
-                        return Response(status=404)
-                else:
-                    return Response(status=401)
+                        transaction.set_rollback(True)
+                        return Response({'message': f"Invalid student {_student[0]}[{_student[1]}]. Make sure you don't change anything in the excel file except the scores and comments"}, status=400)
+                try:
+                    Assessment.objects.bulk_create(assessments_to_create)
+                except IntegrityError:
+                    transaction.set_rollback(True)
+                    return Response({'message': f"You have already uploaded Assessment for some of the students in the file. Click on get file to get a new updated file"}, status=400)
+                except Exception:
+                    transaction.set_rollback(True)
+                    return Response({'message': f"An unexpected error occurred! Ensure you don't delete or change anything in the excel file except the scores and comments"}, status=400)
+                
+            return Response({'message': "Data uploaded and saved successfully"})
 
-        else:
-            year = request.GET.get('year')
-            term = request.GET.get('term')
-            academic_year = AcademicYear.objects.get(school=sch, name=year)
-            response_data = teacher_results_upload(teacher, academic_year, term)
+        elif request.data['type'] == 'uploadWithoutFile':
+            students_class = Classe.objects.get(school=school, name=st_class_name)
+            subject_obj = Subject.objects.get(name=subject_name)
+            comment = request.data['comment']
+            if request.data['new'] == 'yes':
+                description = request.data['description']
+                total_score = float(request.data['totalScore'])
+                percentage = float(request.data['percentage'])
+                date = request.data['date']
+            elif request.data['new'] == 'no':
+                old_assessment = Assessment.objects.filter(school=school, teacher=teacher, student_class=students_class, subject=subject_obj, title=assessment_title, academic_year=current_academic_year, academic_term=term).first()
+                description = old_assessment.description
+                total_score = old_assessment.total_score
+                percentage = old_assessment.percentage
+                date = old_assessment.date
+            
+            score = float(request.data['score'])
+            if score > total_score:
+                return Response({'message': f"The student(s) score cannot exceed the total score for the assessment!"}, status=400)
+            
+            with transaction.atomic():
+                assessments_to_create = []
+                for _st_id in request.data['selectedStudents'].split(','):
+                    student = Student.objects.get(school=school, st_id=_st_id)
+                    st_assessment = Assessment(
+                        student=student,
+                        subject=subject_obj,
+                        teacher=teacher,
+                        student_class=students_class,
+                        score=score,
+                        student_year=student.current_year,
+                        academic_year=current_academic_year,
+                        title=assessment_title,
+                        description=description,
+                        percentage=percentage,
+                        total_score=total_score,
+                        comment=comment,
+                        academic_term=term,
+                        school=school,
+                        date=date,
+                    )
+                    assessments_to_create.append(st_assessment)
+                
+                try:
+                    Assessment.objects.bulk_create(assessments_to_create)
+                except Exception:
+                    transaction.set_rollback(True)
+                    return Response({'message': 'An unexpected error occurred! try again later'}, status=400)
+            
+            return Response({'message': "Data uploaded and saved successfully"})
 
-            return Response(response_data)
+        elif request.data['type'] == 'editAssessment':
+            students_class = Classe.objects.get(school=school, name=st_class_name)
+            subject_obj = Subject.objects.get(name=subject_name)
+            if (request.data['editType'] == 'title'):
+                assessments_to_update = []
+                old_title = request.data['title']
+                new_title = request.data['newTitle']
+                assessments = list(Assessment.objects.filter(school=school, teacher=teacher, subject=subject_obj, student_class=students_class, title=old_title, academic_year=current_academic_year, academic_term=term))
+                if len(assessments) == 0:
+                    return Response({'message': 'An unexpected error occurred! try again later'}, status=400)
+                for _assessment in assessments:
+                    _assessment.title = new_title
+                    assessments_to_update.append(_assessment)
+                try:
+                    Assessment.objects.bulk_update(assessments_to_update, ['title'])
+                except Exception:
+                    return Response({'message': 'An unexpected error occurred! try again later'}, status=400) 
+            elif (request.data['editType'] == 'description'):
+                assessments_to_update = []
+                title = request.data['title']
+                new_description = request.data['newDescription']
+                assessments = list(Assessment.objects.filter(school=school, teacher=teacher, subject=subject_obj, student_class=students_class, title=title, academic_year=current_academic_year, academic_term=term))
+                if len(assessments) == 0:
+                    return Response({'message': 'An unexpected error occurred! try again later'}, status=400)   
+                for _assessment in assessments:
+                    _assessment.description = new_description
+                    assessments_to_update.append(_assessment)
+                try:
+                    Assessment.objects.bulk_update(assessments_to_update, ['description'])
+                except Exception:
+                    return Response({'message': 'An unexpected error occurred! try again later'}, status=400) 
+            elif (request.data['editType'] == 'totalScore'):
+                assessments_to_update = []
+                title = request.data['title']
+                new_total_score = request.data['newTotalScore']
+                assessments = list(Assessment.objects.filter(school=school, teacher=teacher, subject=subject_obj, student_class=students_class, title=title, academic_year=current_academic_year, academic_term=term))
+                if len(assessments) == 0:
+                    return Response({'message': 'An unexpected error occurred! try again later'}, status=400) 
+                for _assessment in assessments:
+                    _assessment.total_score = new_total_score
+                    assessments_to_update.append(_assessment)
+                try:
+                    Assessment.objects.bulk_update(assessments_to_update, ['total_score'])
+                except Exception:
+                    return Response({'message': 'An unexpected error occurred! try again later'}, status=400) 
+            elif (request.data['editType'] == 'percentage'):
+                assessments_to_update = []
+                title = request.data['title']
+                new_percentage = request.data['newPercentage']
+                assessments = list(Assessment.objects.filter(school=school, teacher=teacher, subject=subject_obj, student_class=students_class, title=title, academic_year=current_academic_year, academic_term=term))
+                if len(assessments) == 0:
+                    return Response({'message': 'An unexpected error occurred! try again later'}, status=400)    
+                for _assessment in assessments:
+                    _assessment.percentage = new_percentage
+                    assessments_to_update.append(_assessment)
+                try:
+                    Assessment.objects.bulk_update(assessments_to_update, ['percentage'])
+                except Exception:
+                    return Response({'message': 'An unexpected error occurred! try again later'}, status=400)  
+            elif (request.data['editType'] == 'date'):
+                assessments_to_update = []
+                title = request.data['title']
+                new_date = request.data['newDate']
+                assessments = list(Assessment.objects.filter(school=school, teacher=teacher, subject=subject_obj, student_class=students_class, title=title, academic_year=current_academic_year, academic_term=term))
+                if len(assessments) == 0:
+                    return Response({'message': 'An unexpected error occurred! try again later'}, status=400)    
+                for _assessment in assessments:
+                    _assessment.percentage = new_date
+                    assessments_to_update.append(_assessment)
+                try:
+                    Assessment.objects.bulk_update(assessments_to_update, ['date'])
+                except Exception:
+                    return Response({'message': 'An unexpected error occurred! try again later'}, status=400)
+            elif (request.data['editType'] == 'comment'):
+                title = request.data['title']
+                new_comment = request.data['newComment']
+                student = Student.objects.get(school=school, st_id=request.data['studentId'])
+                try:
+                    assessment = Assessment.objects.get(school=school, teacher=teacher, subject=subject_obj, student=student, student_class=students_class, title=title, academic_year=current_academic_year, academic_term=term)
+                    assessment.comment = new_comment
+                    assessment.save()
+                except Exception:
+                    return Response({'message': 'An unexpected error occurred! try again later'}, status=400)     
+            elif (request.data['editType'] == 'score'):
+                title = request.data['title']
+                new_score = request.data['newScore']
+                student = Student.objects.get(school=school, st_id=request.data['studentId'])
+                try:
+                    assessment = Assessment.objects.get(school=school, teacher=teacher, subject=subject_obj, student=student, student_class=students_class, title=title, academic_year=current_academic_year, academic_term=term)
+                    assessment.score = float(new_score)
+                    assessment.save()
+                except Exception:
+                    return Response({'message': 'An unexpected error occurred! try again later'}, status=400)                
+                
+            return Response()
+        
+        elif request.data['type'] == 'deleteAssessment':
+            student_class = Classe.objects.get(school=school, name=st_class_name)
+            title = request.data['title']
+            subject_obj = Subject.objects.get(name=subject_name)
+            student = Student.objects.get(school=school, st_id=request.data['studentId'])
+            with transaction.atomic():
+                try:
+                    assessment = Assessment.objects.get(school=school, teacher=teacher, student=student, subject=subject_obj, student_class=student_class, title=title, academic_year=current_academic_year, academic_term=term)
+                    assessment.delete()
+                    return Response()
+                except Exception:
+                    transaction.set_rollback(True)
+                    return Response({'message': 'An unexpected error occurred! try again later'}, status=400)
+            
+            return Response()
+    
 
-    except request.user.staff.DoesNotExist:
-        return Response(status=401)
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def teacher_exams(request):
+    teacher = request.user.staff
+    school = teacher.school
+    
+    if request.method == 'GET':
+        current_term = int(request.GET.get('term'))
+        current_academic_year = AcademicYear.objects.get(school=school, name=request.GET.get('year'))
+        students_with_exams_all = []
+        students_without_exams_all = []
+            
+        subject_assignments = list(SubjectAssignment.objects.select_related('teacher', 'students_class').prefetch_related('subjects').filter(school=school, teacher=teacher, academic_year=current_academic_year, academic_term=current_term))
+        for assign in subject_assignments:
+            all_students = assign.students_class.students.all()
+            students_without_exams_obj = {'class_name': assign.students_class.name, 'exams': []}
+            students_with_exams_obj = {'class_name': assign.students_class.name, 'exams': []}
+            for _subject in assign.subjects.all():
+                exam_obj_without = {'subject': _subject.name}
+                exam_obj_with = {'subject': _subject.name}
+                exams = list(Exam.objects.select_related('student__user').filter(school=school, teacher=teacher, subject=_subject, student_class=assign.students_class, academic_year=current_academic_year, academic_term=current_term).order_by('-score'))
+                students_with_exams = [x.student for x in exams]
+                students_without_exams_data = [
+                    {'name': f"{x.user.first_name} {x.user.last_name}", 
+                     'st_id': x.st_id,
+                    } for x in all_students if x not in students_with_exams]
+                
+                exam_obj_without['students'] = students_without_exams_data
+                
+                students_with_exams_data = [{
+                    'name': f"{x.student.user.first_name} {x.student.user.last_name}", 
+                    'st_id': x.student.st_id,
+                    'score': x.score,
+                } for x in exams]
+                exam_obj_with['students'] = students_with_exams_data
+                
+                students_without_exams_obj['exams'].append(exam_obj_without)
+                students_with_exams_obj['exams'].append(exam_obj_with)
+            
+            students_with_exams_all.append(students_with_exams_obj) 
+            students_without_exams_all.append(students_without_exams_obj)
+            
+        return Response({
+            'with_exams': students_with_exams_all,
+            'without_exams': students_without_exams_all,
+        })
+    
+    elif request.method == 'POST':
+        year = request.data['year']
+        term = int(request.data['term'])
+        subject_name = request.data['subject']
+        st_class_name = request.data['studentsClassName']
+        current_academic_year = AcademicYear.objects.select_related('period_division').get(school=school, name=year)
+        if request.data['type'] == 'getFile':
+            students = json.loads(request.data['selectedStudents'])
+            if school.students_id:
+                data = [
+                    ['STUDENT NAME', 'STUDENT ID', 'SCORE']
+                ]
+            else:
+                data = [
+                    ['STUDENT NAME', 'STUDENT USERNAME', 'SCORE']
+                ]
+
+            if len(students) == 0:
+                return Response({
+                    'message': f"You have already uploaded all the {subject_name} Exams scores for all students in this class",
+                }, status=400)
+                
+            for _st in students:
+                row = [_st['name'], _st['st_id'], '']
+                data.append(row)
+
+            wb = Workbook()
+            ws = wb.active
+            ws.title = subject_name
+
+            ws.merge_cells('A1:I3')
+            ws['A1'].value = f"SUBJECT: [{subject_name}]  ACADEMIC YEAR: [{year}]  CLASS: [{st_class_name}]  {current_academic_year.period_division.name}: [{term}]"
+            ws['A1'].font = Font(size=14, bold=True)
+            ws['A1'].alignment = Alignment(horizontal='center', vertical='center')
+
+            count = 0
+            container = ws['B5:D200']
+            while count < len(data):
+                for row_ws, row_data in zip(container, data):
+                    for cell, item in zip(row_ws, row_data):
+                        cell.value = item
+
+                count += 1
+
+            ws.column_dimensions['A'].width = 40
+            ws.column_dimensions['B'].width = 50
+            ws.column_dimensions['C'].width = 25
+            ws.column_dimensions['D'].width = 15
+
+            for row in ws['A3:F200']:
+                for cell in row:
+                    cell.font = Font(size=14)
+                    cell.alignment = Alignment(horizontal='center', vertical='center')
+
+            for row in ws['B3:B200']:
+                for cell in row:
+                    cell.alignment = Alignment(horizontal='left', vertical='center')
+
+            for cells in ws['A5:F200'][0]:
+                cells.font = Font(bold=True, size=14)
+
+            ws.protection.sheet = True
+            for cell in ws.iter_rows(min_row=6, max_row=ws.max_row, min_col=4, max_col=4):
+                cell[0].protection = Protection(locked=False)
+
+            ws.protection.password = 'teamjn'
+
+            filename = f"{subject_name.replace(' ', '-')}-{st_class_name}-Exams.xlsx"
+            byte_file = io.BytesIO()
+            wb.save(byte_file)
+            file_path = f"{get_school_folder(school.name)}/staff/{teacher.user.username}/{filename}"
+            if default_storage.exists(file_path):
+                default_storage.delete(file_path)
+
+            saved_file = default_storage.save(file_path, byte_file)
+            if settings.DEBUG:
+                return Response({
+                    'filename': filename,
+                    'message': 'File generated successfully',
+                    'file_path': f"http://localhost:8000{default_storage.url(saved_file)}",
+                })
+            else:
+                return Response({
+                    'filename': filename,
+                    'message': 'File generated successfully',
+                    'file_path': default_storage.url(saved_file),
+                })
+
+        elif request.data['type'] == 'uploadWithFile':
+            file = request.data['file']
+            try:
+                wb = load_workbook(file)
+            except Exception:
+                return Response({'message': "Invalid file. Ensure you upload the excel file that you generated"}, status=400)
+            
+            ws = wb.active
+            ws.protection = False
+
+            cleaned_data = []
+            for row in ws.iter_rows(min_row=6, max_row=ws.max_row, min_col=2, max_col=4):
+                data = []
+                for _cell in row:
+                    data.append(_cell.value)
+                cleaned_data.append(data)
+            
+            valid_rows = [x for x in cleaned_data if x[0]]
+            if len(valid_rows) == 0:
+                return Response({'message': f"There are no students data in the uploaded file"}, status=400)
+            for row in valid_rows:
+                score = row[2]
+                try:
+                    float(score)
+                except Exception:
+                    return Response({'message': f"The scores must be a number. Recheck the score for {row[0]}[{row[1]}] in the file"}, status=400)
+                if score > 100:
+                    return Response({'message': f"Scores cannot be more than 100. Recheck the score for {row[0]}[{row[1]}] in the file"}, status=400)
+                elif score < 0:
+                    return Response({'message': f"Scores cannot be negative. Recheck the score for {row[0]}[{row[1]}] in the file"}, status=400)
+
+            students_class = Classe.objects.prefetch_related('students').get(school=school, name=st_class_name)
+            subject_obj = Subject.objects.get(name=subject_name)
+            with transaction.atomic():
+                exams_to_create = []
+                for _student in valid_rows:
+                    if students_class.students.filter(school=school, st_id=_student[1]).exists():
+                        st = Student.objects.get(school=school, st_id=_student[1])
+                        st_exam = Exam(
+                            student=st,
+                            subject=subject_obj,
+                            teacher=teacher,
+                            student_class=students_class,
+                            score=float(_student[2]),
+                            student_year=st.current_year,
+                            academic_year=current_academic_year,
+                            academic_term=term,
+                            school=school,
+                        )
+                        exams_to_create.append(st_exam)
+                    else:
+                        transaction.set_rollback(True)
+                        return Response({'message': f"Invalid student {_student[0]}[{_student[1]}]. Make sure you don't change anything in the excel file except the scores"}, status=400)
+                try:
+                    Exam.objects.bulk_create(exams_to_create)
+                except IntegrityError:
+                    transaction.set_rollback(True)
+                    return Response({'message': f"You have already uploaded exams score for some of the students in the file. Click on get file to get an updated file"}, status=400)
+                except Exception:
+                    transaction.set_rollback(True)
+                    return Response({'message': f"Invalid data! Ensure you don't delete or change anything in the excel file"}, status=400)
+                
+            return Response({'message': "Data uploaded and saved successfully"})
+
+        elif request.data['type'] == 'uploadWithoutFile':
+            students_class = Classe.objects.get(school=school, name=st_class_name)
+            subject_obj = Subject.objects.get(name=subject_name)
+            score = float(request.data['score'])
+            with transaction.atomic():
+                exams_to_create = []
+                for _st_id in request.data['selectedStudents'].split(','):
+                    student = Student.objects.get(school=school, st_id=_st_id)
+                    st_exam = Exam(
+                        student=student,
+                        subject=subject_obj,
+                        teacher=teacher,
+                        student_class=students_class,
+                        score=score,
+                        student_year=student.current_year,
+                        academic_year=current_academic_year,
+                        academic_term=term,
+                        school=school,
+                    )
+                    exams_to_create.append(st_exam)
+                try:
+                    Exam.objects.bulk_create(exams_to_create)
+                except IntegrityError:
+                    transaction.set_rollback(True)
+                    return Response({'message': 'An unexpected error occurred! try again later'}, status=400)
+                except Exception:
+                    transaction.set_rollback(True)
+                    return Response({'message': "An unexpected error occurred! try again later"}, status=400)
+            
+            return Response({'message': "Data uploaded and saved successfully"})
+
+        elif request.data['type'] == 'editExamScore':
+            with transaction.atomic():
+                try:
+                    students_class = Classe.objects.get(school=school, name=st_class_name)
+                    subject_obj = Subject.objects.get(name=subject_name)
+                    student = Student.objects.get(school=school, st_id=request.data['studentId'])
+                    st_exam = Exam.objects.get(student=student, subject=subject_obj, teacher=teacher, academic_year=current_academic_year, academic_term=term, school=school)
+                    st_exam.score = float(request.data['score'])
+                    st_exam.save()
+                except Exception:
+                    transaction.set_rollback(True)
+                    return Response({'message': "An unexpected error occurred! try again later"}, status=400)
+            
+            return Response()
+        
+        elif request.data['type'] == 'deleteExam':
+            with transaction.atomic():
+                try:
+                    student_class = Classe.objects.get(school=school, name=st_class_name)
+                    subject_obj = Subject.objects.get(name=subject_name)
+                    student = Student.objects.get(school=school, st_id=request.data['studentId'])
+                    st_exam = Exam.objects.get(school=school, student=student, subject=subject_obj, student_class=student_class, teacher=teacher, academic_year=current_academic_year, academic_term=term)
+                    st_exam.delete()
+                except Exception:
+                    transaction.set_rollback(True)
+                    return Response(status=400)
+            
+            return Response()
 
 
 # HOD
@@ -536,9 +889,9 @@ def hod_students_performance(request):
 
             subject_obj = Subject.objects.get(schools=staff.school, name=subject['name'])
 
-            # Year One Student Results
-            result_one_one = ResultsSerializer(
-                Result.objects.filter(
+            # Year One Student Exams
+            result_one_one = ExamsSerializer(
+                Exam.objects.filter(
                     school=staff.school,
                     academic_year=academic_year,
                     subject=subject_obj,
@@ -556,8 +909,8 @@ def hod_students_performance(request):
 
                 first_year['term_one'] = sorted(first_year['term_one'], key=lambda x: x['score'], reverse=True)
 
-            result_one_two = ResultsSerializer(
-                Result.objects.filter(
+            result_one_two = ExamsSerializer(
+                Exam.objects.filter(
                     school=staff.school,
                     academic_year=academic_year,
                     subject=subject_obj,
@@ -575,8 +928,8 @@ def hod_students_performance(request):
 
                 first_year['term_two'] = sorted(first_year['term_two'], key=lambda x: x['score'], reverse=True)
 
-            result_one_three = ResultsSerializer(
-                Result.objects.filter(
+            result_one_three = ExamsSerializer(
+                Exam.objects.filter(
                     school=staff.school,
                     academic_year=academic_year,
                     subject=subject_obj,
@@ -594,9 +947,9 @@ def hod_students_performance(request):
 
                 first_year['term_three'] = sorted(first_year['term_three'], key=lambda x: x['score'], reverse=True)
 
-            # Year Two Students Results
-            result_two_one = ResultsSerializer(
-                Result.objects.filter(
+            # Year Two Students Exams
+            result_two_one = ExamsSerializer(
+                Exam.objects.filter(
                     school=staff.school,
                     academic_year=academic_year,
                     subject=subject_obj,
@@ -614,8 +967,8 @@ def hod_students_performance(request):
 
                 second_year['term_one'] = sorted(second_year['term_one'], key=lambda x: x['score'], reverse=True)
 
-            result_two_two = ResultsSerializer(
-                Result.objects.filter(
+            result_two_two = ExamsSerializer(
+                Exam.objects.filter(
                     school=staff.school,
                     academic_year=academic_year,
                     subject=subject_obj,
@@ -633,8 +986,8 @@ def hod_students_performance(request):
 
                 second_year['term_two'] = sorted(second_year['term_two'], key=lambda x: x['score'], reverse=True)
 
-            result_two_three = ResultsSerializer(
-                Result.objects.filter(
+            result_two_three = ExamsSerializer(
+                Exam.objects.filter(
                     school=staff.school,
                     academic_year=academic_year,
                     subject=subject_obj,
@@ -652,9 +1005,9 @@ def hod_students_performance(request):
 
                 second_year['term_three'] = sorted(second_year['term_three'], key=lambda x: x['score'], reverse=True)
 
-            # Year Three Students Results
-            result_three_one = ResultsSerializer(
-                Result.objects.filter(
+            # Year Three Students Exams
+            result_three_one = ExamsSerializer(
+                Exam.objects.filter(
                     school=staff.school,
                     academic_year=academic_year,
                     subject=subject_obj,
@@ -673,8 +1026,8 @@ def hod_students_performance(request):
                 third_year['term_one'] = sorted(third_year['term_one'], key=lambda x: x['score'],
                                                 reverse=True)
 
-            result_three_two = ResultsSerializer(
-                Result.objects.filter(
+            result_three_two = ExamsSerializer(
+                Exam.objects.filter(
                     school=staff.school,
                     academic_year=academic_year,
                     subject=subject_obj,
@@ -693,8 +1046,8 @@ def hod_students_performance(request):
                 third_year['term_two'] = sorted(third_year['term_two'], key=lambda x: x['score'],
                                                 reverse=True)
 
-            result_three_three = ResultsSerializer(
-                Result.objects.filter(
+            result_three_three = ExamsSerializer(
+                Exam.objects.filter(
                     school=staff.school,
                     academic_year=academic_year,
                     subject=subject_obj,

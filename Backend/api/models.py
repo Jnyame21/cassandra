@@ -81,23 +81,48 @@ def delete_file(sender, instance, **kwargs):
 class School(models.Model):
     name = models.CharField(max_length=100, verbose_name="School Name", blank=False, unique=True, null=False)
     code = models.CharField(max_length=10, verbose_name="School Code", blank=True, null=True)
-    sch_logo = models.ImageField(verbose_name='School Logo', upload_to=school_image_path, blank=True, null=True,
-                            max_length=255)
+    sch_logo = models.ImageField(verbose_name='School Logo', upload_to=school_image_path, blank=True, null=True, max_length=255)
     head_name = models.CharField(max_length=20, verbose_name="Head Master/Mistress's Name", default='not set')
-    head_signature = models.ImageField(verbose_name="Head Master/Mistress's Signature", upload_to=school_image_path, blank=True, null=True,
-                                 max_length=255)
+    head_signature = models.ImageField(verbose_name="Head Master/Mistress's Signature", upload_to=school_image_path, blank=True, null=True, max_length=255)
     semesters = models.BooleanField(verbose_name="Semester System", default=True, blank=False, null=False)
     address = models.CharField(max_length=100, verbose_name="School Address", blank=False, default="not set")
     short_name = models.CharField(max_length=50, verbose_name="School Short Name", blank=True, null=True)
     contact = models.CharField(max_length=20, verbose_name="Phone Number", blank=True, null=True)
+    has_departments = models.BooleanField(verbose_name="Does the school has departments?", default=True, blank=False, null=False)
+    has_programs = models.BooleanField(verbose_name="Does the school has programs?", default=True, blank=False, null=False)
+    students_id = models.BooleanField(verbose_name="Does the school give student ID numbers?", default=False, blank=False, null=False)
+    students_index_no = models.BooleanField(verbose_name="Does the school give student Index numbers?", default=False, blank=False, null=False)
+    staff_id = models.BooleanField(verbose_name="Does the school give staff ID numbers?", default=False, blank=False, null=False)
+    all_teachers_attendance = models.BooleanField(verbose_name="Does the school require all teachers to do attendance?", default=False, blank=False, null=False)
     email = models.EmailField(max_length=100, verbose_name="Email", blank=True, null=True)
     delete_staff = models.BooleanField(verbose_name="Admin To Delete Staff", default=True, blank=False, null=False)
     delete_class = models.BooleanField(verbose_name="Admin To Delete Class", default=True, blank=False, null=False)
+    date_created = models.DateField(verbose_name='Date Created', max_length=20, default=timezone.now)
 
     def __str__(self):
         return self.name
 
 
+class GradingSystem(models.Model):
+    school = models.ForeignKey(School, verbose_name="School", on_delete=models.SET_NULL, null=True) 
+    label = models.CharField(max_length=10, verbose_name="Label", blank=False, null=True)
+    range = models.CharField(max_length=10, verbose_name="Range", blank=False, null=True)
+    remark = models.CharField(max_length=50, verbose_name="Remark", blank=False, null=True)
+    
+    def __str__(self) -> str:
+        return f"{self.school} {self.label} {self.remark}"
+    
+    class Meta:
+        unique_together = ('label', 'school')
+    
+    
+class EducationalLevel(models.Model):
+    name = models.CharField(max_length=50, verbose_name="Level Name", blank=False)
+    
+    def __str__(self) -> str:
+        return self.name
+    
+    
 class AcademicYear(models.Model):
     name = models.CharField(max_length=20, verbose_name="Name", blank=False)
     school = models.ForeignKey(School, verbose_name="School", on_delete=models.SET_NULL, null=True)
@@ -108,15 +133,24 @@ class AcademicYear(models.Model):
     term_2_end_date = models.DateField(verbose_name="Term 2 End Date", blank=False, null=True)
     term_3_start_date = models.DateField(verbose_name="Term 3 Start Date", blank=True, null=True)
     term_3_end_date = models.DateField(verbose_name="Term 3 End Date", blank=True, null=True)
+    period_division = models.ForeignKey('AcademicYearDivision', verbose_name="Academic Year Division", on_delete=models.SET_NULL, null=True)
+    date_created = models.DateField(verbose_name="Date Created", default=timezone.now)
 
     def __str__(self):
         return f"{self.school} {self.name}"
 
 
+class AcademicYearDivision(models.Model):
+    name = models.CharField(max_length=100, verbose_name='Academic Year Division Name', blank=False)
+    
+    def __str__(self):
+        return self.name
+    
 class Program(models.Model):
     name = models.CharField(max_length=100, verbose_name='Program Name', unique=True)
     subjects = models.ManyToManyField('Subject', verbose_name='Subjects', blank=True)
     schools = models.ManyToManyField(School, verbose_name="Schools", blank=True)
+    date_created = models.DateField(verbose_name='Date Created', max_length=20, default=timezone.now)
 
     def __str__(self):
         return self.name
@@ -125,6 +159,7 @@ class Program(models.Model):
 class Subject(models.Model):
     name = models.CharField(max_length=100, verbose_name='Subject Name', blank=False, unique=True)
     schools = models.ManyToManyField(School, verbose_name="Schools", blank=True)
+    date_created = models.DateField(verbose_name='Date Created', max_length=20, default=timezone.now)
 
     def __str__(self):
         return self.name
@@ -139,28 +174,30 @@ class Student(models.Model):
     date_enrolled = models.DateField(verbose_name='Enrollment Date', blank=False)
     has_completed = models.BooleanField(verbose_name='Has Completed', default=False)
     st_id = models.CharField(max_length=50, verbose_name="Student ID.", blank=False, null=True)
-    index_no = models.CharField(max_length=20, verbose_name="Index No.", default='not assigned yet')
+    index_no = models.CharField(max_length=20, verbose_name="Index No.", default='none')
+    level = models.ForeignKey('EducationalLevel', verbose_name='Educational Level', blank=False, null=True, on_delete=models.SET_NULL)
     img = models.ImageField(verbose_name='Profile Image', upload_to=students_file_path, blank=True, null=True, max_length=255)
 
     gender = models.CharField(max_length=10, verbose_name="Gender")
     dob = models.DateField(verbose_name='Date Of Birth')
-    contact = models.CharField(verbose_name='Phone No', max_length=20, default='not set')
-    alt_contact = models.CharField(verbose_name='Alternate Phone No', max_length=15, default='not set', blank=True, null=True)
-    address = models.CharField(verbose_name='Address', max_length=100, default='not set')
-    religion = models.CharField(verbose_name='Religion', max_length=50, default='not set')
-    pob = models.CharField(verbose_name='Home City/Town', max_length=50, default='not set')
-    region = models.CharField(verbose_name='Region', max_length=50, default='not set')
+    contact = models.CharField(verbose_name='Phone No', max_length=20, default='none')
+    alt_contact = models.CharField(verbose_name='Alternate Phone No', max_length=15, default='none', blank=True, null=True)
+    address = models.CharField(verbose_name='Address', max_length=100, default='none')
+    religion = models.CharField(verbose_name='Religion', max_length=50, default='none')
+    pob = models.CharField(verbose_name='Home City/Town', max_length=50, default='none')
+    region = models.CharField(verbose_name='Region', max_length=50, default='none')
     nationality = models.CharField(verbose_name='Nationality', max_length=50, default='GHANAIAN')
-    guardian = models.CharField(max_length=100, verbose_name='Guardian Name', default='not set')
-    guardian_gender = models.CharField(max_length=100, verbose_name='Guardian Gender')
-    guardian_email = models.CharField(max_length=100, verbose_name='Guardian Email', default='not set')
-    guardian_occupation = models.CharField(max_length=50, verbose_name='Occupation of guardian', default='not set')
+    guardian_first_name = models.CharField(max_length=100, verbose_name='Guardian First Name', default='none')
+    guardian_last_name = models.CharField(max_length=100, verbose_name='Guardian Last Name', default='none')
+    guardian_gender = models.CharField(max_length=100, verbose_name='Guardian Gender', default='none')
+    guardian_email = models.CharField(max_length=100, verbose_name='Guardian Email', default='none')
+    guardian_occupation = models.CharField(max_length=50, verbose_name='Occupation of guardian', default='none')
     guardian_nationality = models.CharField(max_length=50, verbose_name='Nationality of Guardian', default='GHANAIAN')
-    guardian_contact = models.CharField(max_length=10, verbose_name='Phone no. of guardian', default='not set')
-    guardian_address = models.CharField(max_length=100, verbose_name='Address of guardian', default='not set')
+    guardian_contact = models.CharField(max_length=10, verbose_name='Phone no. of guardian', default='none')
+    guardian_address = models.CharField(max_length=100, verbose_name='Address of guardian', default='none')
+    date_created = models.DateField(verbose_name='Date Created', max_length=20, default=timezone.now)
 
     def __str__(self):
-        # return f"{self.school}"
         return f"{self.school} {self.user.first_name} {self.user.last_name}"
 
     class Meta:
@@ -171,20 +208,21 @@ class Staff(models.Model):
     user = models.OneToOneField(User, on_delete=models.SET_NULL, null=True)
     school = models.ForeignKey(School, verbose_name="School", blank=False, on_delete=models.SET_NULL, null=True)
     img = models.ImageField(verbose_name="Profile Image", upload_to=staff_file_path, blank=True, null=True, max_length=255)
-    staff_id = models.CharField(max_length=50, verbose_name='Staff ID', blank=False)
+    staff_id = models.CharField(max_length=50, verbose_name='Staff ID', blank=False, null=True)
     role = models.CharField(max_length=50, verbose_name='Staff Role', blank=False, default='teacher')
     subjects = models.ManyToManyField('Subject', verbose_name='Subject(s) taught', blank=True)
     department = models.ForeignKey('Department', related_name='staff_department', verbose_name='Department', blank=True, on_delete=models.SET_NULL, null=True)
     date_enrolled = models.DateField(verbose_name='Enrollment Date', blank=True, null=True)
-    gender = models.CharField(max_length=10, verbose_name="Gender", default='not set')
+    gender = models.CharField(max_length=10, verbose_name="Gender", default='none')
     dob = models.DateField(verbose_name='Date Of Birth')
-    contact = models.CharField(verbose_name='Phone No', max_length=20, default='not set')
-    alt_contact = models.CharField(verbose_name='Alternate Phone No', max_length=15, default='not set', blank=True,
-                                   null=True)
-    address = models.CharField(verbose_name='Address', max_length=100, default='not set')
-    pob = models.CharField(verbose_name='Home City/Town', max_length=50, default='not set')
-    region = models.CharField(verbose_name='Region', max_length=50, default='not set')
+    contact = models.CharField(verbose_name='Phone No', max_length=20, default='none')
+    level = models.ForeignKey('EducationalLevel', verbose_name='Educational Level', blank=False, null=True, on_delete=models.SET_NULL)
+    alt_contact = models.CharField(verbose_name='Alternate Phone No', max_length=15, default='none', blank=True, null=True)
+    address = models.CharField(verbose_name='Address', max_length=100, default='none')
+    pob = models.CharField(verbose_name='Home City/Town', max_length=50, default='none')
+    region = models.CharField(verbose_name='Region', max_length=50, default='none')
     nationality = models.CharField(verbose_name='Nationality', max_length=50, default='GHANAIAN')
+    date_created = models.DateField(verbose_name='Date Created', max_length=20, default=timezone.now)
 
     def __str__(self):
         # return f"{self.school}"
@@ -198,18 +236,19 @@ class Head(models.Model):
     user = models.OneToOneField(User, on_delete=models.SET_NULL, null=True)
     school = models.ForeignKey(School, verbose_name="School", blank=False, on_delete=models.SET_NULL, null=True)
     img = models.ImageField(verbose_name="Profile Image", upload_to=head_file_path, blank=True, null=True, max_length=255)
-    head_id = models.CharField(max_length=50, verbose_name='Head ID', blank=False)
+    head_id = models.CharField(max_length=50, verbose_name='Head ID', blank=False, null=True)
     role = models.CharField(max_length=50, verbose_name='Head Role', blank=True, null=True)
     date_enrolled = models.DateField(verbose_name='Enrollment Date', blank=True, null=True)
-    gender = models.CharField(max_length=10, verbose_name="Gender", blank=False, default='not set')
+    gender = models.CharField(max_length=10, verbose_name="Gender", blank=False, default='none')
     dob = models.DateField(verbose_name='Date Of Birth', blank=False)
-    contact = models.CharField(verbose_name='Phone No', max_length=20, default='not set')
-    alt_contact = models.CharField(verbose_name='Alternate Phone No', max_length=15, default='not set', blank=True,
-                                   null=True)
-    address = models.CharField(verbose_name='Address', max_length=100, default='not set')
-    pob = models.CharField(verbose_name='Home City/Town', max_length=50, default='not set')
-    region = models.CharField(verbose_name='Region', max_length=50, default='not set')
+    contact = models.CharField(verbose_name='Phone No', max_length=20, default='none')
+    level = models.ForeignKey('EducationalLevel', verbose_name='Educational Level', blank=False, null=True, on_delete=models.SET_NULL)
+    alt_contact = models.CharField(verbose_name='Alternate Phone No', max_length=15, default='none', blank=True, null=True)
+    address = models.CharField(verbose_name='Address', max_length=100, default='none')
+    pob = models.CharField(verbose_name='Home City/Town', max_length=50, default='none')
+    region = models.CharField(verbose_name='Region', max_length=50, default='none')
     nationality = models.CharField(verbose_name='Nationality', max_length=50, default='GHANAIAN')
+    date_created = models.DateField(verbose_name='Date Created', max_length=20, default=timezone.now)
 
     def __str__(self):
         return f"{self.school}"
@@ -224,6 +263,7 @@ class Department(models.Model):
     hod = models.ForeignKey(Staff, verbose_name='HOD', related_name='department_hod', on_delete=models.SET_NULL, null=True, blank=True)
     subjects = models.ManyToManyField(Subject, verbose_name='Subjects')
     school = models.ForeignKey(School, verbose_name="School", blank=True, null=True, on_delete=models.SET_NULL)
+    date_created = models.DateField(verbose_name='Date Created', max_length=20, default=timezone.now)
 
     def __str__(self):
         return f"{self.school} {self.name}"
@@ -235,10 +275,12 @@ class Classe(models.Model):
     students_year = models.IntegerField(verbose_name='Students Year', default=1)
     students = models.ManyToManyField(Student, verbose_name='Students', blank=True)
     program = models.ForeignKey(Program, verbose_name='Students Program', on_delete=models.SET_NULL, null=True)
+    head_teacher = models.ForeignKey(Staff, verbose_name='Head Teacher', on_delete=models.SET_NULL, null=True)
     completion_date = models.DateField(verbose_name='Completion Date', null=True, blank=True)
     subjects = models.ManyToManyField('Subject', verbose_name='Subjects', blank=True)
     academic_years = models.ManyToManyField(AcademicYear, verbose_name='Academic Years')
     date_enrolled = models.DateField(verbose_name='Enrollment Date', blank=False, null=True)
+    students_level = models.ForeignKey('EducationalLevel', verbose_name='Students Level', blank=False, null=True, on_delete=models.SET_NULL)
     created_at = models.DateTimeField(verbose_name="Created At", default=timezone.now)
     is_active = models.BooleanField(verbose_name='Class is Active', default=True)
 
@@ -251,29 +293,56 @@ class Classe(models.Model):
 
 class SubjectAssignment(models.Model):
     school = models.ForeignKey(School, verbose_name="School", blank=False, on_delete=models.SET_NULL, null=True)
-    hod = models.ForeignKey(Staff, related_name='hod', verbose_name="Assigned By", on_delete=models.SET_NULL, null=True)
-    subject = models.ForeignKey(Subject, on_delete=models.SET_NULL, null=True, verbose_name='Subject')
+    assigned_by = models.ForeignKey(Staff, related_name='assigned_by', verbose_name="Assigned By", on_delete=models.SET_NULL, null=True, blank=True)
+    subjects = models.ManyToManyField(Subject, verbose_name='Subject(s)')
     teacher = models.ForeignKey(Staff, on_delete=models.SET_NULL, verbose_name='Taught by', null=True)
     students_class = models.ForeignKey(Classe, on_delete=models.SET_NULL, verbose_name='Students Class', null=True)
     academic_year = models.ForeignKey(AcademicYear, on_delete=models.SET_NULL, verbose_name='Academic Year', null=True)
     academic_term = models.IntegerField(verbose_name='Academic Term', default=1)
+    date_created = models.DateField(verbose_name='Date Created', max_length=20, default=timezone.now)
 
     def __str__(self):
-        return f'{self.subject} taught by {self.teacher} to {self.students_class} for the {self.academic_year} academic year term {self.academic_term} in {self.school}'
+        return f'{self.teacher} to {self.students_class} for the {self.academic_year} academic year term {self.academic_term} in {self.school}'
 
     class Meta:
-        unique_together = ('subject', 'teacher', 'students_class', 'academic_year', 'academic_term')
+        unique_together = ('teacher', 'students_class', 'academic_year', 'academic_term')
 
 
-class Result(models.Model):
+class Assessment(models.Model):
     school = models.ForeignKey(School, verbose_name="School", blank=False, on_delete=models.SET_NULL, null=True)
     student = models.ForeignKey(Student, verbose_name='Student', on_delete=models.SET_NULL, null=True)
     subject = models.ForeignKey(Subject, verbose_name='Subject', on_delete=models.SET_NULL, null=True)
+    student_class = models.ForeignKey(Classe, verbose_name='Student Class', on_delete=models.SET_NULL, null=True)
+    academic_year = models.ForeignKey(AcademicYear, verbose_name='Academic Year', on_delete=models.SET_NULL, null=True)
+    academic_term = models.IntegerField(verbose_name='Term', blank=False)
+    student_year = models.IntegerField(verbose_name='Student Year', blank=True, null=True)
+    score = models.DecimalField(verbose_name="Student's Score", max_digits=5, decimal_places=2)
+    total_score = models.DecimalField(verbose_name="Total Assessment Score", max_digits=5, decimal_places=2, null=True)
+    percentage = models.DecimalField(verbose_name="Assessment Percentage", max_digits=5, decimal_places=2, default=0)
+    title = models.CharField(verbose_name="Title Of Assessment", max_length=100, blank=False, null=True)
+    description = models.CharField(verbose_name="Assessment description", max_length=150, blank=True, default='')
+    comment = models.CharField(verbose_name="Comment", max_length=200, blank=True, default='')
+    teacher = models.ForeignKey(Staff, verbose_name="Uploaded By", on_delete=models.SET_NULL, null=True)
+    date = models.DateField(verbose_name='Date Created', max_length=20, default=timezone.now)
+    
+    def __str__(self):
+        return f"{self.student} {self.subject} assessment for the {self.academic_year} academic year term {self.academic_term} in {self.school}"
+
+    class Meta:
+        unique_together = ('student', 'subject', 'academic_year', 'academic_term', 'teacher', 'title', 'date')
+        
+        
+class Exam(models.Model):
+    school = models.ForeignKey(School, verbose_name="School", blank=False, on_delete=models.SET_NULL, null=True)
+    student = models.ForeignKey(Student, verbose_name='Student', on_delete=models.SET_NULL, null=True)
+    subject = models.ForeignKey(Subject, verbose_name='Subject', on_delete=models.SET_NULL, null=True)
+    student_class = models.ForeignKey(Classe, verbose_name='Student Class', on_delete=models.SET_NULL, null=True)
     academic_year = models.ForeignKey(AcademicYear, verbose_name='Academic Year', on_delete=models.SET_NULL, null=True)
     academic_term = models.IntegerField(verbose_name='Term', blank=False)
     student_year = models.IntegerField(verbose_name='Student Year', blank=True, null=True)
     score = models.DecimalField(verbose_name="Student's Score", max_digits=5, decimal_places=2)
     teacher = models.ForeignKey(Staff, verbose_name="Uploaded By", on_delete=models.SET_NULL, null=True)
+    date_created = models.DateField(verbose_name='Date Created', max_length=20, default=timezone.now)
     
     def __str__(self):
         return f"{self.student} {self.subject} result for the {self.academic_year} academic year term {self.academic_term} in {self.school}"
@@ -286,19 +355,18 @@ class StudentAttendance(models.Model):
     school = models.ForeignKey(School, verbose_name="School", blank=False, on_delete=models.SET_NULL, null=True)
     students_present = models.ManyToManyField(Student, related_name='students_present', verbose_name='Students Present')
     students_absent = models.ManyToManyField(Student, related_name='students_absent', verbose_name='Students Absent')
-    subject = models.ForeignKey(Subject, verbose_name='Subject', on_delete=models.SET_NULL, null=True)
     academic_year = models.ForeignKey(AcademicYear, verbose_name='Academic Year', on_delete=models.SET_NULL, null=True)
     academic_term = models.IntegerField(verbose_name='Term', blank=False)
     students_year = models.IntegerField(verbose_name='Students Year', blank=True, null=True)
     students_class = models.ForeignKey('Classe', verbose_name='Students Class', on_delete=models.SET_NULL, null=True)
-    date = models.DateField(verbose_name="Attendance Date", default=timezone.now().date())
+    date = models.DateField(verbose_name="Attendance Date", default=timezone.now)
     teacher = models.ForeignKey(Staff, verbose_name="Uploaded By", on_delete=models.SET_NULL, null=True)
 
     def __str__(self):
-        return f"{self.subject} attendance by {self.teacher} for the {self.academic_year} academic year term {self.academic_term} in {self.school}"
+        return f"attendance by {self.teacher} for the {self.academic_year} academic year term {self.academic_term} in {self.school}"
 
     class Meta:
-        unique_together = ('school', 'subject', 'academic_year', 'academic_term', 'teacher', 'date', 'students_class')
+        unique_together = ('school', 'academic_year', 'academic_term', 'teacher', 'date', 'students_class')
 
 
 class Notification(models.Model):
@@ -314,3 +382,41 @@ class Notification(models.Model):
         return self.content
 
 
+class KnustProgram(models.Model):
+    name = models.CharField(max_length=500, verbose_name='Program Name', blank=False)
+    degree = models.CharField(max_length=500, verbose_name='Degree', blank=False)
+    cut_off_point = models.CharField(max_length=500, verbose_name='Cut-off point', null=True, blank=True)
+
+    def __str__(self):
+        return self.name   
+    
+    
+class UGProgram(models.Model):
+    name = models.CharField(max_length=500, verbose_name='Program Name', blank=False)
+    degree = models.CharField(max_length=500, verbose_name='Degree', blank=False)
+    cut_off_point_choice_1 = models.CharField(max_length=500, verbose_name='First choice cut-off point', null=True, blank=True)
+    cut_off_point_choice_2 = models.CharField(max_length=500, verbose_name='Second choice cut-off point', null=True, blank=True)
+    subject_requirement = models.CharField(max_length=500, verbose_name='Subject requirement', null=True, blank=True)
+
+    def __str__(self):
+        return self.name  
+
+
+class UCCProgram(models.Model):
+    name = models.CharField(max_length=500, verbose_name='Program Name', blank=False)
+    degree = models.CharField(max_length=500, verbose_name='Degree', blank=False)
+    cut_off_point_male = models.CharField(max_length=500, verbose_name='Cut-off point for males', null=True, blank=True)
+    cut_off_point_female = models.CharField(max_length=500, verbose_name='Cut-off point for females', null=True, blank=True)
+
+    def __str__(self):
+        return self.name  
+    
+
+class University(models.Model):
+    name = models.CharField(max_length=500, verbose_name='Name of University ', blank=False)
+    aka = models.CharField(max_length=500, verbose_name='Short Name', blank=False)
+
+    def __str__(self):
+        return self.name  
+    
+    

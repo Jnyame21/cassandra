@@ -3,6 +3,7 @@ import { jwtDecode } from "jwt-decode";
 import { defaultAxiosInstance } from "../utils/axiosInstance";
 import axiosInstance from '../utils/axiosInstance'
 import { useRouter } from 'vue-router';
+import { useElementsStore } from '../stores/elementsStore'
 
 interface states {
     authTokens: any;
@@ -10,13 +11,25 @@ interface states {
     studentData: {
         subjects: any;
         classData: any;
-        results: {
-            academicYears: any
-            termOne: any;
-            termTwo: any;
-            termThree: any;
-        };
-    }
+        studentApplications: any;
+        universities: any;
+        academicYearsData: any;
+        currentAcademicYearsResults: any,
+        currentAttendance: any;
+        currentAssessments: any;
+        currentResults: any;
+    };
+    teacherData: {
+        courseWork: any;
+        currentCourseWork: any;
+        studentsattendance: any;
+        studentsWithoutAssessments: any;
+        studentsWithAssessments: any;
+        studentsWithoutExams: any;
+        studentsWithExams: any;
+        currentAssessments: any;
+        currentExams: any;
+    };
     message: string;
     isAuthenticated: boolean;
     staffStudentResultsSubjectAssignment: any;
@@ -77,12 +90,24 @@ export const useUserAuthStore = defineStore('userAuth',{
             studentData: {
                 subjects: null,
                 classData: null,
-                results: {
-                    academicYears: null,
-                    termOne: null,
-                    termTwo: null,
-                    termThree: null,
-                },
+                studentApplications: null,
+                universities: null,
+                academicYearsData: null,
+                currentAcademicYearsResults: null,
+                currentAttendance: null,
+                currentAssessments: null,
+                currentResults: null,
+            },
+            teacherData: {
+                courseWork: null,
+                currentCourseWork: null,
+                studentsattendance: null,
+                studentsWithoutAssessments: null,
+                studentsWithoutExams: null,
+                studentsWithExams: null,
+                studentsWithAssessments: null,
+                currentAssessments: null,
+                currentExams: null,
             },
             message: '',
             isAuthenticated: false,
@@ -145,87 +170,22 @@ export const useUserAuthStore = defineStore('userAuth',{
         },
 
         logoutUser(){
-
             if (localStorage.getItem('authTokens')){
                 localStorage.removeItem('authTokens')
             }
             if (localStorage.getItem('RozmachAuth')){
                 localStorage.removeItem('RozmachAuth')
             }
-            this.authTokens = null
-            this.userData= null,
-            this.studentData= {
-                subjects: null,
-                classData: null,
-                results: {
-                    academicYears: null,
-                    termOne: null,
-                    termTwo: null,
-                    termThree: null,
-                },
-            }
-            this.message= ''
-            this.staffStudentResultsSubjectAssignment= null
-            this.staffStudentResultsEdit= null
-            this.staffStudentsResultsFileGenerated= false
-
-            this.hodSubjectAssignment= {
-                termOne: null, 
-                termTwo: null, 
-                termThree: null,
-            }
-            this.hodSubjectAssignmentUpload= {
-                staff: null,
-                subjects: null,
-                classes: null,
-            }
-            this.staffSubjectAssignment= {
-                termOne: null,
-                termTwo: null,
-                termThree: null,
-            }
-            this.headPrograms= null
-            this.headNotificationsStaff = null
-            this.notifications = null
-            this.headDepartments = null
-            this.hodPerformance = null
-            this.headStudentsPerformance = null
-            this.isAuthenticated = false
-            this.adminClasses = {
-                yearOne: null,
-                yearTwo: null,
-                yearThree: null,
-                names: null,
-                subjects: null,
-                programs: null,
-            }
-            this.adminStaff = {
-                departmentNames: null,
-                subjects: null,
-                departments: null,
-                academicYears: null,
-            }
-            this.adminHeads = null
-            this.teacherStudentsAttendance = null
-
-            // Notification
-            this.newNotification = false
-            this.notificationStudentsClasses = null
-            this.notificationStudents = null
-            this.notificationStaff = null
+            useElementsStore().$reset()
+            this.$reset()
         },
 
         async getStudentData(){
             await axiosInstance.get('st/data', {params: {'year': this.activeAcademicYear, 'term': this.activeTerm}})
                 .then(response =>{
                     this.studentData.subjects = response.data['subjects']
-                    this.studentData.results.termOne = response.data['results']['term_one']
-                    this.studentData.results.termTwo = response.data['results']['term_two']
-                    this.studentData.results.termThree = response.data['results']['term_three']
+                    this.studentData.academicYearsData = response.data['academic_years_results']
                     this.studentData.classData = response.data['class_data']
-                    if (response.data['academic_years']){
-                        this.studentData.results.academicYears = response.data['academic_years']
-                    }
                 })
                 .catch(e =>{
                     return Promise.reject()
@@ -242,8 +202,39 @@ export const useUserAuthStore = defineStore('userAuth',{
                 })
         },
 
+        async getTeacherData(){
+            await axiosInstance.get("teacher/data", {params: {'year': this.activeAcademicYear, 'term': this.activeTerm}})
+                .then(response =>{
+                    this.teacherData.courseWork = response.data['subject_assignments']
+                    this.teacherData.studentsattendance = response.data['students_attendance']
+                })
+                .catch(e =>{
+                    return Promise.reject()
+                })
+        },
+        async getTeacherStudentsAssessments(){
+            await axiosInstance.get("teacher/assessments", {params: {'year': this.activeAcademicYear, 'term': this.activeTerm}})
+                .then(response =>{
+                    this.teacherData.studentsWithAssessments = response.data['with_assessments']
+                    this.teacherData.studentsWithoutAssessments = response.data['without_assessments']
+                })
+                .catch(e =>{
+                    return Promise.reject()
+                })
+        },
+        async getTeacherStudentsExams(){
+            await axiosInstance.get("teacher/exams", {params: {'year': this.activeAcademicYear, 'term': this.activeTerm}})
+                .then(response =>{
+                    this.teacherData.studentsWithExams = response.data['with_exams']
+                    this.teacherData.studentsWithoutExams = response.data['without_exams']
+                })
+                .catch(e =>{
+                    return Promise.reject()
+                })
+        },
+
         async getTeacherSubjectAssignments(){
-            await axiosInstance.get("teacher/subject_assignments/", {params: {'year': this.activeAcademicYear}})
+            await axiosInstance.get("teacher/data", {params: {'year': this.activeAcademicYear, 'term': this.activeTerm}})
                 .then(response =>{
                     this.staffSubjectAssignment.termOne = response.data['subject_assignments']['term1']
                     this.staffSubjectAssignment.termTwo = response.data['subject_assignments']['term2']
@@ -393,7 +384,7 @@ export const useUserAuthStore = defineStore('userAuth',{
                         // Tokens storage location
                         localStorage.setItem('authTokens', JSON.stringify(response.data))
 
-                        const userInfo = jwtDecode(response.data['access'])
+                        const userInfo:any = jwtDecode(response.data['access'])
 
                         if (userInfo['last_login']){
                             localStorage.setItem('RozmachAuth', JSON.stringify({'last_login': true, 'reset': userInfo['reset']}))

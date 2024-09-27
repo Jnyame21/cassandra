@@ -1,7 +1,8 @@
 
 export default defineNuxtRouteMiddleware(async(to, from) => {
-    if (process.client) {
+    if (import.meta.client) {
         const userAuthStore = useUserAuthStore()
+        const elementsStore = useElementsStore()
         const authTokens = localStorage.getItem("authTokens")
         if (authTokens && userAuthStore.isAuthenticated===false){
             userAuthStore.authTokens = JSON.parse(authTokens)

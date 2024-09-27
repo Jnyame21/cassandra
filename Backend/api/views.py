@@ -1,19 +1,9 @@
-# Django
-import json
-import os
-import random
 
+# Django
 from django.contrib.auth.models import User
 from django.http import HttpResponse
-from django.db import IntegrityError, transaction
-from django.db.utils import IntegrityError as IntergrityError_unique_constraint
-from django.core.files.storage import default_storage
-from django.core.exceptions import SuspiciousOperation
-from django.core.files.base import ContentFile
-from django.core.exceptions import ValidationError
-from django.utils import timezone
+from django.db import transaction
 from django.core.mail import send_mail
-from django.shortcuts import get_object_or_404
 
 # Django Restframework
 from rest_framework.decorators import api_view, permission_classes
@@ -25,14 +15,9 @@ from rest_framework.permissions import IsAuthenticated
 # Other
 from api.models import *
 from api.serializer import *
-from datetime import datetime, date
-import io
-from pprint import pprint
-import pytz
-from dateutil import parser
 from email_validator import validate_email
 from api.utils import *
-
+import json
 
 def root(request):
     return HttpResponse("<h1>Welcome to Cassandra, a school management system</h1>")
@@ -54,10 +39,10 @@ class UserAuthSerializer(TokenObtainPairSerializer):
         try:
             staff = user.staff
             staff_data = SpecificStaffSerializer(staff).data
-            if staff_data['contact'] and staff_data['contact'] != 'not set':
-                token['reset'] = False
+            if staff_data['contact'] and staff_data['contact'] != 'none':
+                token['reset_password'] = False
             else:
-                token['reset'] = True
+                token['reset_password'] = True
 
             return token
 
@@ -73,10 +58,10 @@ class UserAuthSerializer(TokenObtainPairSerializer):
                 try:
                     head = user.head
                     head_data = SpecificHeadSerializer(head).data
-                    if head_data['contact'] != 'not set':
-                        token['reset'] = False
+                    if head_data['contact'] and head_data['contact'] != 'none':
+                        token['reset_password'] = False
                     else:
-                        token['reset'] = True
+                        token['reset_password'] = True
 
                     return token
 
@@ -140,7 +125,7 @@ def get_user_data(request):
             except User.head.RelatedObjectDoesNotExist:
                 return Response(status=401)
 
-    else:
+    elif request.method == 'GET':
         user_data = {
             'username': user_info['username'],
             'first_name': user_info['first_name'],
@@ -149,7 +134,7 @@ def get_user_data(request):
         if user_info['email']:
             user_data['email'] = user_info['email']
         else:
-            user_data['email'] = 'null'
+            user_data['email'] = 'none'
 
         try:
             staff = user.staff
@@ -158,30 +143,38 @@ def get_user_data(request):
             get_current_academic_year(staff, user_data)
 
             staff_data = StaffSerializer(staff).data
-            user_data['last_login'] = format_relative_date_time(staff_data['user']['last_login'], False, True)
             user_data['role'] = 'staff'
             user_data['img'] = staff_data['img']
             user_data['school'] = staff_data['school']
-            user_data['staff_id'] = staff_data['staff_id']
-            try:
-                department = Department.objects.select_related('hod').get(teachers=staff)
-                user_data['department'] = DepartmentNameSerializer(department).data['name']
-                if department.hod == staff:
-                    user_data['staff_role'] = 'hod'
-                    staff.role = 'hod'
-                    staff.save()
-                else:
-                    user_data['staff_role'] = 'teacher'
+            
+            if staff_data['school']['staff_id']:
+                user_data['staff_id'] = staff_data['staff_id']
+            else:
+                user_data['staff_id'] = staff_data['user']['username']
+                    
+            user_data['staff_role'] = staff_data['role']
+            # user_data['level'] = staff_data['level']['name']
+            
+            if staff_data['school']['has_departments']:
+                try:
+                    department = Department.objects.select_related('hod').get(teachers=staff)
+                    user_data['department'] = DepartmentNameSerializer(department).data['name']
+                    if department.hod == staff:
+                        staff.role = 'hod'
+                        staff.save()
+                        user_data['staff_role'] = 'hod'
+                    else:
+                        user_data['staff_role'] = 'teacher'
 
-            except Department.DoesNotExist:
-                user_data['staff_role'] = staff_data['role']
-
+                except Department.DoesNotExist:
+                    pass
+                
             user_data['subjects'] = staff_data['subjects']
             user_data['gender'] = staff_data['gender']
             user_data['dob'] = staff_data['dob']
             user_data['address'] = staff_data['address']
             user_data['contact'] = staff_data['contact']
-            user_data['ms'] = 'Login successful'
+            user_data['ms'] = 'LOGIN SUCCESSFUL'
             user_data['pob'] = staff_data['pob']
             user_data['region'] = staff_data['region']
             user_data['nationality'] = staff_data['nationality']
@@ -196,26 +189,32 @@ def get_user_data(request):
                 get_current_academic_year(student, user_data)
 
                 student_data = StudentSerializer(student).data
-                user_data['last_login'] = format_relative_date_time(student_data['user']['last_login'], False, True)
                 user_data['role'] = 'student'
 
                 user_data['img'] = student_data['img']
-                user_data['ms'] = 'Login successful'
-                user_data['program'] = student_data['program']['name']
+                user_data['ms'] = 'LOGIN SUCCESSFUL'
+                
+                if student_data['school']['has_programs']:
+                    user_data['program'] = student_data['program']['name']
+                    
                 user_data['school'] = student_data['school']
-                user_data['st_id'] = student_data['st_id']
-
-                if student_data['index_no']:
-                    user_data['index_no'] = student_data['index_no']
+                user_data['level'] = student_data['level']['name']
+                
+                if student_data['school']['students_id']:
+                    user_data['st_id'] = student_data['st_id']
                 else:
-                    user_data['index_no'] = 'not assigned yet'
+                    student.st_id = student_data['user']['username']
+                    student.save()
+                
+                if student_data['school']['students_index_no']:
+                    user_data['index_no'] = student_data['index_no']
 
                 try:
                     clas = Classe.objects.get(school=student.school, students=student)
                     class_name = ClasseWithoutStudentsSerializer(clas).data
                     user_data['st_class'] = class_name['name']
                     
-                    if student_data['has_completed'] or student.current_year == 4:
+                    if student_data['has_completed']:
                         user_data['current_yr'] = 'COMPLETED'
                     else:
                         user_data['current_yr'] = student_data['current_year']
@@ -231,16 +230,12 @@ def get_user_data(request):
                 user_data['address'] = student_data['address']
                 user_data['religion'] = student_data['religion']
                 user_data['nationality'] = student_data['nationality']
-                user_data['guardian'] = student_data['guardian']
+                user_data['guardian_first_name'] = student_data['guardian_first_name']
+                user_data['guardian_last_name'] = student_data['guardian_last_name']
                 user_data['guardian_gender'] = student_data['guardian_gender']
                 user_data['guardian_occupation'] = student_data['guardian_occupation']
                 user_data['guardian_nationality'] = student_data['guardian_nationality']
-
-                if student_data['guardian_email']:
-                    user_data['guardian_email'] = student_data['guardian_email']
-                else:
-                    user_data['guardian_email'] = 'null'
-
+                user_data['guardian_email'] = student_data['guardian_email']
                 user_data['guardian_contact'] = student_data['guardian_contact']
                 user_data['guardian_address'] = student_data['guardian_address']
 
@@ -248,22 +243,28 @@ def get_user_data(request):
 
             except User.student.RelatedObjectDoesNotExist:
                 head = user.head
+                
                 # Get current academic year
                 get_current_academic_year(head, user_data)
 
                 head_data = HeadSerializer(head).data
-                user_data['last_login'] = format_relative_date_time(head_data['user']['last_login'], False, True)
                 user_data['role'] = 'head'
 
                 user_data['img'] = head_data['img']
                 user_data['school'] = head_data['school']
-                user_data['head_id'] = head_data['head_id']
+                
+                if head_data['school']['staff_id']:
+                    user_data['head_id'] = head_data['head_id']
+                else:
+                    head.head_id = head_data['user']['username']
+                    head.save()
+                
                 user_data['head_role'] = head_data['role']
                 user_data['gender'] = head_data['gender']
                 user_data['dob'] = head_data['dob']
                 user_data['address'] = head_data['address']
                 user_data['contact'] = head_data['contact']
-                user_data['ms'] = 'Login successful'
+                user_data['ms'] = 'LOGIN SUCCESSFUL'
                 user_data['pob'] = head_data['pob']
                 user_data['region'] = head_data['region']
                 user_data['nationality'] = head_data['nationality']
