@@ -9,8 +9,8 @@ definePageMeta({
 })
 
 useSeoMeta({
-    title: "Cassandra | Login",
-    description: "Login to Cassandra, the school management system."
+  title: "Cassandra | Login",
+  description: "Login to Cassandra, the school management system."
 })
 
 useHead({

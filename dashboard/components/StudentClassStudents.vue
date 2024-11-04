@@ -33,10 +33,10 @@ const closeBtn = ()=>{
       </div>
     </div>
     <TheLoader v-if="!userAuthStore.studentData.classData" />
-    <div class="info-wrapper" v-if="userAuthStore.studentData.classData && userAuthStore.studentData.classData['head_teacher'] !=='none' ">
+    <div class="content-header" v-if="userAuthStore.studentData.classData && userAuthStore.studentData.classData['head_teacher'] !=='none' ">
       <v-btn size="small" @click="showOverlay()">HEAD TEACHER</v-btn>
     </div>
-    <div class="info-wrapper" v-if="userAuthStore.studentData.classData && userAuthStore.studentData.classData['students'].length >0 ">
+    <div class="content-header" v-if="userAuthStore.studentData.classData && userAuthStore.studentData.classData['students'].length >0 ">
       TOTAL NUMBER OF STUDENTS 
       <h4>{{ userAuthStore.studentData.classData['students'].length }}</h4>
     </div>

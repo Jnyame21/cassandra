@@ -8,23 +8,55 @@ const elementsStore = useElementsStore()
 const formErrorMessage = ref('')
 const studentName = ref('')
 const studentId = ref('')
+const studentIndex:any = ref(null)
 const previousScore: any = ref(null)
 const previousComment = ref('')
 const newScore:any = ref(null)
-const previousTitle: any = ref(null)
-const previousDescription: any = ref(null)
-const previousPercentage: any = ref(null)
-const previousTotalScore: any = ref(null)
-const previousDate: any = ref(null)
 const newTitle: any = ref(null)
 const newDescription: any = ref(null)
-const newPercentage: any = ref(null)
 const newTotalScore: any = ref(null)
+const academicYearStartDate = new Date(userAuthStore.userData['academic_year']['start_date'])
+const academicYearEndDate = new Date(userAuthStore.userData['academic_year']['end_date'])
 const newDate: any = ref(null)
 const newComment = ref('')
 const editType = ref('')
+const fileToUpload:any = ref(null)
+const uploadTypeSelected:any = ref(null)
+const studentScore:any = ref(null)
+const selectedStudents:any = ref([])
+const comment = ref('')
 
-
+interface Props {
+  className: string;
+  classIndex: number;
+  subjectName: string;
+  subjectIndex: number;
+  assessment: {
+    title: string;
+    description: string;
+    percentage: number;
+    total_score: number;
+    assessment_date: any;
+    students_with_assessment: {
+      'name': string;
+      'st_id': string
+      'score': number;
+      'comment': string;
+    }[];
+    students_without_assessment: {
+      'name': string;
+      'st_id': string;
+    }[];
+  };
+  assessmentIndex: number;
+}
+const props = defineProps<Props>()
+const className = props.className
+const classIndex = props.classIndex || 0
+const subjectName = props.subjectName
+const subjectIndex = props.subjectIndex || 0
+const assessment = props.assessment
+const assessmentIndex = props.assessmentIndex || 0
 
 const clearMessage = ()=>{
   setTimeout(()=>{
@@ -32,98 +64,188 @@ const clearMessage = ()=>{
   }, 8000)
 }
 
-watch(()=>userAuthStore.teacherData.studentsWithAssessments, (newValue, oldValue)=>{
-  if (newValue){
-    const className = elementsStore.activePage.split(',')[1]
-    const subjectName = elementsStore.activePage.split(',')[2]
-    const title = elementsStore.activePage.split(',')[3]
-    const assessment = newValue.find(item => item['class_name'] === className)
-    if (assessment){
-      const assessmentSubject = assessment['assignments'].find(item => item['subject'] === subjectName)
-      if (assessmentSubject){
-        const assessmentTitle = assessmentSubject['assessments'].find(item => item['title'] === title)
-        assessmentTitle ? userAuthStore.teacherData.currentAssessments = assessmentTitle : null
-      }
-    }
+const showErrorMessage = (message:string) =>{
+  formErrorMessage.value = message
+  clearMessage()
+}
+
+const uploadOptions = [
+  {'option': 'INPUT DATA HERE', 'value': 'noFile'},
+  {'option': 'USE AN EXCEL FILE', 'value': 'file'},
+]
+
+const fileChange = (event: any)=>{
+  const file = event.target.files[0]
+  fileToUpload.value = file || null
+}
+
+// Generate an excel file
+const generateFile = async()=>{
+  formErrorMessage.value = ''
+  if (assessment['students_without_assessment'].length === 0){
+    showErrorMessage(`You have already uploaded all the students assessment for the assessment titled [ ${assessment['title']} ] under ${subjectName}`)
+    return;
   }
-})
-
-const deleteAssessment = async(st_id:string)=>{
   elementsStore.ShowLoadingOverlay()
-  const className = elementsStore.activePage.split(',')[1]
-  const subjectName = elementsStore.activePage.split(',')[2]
   const formData = new FormData()
-  formData.append('type', 'deleteAssessment')
-  formData.append('studentsClassName', className);
-  formData.append('subject', subjectName);
-  formData.append('studentId', st_id); 
-  formData.append('year', userAuthStore.activeAcademicYear);
-  formData.append('term', userAuthStore.activeTerm.toString());
-  formData.append('title', userAuthStore.teacherData.currentAssessments['title']);
-
+  formData.append('studentsClassName', className)
+  formData.append('subject', subjectName)
+  formData.append('selectedStudents', JSON.stringify(assessment['students_without_assessment']))
+  formData.append('type', 'getFile')
+  formData.append('year', userAuthStore.activeAcademicYear)
+  formData.append('term', userAuthStore.activeTerm)
+  formData.append('title', assessment['title'])
+  formData.append('totalScore', assessment['total_score'].toString())
+  
   try{
-    await axiosInstance.post('teacher/assessments', formData)
-    const student = userAuthStore.teacherData.currentAssessments['students'].find(item => item['st_id'] === st_id)
-    if (student){
-      const studentIndex = userAuthStore.teacherData.currentAssessments['students'].indexOf(student)
-      userAuthStore.teacherData.currentAssessments['students'].splice(studentIndex, 1)
-      const _assessmentTitle = elementsStore.activePage.split(',')[3]
-      const assessment = userAuthStore.teacherData.studentsWithoutAssessments.find(item => item['class_name'] === className)
-      if (assessment){
-        const assessmentIndex = userAuthStore.teacherData.studentsWithoutAssessments.indexOf(assessment)
-        const assessmentSubject = assessment['assignments'].find(item => item['subject'] === subjectName)
-        if (assessmentSubject){
-          const assessmentSubjectIndex = assessment['assignments'].indexOf(assessmentSubject)
-          const assessmentTitle = assessmentSubject['assessments'].find(item => item['title'] === _assessmentTitle)
-          if (assessmentTitle){
-            const assessmentTitleIndex = assessmentSubject['assessments'].indexOf(assessmentTitle)
-            userAuthStore.teacherData.studentsWithoutAssessments[assessmentIndex]['assignments'][assessmentSubjectIndex]['assessments'][assessmentTitleIndex]['students'].unshift(student)
-          }
-        }
-      }
-    }
-    elementsStore.HideLoadingOverlay()
+    const response = await axiosInstance.post('teacher/assessments', formData)
+    const link = document.createElement('a');
+    link.href = response.data.file_path;
+    link.setAttribute('download', response.data.filename);
+    document.body.appendChild(link);
+    link.click(); 
+    document.body.removeChild(link); 
+    elementsStore.HideLoadingOverlay();
   }
   catch (error){
+      elementsStore.HideLoadingOverlay()
+      if (error instanceof AxiosError){
+          if(error.response){
+              if (error.response.status === 400 && error.response.data.message){
+                  elementsStore.ShowOverlay(error.response.data.message, 'red', null, null)
+              }
+              else{
+                  elementsStore.ShowOverlay('Oops! something went wrong. Try again later', 'red', null, null)
+              }
+          }
+          else if (!error.response && (error.code === 'ECONNABORTED' || !navigator.onLine)){
+              elementsStore.ShowOverlay('A network error occurred! Please check you internet connection', 'red', null, null)
+          }
+          else{
+              elementsStore.ShowOverlay('An unexpected error occurred!', 'red', null, null)
+          }
+      }
+  }
+}
+
+const upload = async()=>{
+  formErrorMessage.value = ''
+  const formData = new FormData()
+  formData.append('year', userAuthStore.activeAcademicYear)
+  formData.append('term', userAuthStore.activeTerm)
+  formData.append('studentsClassName', className)
+  formData.append('subject', subjectName)
+  formData.append('title', assessment['title'])
+  if (uploadTypeSelected.value === 'file'){
+    formData.append('file', fileToUpload.value)
+    formData.append('type', 'uploadWithFile')
+  }
+  else if (uploadTypeSelected.value === 'noFile'){
+    if (comment.value.length > 100){
+      showErrorMessage("The comment must not exceed 100 characters")
+      return;
+    }else if (studentScore.value <0){
+      showErrorMessage("The students' score cannot be negative")
+      return;
+    }else if (studentScore.value > assessment['total_score']){
+      showErrorMessage("The students' score cannot be greater than the total assessment score")
+      return;
+    }
+    formData.append('selectedStudents', JSON.stringify(selectedStudents.value))
+    formData.append('type', 'uploadWithoutFile')
+    formData.append('score', studentScore.value)
+    formData.append('comment', comment.value)
+  }
+  elementsStore.ShowLoadingOverlay()
+  try{
+    const response = await axiosInstance.post('teacher/assessments', formData)
+    if (uploadTypeSelected.value === 'file'){
+      const students_data = response.data['data']
+      students_data.forEach(st =>{
+        userAuthStore.teacherData.studentsAssessments[classIndex]['assignments'][subjectIndex]['assessments'][assessmentIndex]['students_with_assessment'].push(st)
+        const _student = userAuthStore.teacherData.studentsAssessments[classIndex]['assignments'][subjectIndex]['assessments'][assessmentIndex]['students_without_assessment'].find(item => item['st_id'] === st['st_id'])
+        if (_student){
+          const _stIndex = userAuthStore.teacherData.studentsAssessments[classIndex]['assignments'][subjectIndex]['assessments'][assessmentIndex]['students_without_assessment'].indexOf(_student)
+          userAuthStore.teacherData.studentsAssessments[classIndex]['assignments'][subjectIndex]['assessments'][assessmentIndex]['students_without_assessment'].splice(_stIndex, 1)
+        }
+      })
+    }
+    else if (uploadTypeSelected.value === 'noFile'){
+      selectedStudents.value.forEach(st_id =>{
+        const _student = userAuthStore.teacherData.studentsAssessments[classIndex]['assignments'][subjectIndex]['assessments'][assessmentIndex]['students_without_assessment'].find(item => item['st_id'] === st_id)
+        if (_student){
+          const _stIndex = userAuthStore.teacherData.studentsAssessments[classIndex]['assignments'][subjectIndex]['assessments'][assessmentIndex]['students_without_assessment'].indexOf(_student)
+          userAuthStore.teacherData.studentsAssessments[classIndex]['assignments'][subjectIndex]['assessments'][assessmentIndex]['students_without_assessment'].splice(_stIndex, 1)
+          userAuthStore.teacherData.studentsAssessments[classIndex]['assignments'][subjectIndex]['assessments'][assessmentIndex]['students_with_assessment'].push({'name': _student['name'], 'st_id': _student['st_id'], 'score': Number(studentScore.value.toFixed(2)), 'comment': comment.value})
+        }
+      })
+    }
+    userAuthStore.teacherData.studentsAssessments[classIndex]['assignments'][subjectIndex]['assessments'][assessmentIndex]['students_with_assessment'].sort((a, b) => b.score - a.score)
+    selectedStudents.value = []
+    studentScore.value = null
+    comment.value = ''
+    fileToUpload.value = null
+    elementsStore.HideLoadingOverlay()
+    elementsStore.ShowOverlay(response.data.message, 'green', null, null)
+  }
+  catch(error){
     elementsStore.HideLoadingOverlay()
     if (error instanceof AxiosError){
-      error.response?.status === 400 && error.response.data.message ? elementsStore.ShowOverlay(error.response.data.message, 'red', null, null)  : elementsStore.ShowOverlay('Oops! something went wrong. try again', 'red', null, null)
+      if(error.response){
+        if (error.response.status === 400 && error.response.data.message){
+          elementsStore.ShowOverlay(error.response.data.message, 'red', null, null)
+        }
+        else{
+          elementsStore.ShowOverlay('Oops! something went wrong. Try again later', 'red', null, null)
+        }
+      }
+      else if (!error.response && (error.code === 'ECONNABORTED' || !navigator.onLine)){
+        elementsStore.ShowOverlay('A network error occurred! Please check you internet connection', 'red', null, null)
+      }
+      else if (error.code === 'ERR_NETWORK' && navigator.onLine) {
+        elementsStore.ShowOverlay('The excel file was modified. Please re-select the file before uploading.', 'red', null, null)
+        fileToUpload.value = null 
+      }
+      else{
+        elementsStore.ShowOverlay('An unexpected error occurred!', 'red', null, null)
+      }
     }
   }
 }
 
 const editAssessment = async()=>{
   formErrorMessage.value = ''
-  const className = elementsStore.activePage.split(',')[1]
-  const subjectName = elementsStore.activePage.split(',')[2]
   const formData = new FormData()
   formData.append('studentsClassName', className);
   formData.append('subject', subjectName);
   formData.append('year', userAuthStore.activeAcademicYear);
   formData.append('term', userAuthStore.activeTerm.toString());
   formData.append('type', 'editAssessment');
-  formData.append('title', userAuthStore.teacherData.currentAssessments['title']);
+  formData.append('title', assessment['title']);
 
   if (editType.value === 'score'){
-    if (userAuthStore.teacherData?.currentAssessments['total_score'] >= newScore.value && newScore.value >=0){
+    if (assessment['total_score'] >= newScore.value && newScore.value >=0){
       formData.append('newScore', newScore.value);
       formData.append('editType', 'score');
       formData.append('studentId', studentId.value);
     }else{
-      if (newScore.value <0){
-        formErrorMessage.value = 'The assessment score cannot be negative'
-      }
-      else if (newScore.value > userAuthStore.teacherData?.currentAssessments['total_score']){
+      if (newScore.value < 0){
+        formErrorMessage.value = "The student's score cannot be negative"
+      }else if (newScore.value > Number(assessment['total_score'])){
         formErrorMessage.value = "The student's score cannot be greater than the total assessment score"
+      }else if (newScore.value === previousScore.value){
+        formErrorMessage.value = "The new student's score must be different from the old students's score"
       }
       clearMessage()
       return;
     }
   }
   else if (editType.value === 'comment'){
-    if (newComment.value.length >200){
-      formErrorMessage.value = "The maximum characters must not exceed 200"
-      clearMessage()
+    if (newComment.value.length >100){
+      showErrorMessage("The maximum characters must not exceed 100")
+      return;
+    }else if (newComment.value === previousComment.value){
+      showErrorMessage("The new comment must be different from the old comment")
       return;
     }
     formData.append('newComment', newComment.value);
@@ -131,54 +253,50 @@ const editAssessment = async()=>{
     formData.append('studentId', studentId.value);
   }
   else if (editType.value === 'title'){
-    if (newTitle.value.length >100){
-      formErrorMessage.value = "The maximum characters must not exceed 100"
-      clearMessage()
+    if (newTitle.value.length >50){
+      showErrorMessage("The maximum characters for the title must not exceed 50")
+      return;
+    }else if (newTitle.value === assessment['title']){
+      showErrorMessage("The new title must be different from the old assessment title")
       return;
     }
     formData.append('newTitle', newTitle.value);
     formData.append('editType', 'title');
   }
   else if (editType.value === 'description'){
-    if (newDescription.value.length >150){
-      formErrorMessage.value = "The maximum characters must not exceed 100"
-      clearMessage()
+    if (newDescription.value === assessment['description']){
+      showErrorMessage("The new description must be different from the old assessment description")
+      return;
+    }else if (newDescription.value.length >100){
+      showErrorMessage("The maximum characters for the description must not exceed 100")
       return;
     }
     formData.append('newDescription', newDescription.value);
     formData.append('editType', 'description');
   }
   else if (editType.value === 'totalScore'){
-    if (newTotalScore.value <0){
-      formErrorMessage.value = 'The total assessment score cannot be negative'
-      clearMessage()
+    if (newTotalScore.value <= 0){
+      showErrorMessage('The total assessment score cannot be negative or zero(0)')
       return;
-    }else if (newTotalScore.value < Math.max(...userAuthStore.teacherData.currentAssessments['students'].map(st => Number(st.score)))){
-      formErrorMessage.value = `The total assessment score cannot be less than the maximum score of a student. Ensure each student's score is less than ${newTotalScore.value}`
-      clearMessage()
+    }else if (newTotalScore.value === Number(assessment['total_score'])){
+      showErrorMessage("The new total score must be different from the old assessment total score")
       return;
-    }
-    else {
-      formData.append('newTotalScore', newTotalScore.value);
-      formData.append('editType', 'totalScore');
-    }
-  }
-  else if (editType.value === 'percentage'){
-    if (100 >= newPercentage.value && newPercentage.value >=0){
-      formData.append('newPercentage', newPercentage.value);
-      formData.append('editType', 'percentage');
-    }else{
-      if (newPercentage.value <0){
-        formErrorMessage.value = 'The assessment percentage cannot be negative'
-      }
-      else if (newPercentage.value > 100){
-        formErrorMessage.value = 'The assessment percentage cannot be greater than 100'
-      }
-      clearMessage()
+    }else if (newTotalScore.value < Math.max(...assessment['students_with_assessment'].map(st => Number(st.score)))){
+      showErrorMessage(`The total assessment score cannot be less than the maximum score of a student. Ensure each student's score is less than ${newTotalScore.value}`)
       return;
     }
+    formData.append('newTotalScore', newTotalScore.value);
+    formData.append('editType', 'totalScore');
   }
   else if (editType.value === 'date'){
+    if (newDate.value === assessment['assessment_date']){
+      showErrorMessage('The new date must be different from the old assessment date')
+      return;
+    }
+    else if (new Date(newDate.value) < academicYearStartDate || new Date(newDate.value) > academicYearEndDate) {
+      showErrorMessage(`The assessment date must be between the academic year start date and end date, which are ${academicYearStartDate.toDateString()} and ${academicYearEndDate.toDateString()} respectively.`)
+      return;
+    }
     formData.append('newDate', newDate.value);
     formData.append('editType', 'date');
   }
@@ -186,69 +304,97 @@ const editAssessment = async()=>{
   elementsStore.ShowLoadingOverlay()
   try{
     await axiosInstance.post('teacher/assessments', formData)
-    if (['score', 'comment'].includes(editType.value)){
-      const student = userAuthStore.teacherData.currentAssessments['students'].find(item => item['st_id'] === studentId.value)
-      if (student){
-        const studentIndex = userAuthStore.teacherData.currentAssessments['students'].indexOf(student)
-        if(editType.value === 'score'){
-          userAuthStore.teacherData.currentAssessments['students'][studentIndex]['score'] = newScore.value
-          userAuthStore.teacherData.currentAssessments['students'].sort((a, b) => b.score - a.score)
-        }
-        editType.value === 'comment' ? userAuthStore.teacherData.currentAssessments['students'][studentIndex]['comment'] = newComment.value : null
-      }
-    }else{
-      const _title = userAuthStore.teacherData.currentAssessments['title']
-      editType.value === 'title' ? updateAssessmentData(className, subjectName, _title, editType.value, newTitle.value) : null
-      editType.value === 'description' ? updateAssessmentData(className, subjectName, _title, editType.value, newDescription.value) : null
-      editType.value === 'totalScore' ? updateAssessmentData(className, subjectName, _title, editType.value, newTotalScore.value) : null
-      editType.value === 'percentage' ? updateAssessmentData(className, subjectName, _title, editType.value, newPercentage.value) : null
-      editType.value === 'date' ? updateAssessmentData(className, subjectName, _title, editType.value, newDate.value) : null
+    if (editType.value === 'score'){
+      userAuthStore.teacherData.studentsAssessments[classIndex]['assignments'][subjectIndex]['assessments'][assessmentIndex]['students_with_assessment'][studentIndex.value]['score'] = Number(newScore.value.toFixed(2))
+      userAuthStore.teacherData.studentsAssessments[classIndex]['assignments'][subjectIndex]['assessments'][assessmentIndex]['students_with_assessment'].sort((a, b) => b.score - a.score)
     }
-    closeOverlay()
+    else if (editType.value === 'comment'){
+      userAuthStore.teacherData.studentsAssessments[classIndex]['assignments'][subjectIndex]['assessments'][assessmentIndex]['students_with_assessment'][studentIndex.value]['comment'] = newComment.value 
+    }
+    else{
+      if (editType.value === 'title'){
+       userAuthStore.teacherData.studentsAssessments[classIndex]['assignments'][subjectIndex]['assessments'][assessmentIndex]['title'] = newTitle.value
+       elementsStore.activePage = `TeacherStudentsAssessments,${className},${subjectName},${assessment['title']},${assessmentIndex}`
+      }
+      editType.value === 'description' ? userAuthStore.teacherData.studentsAssessments[classIndex]['assignments'][subjectIndex]['assessments'][assessmentIndex]['description'] = newDescription.value : null
+      editType.value === 'totalScore' ? userAuthStore.teacherData.studentsAssessments[classIndex]['assignments'][subjectIndex]['assessments'][assessmentIndex]['total_score'] = Number(newTotalScore.value.toFixed(2)) : null
+      editType.value === 'date' ? userAuthStore.teacherData.studentsAssessments[classIndex]['assignments'][subjectIndex]['assessments'][assessmentIndex]['assessment_date'] = newDate.value : null
+    }
+    closeOverlay(`TeacherStudentsAssessmentEdit${className}${subjectName}${assessment['title']}${assessmentIndex}`)
     elementsStore.HideLoadingOverlay()
   }
   catch (error){
     elementsStore.HideLoadingOverlay()
     if (error instanceof AxiosError){
-      error.response?.status === 400 && error.response.data.message ? elementsStore.ShowOverlay(error.response.data.message, 'red', null, null)  : elementsStore.ShowOverlay('Oops! something went wrong. try again later', 'red', null, null)
+      if(error.response){
+        if (error.response.status === 400 && error.response.data.message){
+          elementsStore.ShowOverlay(error.response.data.message, 'red', null, null)
+        }else{
+          elementsStore.ShowOverlay('Oops! something went wrong. Try again later', 'red', null, null)
+        }
+      }
+      else if (!error.response && (error.code === 'ECONNABORTED' || !navigator.onLine)){
+        elementsStore.ShowOverlay('A network error occurred! Please check you internet connection', 'red', null, null)
+      }
+      else{
+        elementsStore.ShowOverlay('An unexpected error occurred!', 'red', null, null)
+      }
     }
   }
 }
 
-const updateAssessmentData = (_className: string, _subjectName: string,  _title: string, updateType: string, newValue: any) => {
-  const updateAssessment = (assessmentsArray: any[]) => {
-    const _assessment = assessmentsArray.find(item => item['class_name'] === _className);
-    if (_assessment) {
-      const _assessmentIndex = assessmentsArray.indexOf(_assessment);
-      const assessmentSubject = _assessment['assignments'].find(item => item['subject'] === _subjectName);
-      if (assessmentSubject) {
-        const assessmentSubjectIndex = _assessment['assignments'].indexOf(assessmentSubject);
-        const _assessmentTitle = assessmentSubject['assessments'].find(item => item['title'] === _title);
-        if (_assessmentTitle) {
-          const _assessmentTitleIndex = assessmentSubject['assessments'].indexOf(_assessmentTitle);
-          updateType === 'title' ? assessmentsArray[_assessmentIndex]['assignments'][assessmentSubjectIndex]['assessments'][_assessmentTitleIndex]['title'] = newValue : null
-          updateType === 'description' ? assessmentsArray[_assessmentIndex]['assignments'][assessmentSubjectIndex]['assessments'][_assessmentTitleIndex]['description'] = newValue : null
-          updateType === 'totalScore' ? assessmentsArray[_assessmentIndex]['assignments'][assessmentSubjectIndex]['assessments'][_assessmentTitleIndex]['total_score'] = newValue : null
-          updateType === 'percentage' ? assessmentsArray[_assessmentIndex]['assignments'][assessmentSubjectIndex]['assessments'][_assessmentTitleIndex]['percentage'] = newValue : null
-          updateType === 'date' ? assessmentsArray[_assessmentIndex]['assignments'][assessmentSubjectIndex]['assessments'][_assessmentTitleIndex]['date'] = newValue : null
+const deleteAssessment = async()=>{
+  elementsStore.ShowLoadingOverlay()
+  const formData = new FormData()
+  formData.append('studentsClassName', className);
+  formData.append('subject', subjectName);
+  formData.append('year', userAuthStore.activeAcademicYear);
+  formData.append('term', userAuthStore.activeTerm.toString());
+  formData.append('type', 'deleteAssessment');
+  formData.append('title', assessment['title']);
+
+  try{
+    const reponse = await axiosInstance.post('teacher/assessments', formData)
+    userAuthStore.teacherData.studentsAssessments[classIndex]['assignments'][subjectIndex]['assessments'].splice(assessmentIndex, 1)
+    elementsStore.activePage = `TeacherCoursework,${className},${classIndex}`
+    elementsStore.HideLoadingOverlay()
+  }
+  catch (error){
+    elementsStore.HideLoadingOverlay()
+    if (error instanceof AxiosError){
+      if(error.response){
+        if (error.response.status === 400 && error.response.data.message){
+          elementsStore.ShowOverlay(error.response.data.message, 'red', null, null)
+        }else{
+          elementsStore.ShowOverlay('Oops! something went wrong. Try again later', 'red', null, null)
         }
       }
+      else if (!error.response && (error.code === 'ECONNABORTED' || !navigator.onLine)){
+        elementsStore.ShowOverlay('A network error occurred! Please check you internet connection', 'red', null, null)
+      }
+      else{
+        elementsStore.ShowOverlay('An unexpected error occurred!', 'red', null, null)
+      }
     }
-  };
-  updateAssessment(userAuthStore.teacherData.studentsWithAssessments);
-  updateType === 'title' ? updateAssessment(userAuthStore.teacherData.studentsWithoutAssessments) : null
-};
+  }
+}
+const isUploadFormValid = computed(()=>{
+  if (uploadTypeSelected.value === 'file'){
+    return !(fileToUpload.value)
+  }else if (uploadTypeSelected.value === 'noFile'){
+    return !(studentScore.value && selectedStudents.value.length >0)
+  }else{
+    return true;
+  }
+})
 
-
-const isFormValid = computed(()=>{
+const isEditFormValid = computed(()=>{
   if (editType.value === 'score') {
     return !(newScore.value)
   }else if (editType.value === 'title'){
     return !(newTitle.value)
   }else if (editType.value === 'totalScore'){
     return !(newTotalScore.value)
-  }else if (editType.value === 'percentage'){
-    return !(newPercentage.value)
   }else if (editType.value === 'date'){
     return !(newDate.value)
   }else if (editType.value === 'comment'){
@@ -260,43 +406,42 @@ const isFormValid = computed(()=>{
   }
 })
 
-const closeOverlay = ()=>{
+const closeOverlay = (element:string)=>{
   newScore.value = null
   newComment.value = ''
   previousScore.value = null
   previousComment.value = ''
   formErrorMessage.value = ''
-  previousTitle.value = ''
-  previousDescription.value = ''
-  previousPercentage.value = ''
-  previousTotalScore.value = ''
-  previousDate.value = ''
   newTitle.value = ''
   newDescription.value = ''
-  newPercentage.value = ''
   newTotalScore.value = ''
   newDate.value = ''
   editType.value = ''
   studentId.value = ''
   studentName.value = ''
-  const overlay = document.getElementById('TeacherStudentsAssessmentEdit')
+  selectedStudents.value = []
+  comment.value = ''
+  uploadTypeSelected.value = null
+  studentScore.value = null
+  fileToUpload.value = null
+  const overlay = document.getElementById(element)
   overlay ? overlay.style.display = 'none' : null
 }
 
-const showForm = (type:string, prevValue:any, stName: string='', stId: string='',  )=>{
+const showOverlay = (element:string)=>{
+  const overlay = document.getElementById(element)
+  overlay ? overlay.style.display = 'flex' : null
+}
+
+const showForm = (type:string, prevValue:any=null, stName: string='', stId: string='',  stIndex:any=null)=>{
   editType.value = type
   if (type === 'score' || type === 'comment'){
     studentId.value = stId
     studentName.value = stName
+    studentIndex.value = stIndex
     type === 'score' ? previousScore.value = prevValue : previousComment.value = prevValue
-  }else{
-    type === 'title' ? previousTitle.value = prevValue : null
-    type === 'description' ? previousDescription.value = prevValue : null
-    type === 'totalScore' ? previousTotalScore.value = prevValue : null
-    type === 'percentage' ? previousPercentage.value = prevValue : null
-    type === 'date' ? previousDate.value = prevValue : null
   }
-  const formOverlay = document.getElementById('TeacherStudentsAssessmentEdit')
+  const formOverlay = document.getElementById(`TeacherStudentsAssessmentEdit${className}${subjectName}${assessment['title']}${assessmentIndex}`)
   formOverlay ? formOverlay.style.display = 'flex' : null
 }
 
@@ -304,82 +449,135 @@ const showForm = (type:string, prevValue:any, stName: string='', stId: string=''
 </script>
 
 <template>
-  <div class="content-wrapper" >
-    <div id="TeacherStudentsAssessmentEdit" class="overlay" v-if="userAuthStore.teacherData.currentAssessments && userAuthStore.teacherData.currentAssessments['students'].length > 0">
-        <form style="position: relative" class="overlay-form">
-            <v-btn @click.prevent="closeOverlay" class="close-btn" size="small" variant="flat" color="red">X</v-btn>
-            <h2 v-if="formErrorMessage" class="form-message" style="color: red">{{formErrorMessage}}</h2>
-            <h2 class="info" v-if="editType === 'score' || editType === 'comment' "><strong>STUDENT:</strong> {{studentName}} [{{studentId}}]</h2>
-            <h2 class="info" v-if="editType === 'title'"><strong>PREVIOUS TITLE:</strong> {{previousTitle}}</h2>
-            <h2 class="info" v-if="editType === 'description'"><strong>PREVIOUS DESCRIPTION:</strong> {{previousDescription}}</h2>
-            <h2 class="info" v-if="editType === 'totalScore'"><strong>PREVIOUS TOTAL SCORE:</strong> {{previousTotalScore}}</h2>
-            <h2 class="info" v-if="editType === 'percentage'"><strong>PREVIOUS PERCENTAGE:</strong> {{previousPercentage}}</h2>
-            <h2 class="info" v-if="editType === 'date'"><strong>PREVIOUS DATE:</strong> {{previousDate}}</h2>
-            <h2 class="info" v-if="editType === 'score'"><strong>PREVIOUS SCORE:</strong> {{previousScore}}</h2>
-            <h2 class="info" v-if="editType === 'comment'"><strong>PREVIOUS COMMENT:</strong> {{previousComment}}</h2>
-            
-            <v-text-field v-if="editType === 'score'" v-model="newScore" type="number" class="input-field" persistent-hint hint="Enter the student's new score" label="NEW SCORE" variant="outlined"/>
-            <v-text-field v-if="editType === 'percentage'" v-model="newPercentage" type="number" class="input-field" persistent-hint hint="Enter a new percentage value" label="NEW PERCENTAGE" variant="outlined"/>
-            <v-text-field v-if="editType === 'totalScore'" v-model="newTotalScore" type="number" class="input-field" persistent-hint hint="Enter a new total score" label="NEW TOTAL SCORE" variant="outlined"/>
+  <div class="content-wrapper" v-show="elementsStore.activePage === `TeacherStudentsAssessments,${className},${subjectName},${assessment['title']},${assessmentIndex}`" :class="{'is-active-page': elementsStore.activePage === `TeacherStudentsAssessments,${className},${subjectName},${assessment['title']},${assessmentIndex}`}" >
+    
+    <!-- upload overlay -->
+    <div :id="`teacherStudentsAssessmentUpload${className}${subjectName}${assessment['title']}${assessmentIndex}`" class="overlay upload-overlay">
+      <div class="overlay-card no-students" v-if="assessment['students_without_assessment'].length === 0">
+        <h2 class="info-text-value mt-15 ml-1 mr-1">You have already uploaded all the students assessment for the assessment titled [ {{ assessment['title'] }} ] under {{ subjectName }}</h2>
+        <div class="overlay-card-action-btn-container mb-5 mt-5">
+          <v-btn @click.prevent="closeOverlay(`teacherStudentsAssessmentUpload${className}${subjectName}${assessment['title']}${assessmentIndex}`)" variant="flat" color="black" append-icon="mdi-checkbox-marked-circle">OK</v-btn>
+        </div>
+      </div>
+      <form class="overlay-card upload-card" v-if="assessment['students_without_assessment'].length > 0">
+        <v-btn @click.prevent="closeOverlay(`teacherStudentsAssessmentUpload${className}${subjectName}${assessment['title']}${assessmentIndex}`)" color="red" variant="flat" size="small" class="close-btn flex-all">X</v-btn>
+        <h2 v-if="formErrorMessage" class="form-message" style="color: red">{{formErrorMessage}}</h2>
+        <div class="overlay-card-info-container">
+          <h2 class="info-text">ASSESSMENT: <span class="info-text-value"> {{assessment['title']}}</span></h2>
+          <h2 class="info-text">TOTAL SCORE: <span class="info-text-value"> {{assessment['total_score']}}</span></h2>
+        </div>
+        <div class="overlay-card-content-container">
+          <v-select v-model="uploadTypeSelected" class="select" label="DATA" variant="solo-filled"
+          :items="uploadOptions" item-title="option" item-value="value" density="comfortable" persistent-hint hint="Select whether you want to input the data here or use an excel file">
+          </v-select>
 
-            <v-text-field v-if="editType === 'comment'" v-model="newComment" class="input-field" persistent-hint hint="Enter a new comment(Max characters, 200)" label="NEW COMMENT" variant="outlined"/>
-            <v-text-field v-if="editType === 'title'" v-model="newTitle" class="input-field" persistent-hint hint="Enter a new title(Max characters, 100)" label="NEW TITLE" variant="outlined"/>
-            <v-text-field v-if="editType === 'description'" v-model="newDescription" class="input-field" persistent-hint hint="Enter a new description(Max characters, 150)" label="NEW DESCRIPTION" variant="outlined"/>
-            <v-text-field v-if="editType === 'date'" v-model="newDate" class="input-field" type="date" persistent-hint hint="Select a new date" label="NEW DATE" variant="outlined"/>
-            <v-btn :disabled="isFormValid" @click.prevent="editAssessment" type="submit" color="black" class="mt-10 mb-5" size="small" variant="flat" append-icon="mdi-checkbox-marked-circle">SUBMIT</v-btn>
+          <!-- no file -->
+          <v-select v-show="uploadTypeSelected ==='noFile'" multiple clearable v-model="selectedStudents" chips class="select" label="STUDENT(S)" variant="solo-filled"
+          :items="assessment['students_without_assessment']" item-title="name" item-value="st_id" density="comfortable" persistent-hint hint="Select the student(s) you want to upload assessment for">
+              <template v-slot:item="{ props, item }">
+                  <v-list-item v-bind="props" :subtitle="item.raw.st_id"></v-list-item>
+              </template>
+          </v-select>
+          <v-text-field v-show="uploadTypeSelected ==='noFile'" type="number" v-model.number="studentScore" class="input-field" variant="solo-filled" density="comfortable" persistent-hint hint="Enter the student(s) score" label="STUDENT(S) SCORE"/>
+          <v-text-field v-show="uploadTypeSelected ==='noFile'" v-model="comment" class="input-field" density="comfortable" variant="solo-filled" persistent-hint hint="Comment on the student(s) score if any" label="COMMENT"/>
+          
+          <!-- file -->
+          <div class="flex-all-c mt-5" v-show="uploadTypeSelected ==='file' ">
+            <v-btn @click.prevent="generateFile()" color="blue" variant="flat" class="submit-btn" size="small">GET FILE</v-btn>
+            <p class="info-text">Click to get an excel file that contains the students data</p>
+          </div>
+          <hr class="mb-5 mt-5" v-show="uploadTypeSelected ==='file'">
+          <v-file-input v-show="uploadTypeSelected ==='file'" @change="fileChange" class="select mt" label="Choose an excel file" clearable density="comfortable" variant="solo-filled"
+          accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
+          </v-file-input>
+        </div>
+        <div class="overlay-card-action-btn-container">
+          <v-btn @click.prevent="upload" :disabled="isUploadFormValid" :ripple="false" variant="flat" type="submit" color="black" size="small" append-icon="mdi-checkbox-marked-circle">SUBMIT</v-btn>
+        </div>
+      </form>
+    </div>
+    <!-- edit assessment overlay -->
+    <div :id="`TeacherStudentsAssessmentEdit${className}${subjectName}${assessment['title']}${assessmentIndex}`" class="overlay edit-overlay" v-if="userAuthStore.teacherData.studentsAssessments?.[classIndex]?.assignments?.[subjectIndex]?.assessments?.[assessmentIndex]">
+        <form style="position: relative" class="overlay-card">
+          <v-btn @click.prevent="closeOverlay(`TeacherStudentsAssessmentEdit${className}${subjectName}${assessment['title']}${assessmentIndex}`)" class="close-btn" size="small" variant="flat" color="red">X</v-btn>
+          <h2 v-if="formErrorMessage" class="form-message mt-10" style="color: red">{{formErrorMessage}}</h2>
+          <div class="overlay-card-info-container">
+            <h2 class="info-text" v-if="editType === 'score' || editType === 'comment' ">STUDENT: <span class="info-text-value"> {{studentName}} [{{studentId}}]</span></h2>
+            <h2 class="info-text" v-if="editType === 'title'">PREVIOUS TITLE: <span class="info-text-value"> {{assessment['title']}}</span></h2>
+            <h2 class="info-text" v-if="editType === 'description'">PREVIOUS DESCRIPTION: <span class="info-text-value"> {{assessment['description']}}</span></h2>
+            <h2 class="info-text" v-if="editType === 'totalScore'">PREVIOUS TOTAL SCORE: <span class="info-text-value"> {{Number(assessment['total_score'])}}</span></h2>
+            <h2 class="info-text" v-if="editType === 'percentage'">PREVIOUS PERCENTAGE:<span class="info-text-value"> {{Number(assessment['percentage'])}}%</span></h2>
+            <h2 class="info-text" v-if="editType === 'date'">PREVIOUS DATE: <span class="info-text-value"> {{assessment['assessment_date']}}</span></h2>
+            <h2 class="info-text" v-if="editType === 'score'">PREVIOUS SCORE: <span class="info-text-value"> {{previousScore}}</span></h2>
+            <h2 class="info-text" v-if="editType === 'comment'">PREVIOUS COMMENT: <span class="info-text-value"> {{previousComment}}</span></h2>
+          </div>
+          <div class="overlay-card-content-container">
+            <v-text-field v-if="editType === 'score'" v-model.number="newScore" type="number" class="input-field" persistent-hint hint="Enter the student's new score" label="NEW SCORE" variant="solo-filled"/>
+            <v-text-field v-if="editType === 'totalScore'" v-model.number="newTotalScore" type="number" class="input-field" persistent-hint hint="Enter a new total score" label="NEW TOTAL SCORE" variant="solo-filled"/>
+            <v-text-field v-if="editType === 'comment'" v-model="newComment" class="input-field" persistent-hint hint="Enter a new comment(Max characters, 100)" label="NEW COMMENT" variant="solo-filled"/>
+            <v-text-field v-if="editType === 'title'" v-model="newTitle" class="input-field" persistent-hint hint="Enter a new title(Max characters, 50)" label="NEW TITLE" variant="solo-filled"/>
+            <v-text-field v-if="editType === 'description'" v-model="newDescription" class="input-field" persistent-hint hint="Enter a new description(Max characters, 100)" label="NEW DESCRIPTION" variant="solo-filled"/>
+            <v-text-field v-if="editType === 'date'" v-model="newDate" class="input-field" type="date" persistent-hint hint="Select a new date" label="NEW DATE" variant="solo-filled"/>
+          </div>
+          <div class="overlay-card-action-btn-container">
+            <v-btn :disabled="isEditFormValid" @click.prevent="editAssessment" type="submit" color="black" class="mt-10" size="small" variant="flat" append-icon="mdi-checkbox-marked-circle">SUBMIT</v-btn>
+          </div>
         </form>
     </div>
       
-    <TheLoader v-if="!userAuthStore.teacherData.studentsWithAssessments" />
-    <h4 class="no-data" v-if="!userAuthStore.teacherData.currentAssessments || userAuthStore.teacherData.currentAssessments && userAuthStore.teacherData.currentAssessments['students'].length === 0">
+    <div class="content-header" v-if="userAuthStore.teacherData.studentsAssessments?.[classIndex]?.assignments?.[subjectIndex]?.assessments?.[assessmentIndex]" >
+      <div class="content-header-text">
+        TITLE: <span class="content-header-text-value">{{ assessment['title'] }}</span>
+        <v-icon class="ml-1" @click="showForm('title')" color="blue" icon="mdi-pencil" />
+      </div>
+      <div class="content-header-text">
+        DESCRIPTION: <span class="content-header-text-value">{{ assessment['description'] }}</span>
+        <v-icon class="ml-1" @click="showForm('description')" color="blue" icon="mdi-pencil" />
+      </div>
+      <div class="content-header-text">
+        TOTAL SCORE: <span class="content-header-text-value">{{ assessment['total_score'] }}</span>
+        <v-icon class="ml-1" @click="showForm('totalScore')" color="blue" icon="mdi-pencil" />
+      </div>
+      <div class="content-header-text" v-if="assessment['percentage'] !== 0">
+        PERCENTAGE: <span class="content-header-text-value">{{ assessment['percentage'] }}%</span>
+        <v-icon class="ml-1" @click="showForm('percentage')" color="blue" icon="mdi-pencil" />
+      </div>
+      <div class="content-header-text">
+        DATE: <span class="content-header-text-value">{{ assessment['assessment_date'] }}</span>
+        <v-icon class="ml-1" @click="showForm('date')" color="blue" icon="mdi-pencil" />
+      </div>
+    </div>
+    <div class="content-header btn-container">
+      <v-btn @click="showOverlay(`teacherStudentsAssessmentUpload${className}${subjectName}${assessment['title']}${assessmentIndex}`)" :size="elementsStore.btnSize1" color="blue" varaint="flat" >
+        ADD STUDENT(S) ASSESSMENT
+      </v-btn>
+      <v-btn class="ml-5" @click="elementsStore.ShowDeletionOverlay(()=>deleteAssessment(), `Are you sure you want to delete the assessment [${assessment['title']} ] and all it's data you have uploaded? You will be redirected to the ${className} class when the process is complete`)" :size="elementsStore.btnSize1" append-icon="mdi-delete" color="red" varaint="flat" >
+        DELETE
+      </v-btn>
+    </div>
+    <h4 class="no-data" v-if="userAuthStore.teacherData.studentsAssessments?.[classIndex]?.assignments?.[subjectIndex]?.assessments?.[assessmentIndex]?.students_with_assessment?.length === 0">
       <p>NO DATA</p>
     </h4>
-    <div class="info-wrapper" v-if="userAuthStore.teacherData.currentAssessments && userAuthStore.teacherData.currentAssessments['students'].length > 0">
-      <h3>
-        TITLE: <strong>{{ userAuthStore.teacherData.currentAssessments['title'] }}</strong>
-        <v-icon class="ml-1" @click="showForm('title', userAuthStore.teacherData.currentAssessments['title'])" icon="mdi-pencil" />
-      </h3>
-      <h3>
-        DESCRIPTION: <strong>{{ userAuthStore.teacherData.currentAssessments['description'] }}</strong>
-        <v-icon class="ml-1" @click="showForm('description', userAuthStore.teacherData.currentAssessments['description'])" icon="mdi-pencil" />
-      </h3>
-      <h3>
-        TOTAL SCORE: <strong>{{ userAuthStore.teacherData.currentAssessments['total_score'] }}</strong>
-        <v-icon class="ml-1" @click="showForm('totalScore', userAuthStore.teacherData.currentAssessments['total_score'])" icon="mdi-pencil" />
-      </h3>
-      <h3>
-        PERCENTAGE: <strong>{{ userAuthStore.teacherData.currentAssessments['percentage'] }}%</strong>
-        <v-icon class="ml-1" @click="showForm('percentage', userAuthStore.teacherData.currentAssessments['percentage'])" icon="mdi-pencil" />
-      </h3>
-      <h3>
-        DATE: <strong>{{ userAuthStore.teacherData.currentAssessments['date'] }}</strong>
-        <v-icon class="ml-1" @click="showForm('date', userAuthStore.teacherData.currentAssessments['date'])" icon="mdi-pencil" />
-      </h3>
-    </div>
-    <v-table fixed-header class="table" v-if="userAuthStore.teacherData.currentAssessments && userAuthStore.teacherData.currentAssessments['students'].length > 0">
+    <v-table fixed-header class="table" v-if="userAuthStore.teacherData.studentsAssessments?.[classIndex]?.assignments?.[subjectIndex]?.assessments?.[assessmentIndex]?.students_with_assessment?.length > 0">
       <thead>
       <tr>
         <th class="table-head">NAME</th>
         <th class="table-head">SCORE</th>
         <th class="table-head">COMMENT</th>
-        <th class="table-head">ACTION</th>
       </tr>
       </thead>
       <tbody>
-        <tr v-for="(st, index) in userAuthStore.teacherData.currentAssessments['students']" :key="index">
+        <tr v-for="(st, index) in userAuthStore.teacherData.studentsAssessments?.[classIndex]?.assignments?.[subjectIndex]?.assessments?.[assessmentIndex]?.students_with_assessment" :key="index">
           <td class="table-data">
             {{ st['name'] }}
             <v-list-item-subtitle>{{ st['st_id'] }}</v-list-item-subtitle>
           </td>
           <td class="table-data">
-            <v-btn @click="showForm('score', st['score'], st['name'], st['st_id'])" size="small" color="black" variant="flat" >{{ st['score'] }}</v-btn>
+            <v-btn @click="showForm('score', st['score'], st['name'], st['st_id'], index)" size="small" color="black" variant="flat" >{{ st['score'] }}</v-btn>
           </td>
-          <td class="table-data">
+          <td class="table-data st-comment" style="text-transform: none" >
             {{ st['comment'] }}
-            <v-btn @click="showForm('comment', st['comment'], st['name'], st['st_id'])" size="x-small" variant="flat" icon="mdi-pencil"></v-btn>
-          </td>
-          <td class="table-data">
-            <v-btn @click="deleteAssessment(st['st_id'])" size="x-small" variant="flat" icon="mdi-delete" color="red"></v-btn>
+            <v-btn @click="showForm('comment', st['comment'], st['name'], st['st_id'], index)" size="x-small" variant="flat" icon="mdi-pencil"></v-btn>
           </td>
         </tr>
       </tbody>
@@ -389,92 +587,84 @@ const showForm = (type:string, prevValue:any, stName: string='', stId: string=''
 
 <style scoped>
 
-.info-wrapper{
-  height: 30% !important;
+.content-header{
+  min-height: 25% !important;
+}
+.btn-container{
+  min-height: 10% !important;
 }
 .table{
-  height: 70% !important;
-  overflow-x: auto !important;
+  height: 65% !important;
 }
-.score{
-  background-color: green;
-  padding: .5em;
-  border-radius: .5em;
-  color: white;
+.upload-overlay .no-students{
+  height: fit-content !important;
 }
-.overlay{
-  position: absolute;
-  background: rgba(0, 0, 0, .5);
-  top: 0;
-  left: 0;
-  height: 100%;
-  width: 100%;
-  display: flex;
-  z-index: 3;
-  align-items: center;
-  justify-content: center;
-  display: none;
+.upload-overlay .upload-card{
+  max-width: 600px !important;
+  height: 90% !important;
+  max-height: 600px !important;
 }
-.overlay-form{
-  background-color: white;
-  padding: .5em 1em;
-  border-radius: .3em;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 95%;
-  max-width: 500px;
+.upload-overlay .overlay-card-info-container{
+  height: 15% !important;
 }
-h3{
-  font-size: .8em !important;
+.upload-overlay .overlay-card-content-container{
+  height: 60% !important;
 }
-h3 strong{
-  font-size: .8rem;
-  font-weight: normal;
-  color: yellow;
+.upload-overlay .overlay-card-action-btn-container{
+  height: 15% !important;
 }
-.info{
-  font-size: .8rem;
-  text-align: center;
-  margin-top: 2.5em;
-  color: seagreen;
-  font-family: Verdana, Geneva, Tahoma, sans-serif;
+.edit-overlay .overlay-card{
+  height: 90% !important;
+  max-width: 600px !important;
+  max-height: 450px !important;
 }
-.info strong{
-  font-size: .8rem;
-  color: black;
+.edit-overlay .overlay-card-info-container{
+  height: 25% !important;
 }
-.input-field{
-  margin-top: 1em;
-  min-width: 300px;
+.edit-overlay .overlay-card-content-container{
+  height: 30% !important;
 }
-.submit-btn{
-  font-weight: bold;
-  margin-top: 1em;
-  margin-bottom: 1em;
+.edit-overlay .overlay-card-action-btn-container{
+  height: 20% !important;
+}
+.info-text, .info-text-value{
+  font-size: .75rem !important;
 }
 
+@media screen and (min-width: 400px) {
+  .overlay-card{
+    width: 95% !important;
+  }
+  .info-text, .info-text-value{
+    font-size: .8rem !important;
+  }
+}
 @media screen and (min-width: 576px) {
-  h3, h3 strong{
+  .content-header-text{
+    font-size: .75rem !important;
+  }
+  .info-text, .info-text-value{
     font-size: .85rem !important;
   }
 }
 @media screen and (min-width: 767px) {
-  h3, h3 strong{
+  .content-header-text{
+    font-size: .8rem !important;
+  }
+  .info-text, .info-text-value{
     font-size: .9rem !important;
   }
 }
 @media screen and (min-width: 992px) {
-  h3, h3 strong{
-    font-size: .95rem !important;
-  }
+  
 }
 @media screen and (min-width: 1200px) {
-  h3, h3 strong{
+  .content-header-text{
+    font-size: .9rem !important;
+  }
+  .info-text, .info-text-value{
     font-size: 1rem !important;
   }
 }
-
-
 
 </style>

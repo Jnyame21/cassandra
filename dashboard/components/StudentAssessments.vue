@@ -14,7 +14,7 @@ const elementsStore = useElementsStore()
   <h4 class="no-data" v-if="userAuthStore.studentData.currentAssessments?.length === 0">
     <p>No assessment record has been uploaded yet for the {{ elementsStore.activePage.split(',')[1] }} academic year {{ elementsStore.activePage.split(',')[2] }} {{ elementsStore.activePage.split(',')[3] }}</p>
   </h4>
-  <div v-if="userAuthStore.studentData.currentAssessments?.length > 0" class="info-wrapper">
+  <div v-if="userAuthStore.studentData.currentAssessments?.length > 0" class="content-header">
     {{ elementsStore.activePage.split(',')[1] }} {{ elementsStore.activePage.split(',')[2] }} {{ elementsStore.activePage.split(',')[3] }} ASSESSMENTS
   </div>
   <v-table v-if="userAuthStore.studentData.currentAssessments?.length > 0" fixed-header class="table">

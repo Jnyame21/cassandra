@@ -23,7 +23,9 @@ admin.site.register(UGProgram)
 admin.site.register(UCCProgram)
 admin.site.register(University)
 admin.site.register(EducationalLevel)
-admin.site.register(AcademicYearDivision)
+admin.site.register(StudentResult)
 admin.site.register(GradingSystem)
+admin.site.register(LinkedClasse)
+admin.site.register(GraduatedClasse)
 
 

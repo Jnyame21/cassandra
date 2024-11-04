@@ -28,7 +28,8 @@ urlpatterns = [
     path('teacher/data', get_teacher_data),
     path('teacher/assessments', teacher_assessments),
     path('teacher/exams', teacher_exams),
-    path('hod/data', get_hod_data),
+    path('teacher/students-result', teacher_students_results),
+    path('hod/data', hod_data),
     path('hod/students_performance', hod_students_performance),
     path('teacher/students/attendance', teacher_students_attendance),
 
@@ -37,9 +38,11 @@ urlpatterns = [
     path('head/students_performance', head_students_performance),
 
     # Admin
-    path('sch-admin/data', get_sch_admin_data),
+    path('school-admin/data', school_admin_data),
+    path('school-admin/academic_years', school_admin_academic_years),
+    path('school-admin/linked-class', school_admin_linked_class),
     path('sch-admin/students', admin_students),
-    path('sch-admin/staff', admin_staff),
+    path('school-admin/staff', admin_staff),
     path('sch-admin/head', admin_head),
     
     path('query', query),

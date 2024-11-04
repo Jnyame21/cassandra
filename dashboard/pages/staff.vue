@@ -28,48 +28,37 @@ onBeforeUnmount(()=>{
 })
 
 onBeforeMount(()=>{
-  if (userAuthStore.isAuthenticated && userAuthStore.userData){
-    document.title = "Cassandra"
-  }
   document.body.style.overflow = 'hidden'
+  document.title = "Cassandra"
+  elementsStore.activePage = "TeacherCoursework,Class,0"
   rozmachAuth.value = localStorage.getItem('RozmachAuth')
   if (rozmachAuth.value){
     rozmachAuth.value = JSON.parse(rozmachAuth.value)
   }
-  elementsStore.activePage = 'TeacherStudentsAttendance'
 })
 
-watch(()=> elementsStore.activePage, (newValue, oldValue)=>{
-  if (newValue.split(',')[0] === 'TeacherCourseWork' && userAuthStore.teacherData.courseWork?.length > 0){
-    userAuthStore.teacherData.currentCourseWork = userAuthStore.teacherData.courseWork[Number(newValue.split(',')[1])]
-  }
-  else if (newValue.split(',')[0] === 'TeacherStudentsAssessments' && userAuthStore.teacherData.studentsWithAssessments){
-    const className = newValue.split(',')[1]
-    const subjectName = newValue.split(',')[2]
-    const assessmentTitle = newValue.split(',')[3]
-    const assessment = userAuthStore.teacherData.studentsWithAssessments.find(item => item['class_name'] === className)
-    if (assessment){
-      const assessmentIndex = userAuthStore.teacherData.studentsWithAssessments.indexOf(assessment)
-      const assessmentSubject = userAuthStore.teacherData.studentsWithAssessments[assessmentIndex]['assignments'].find(item => item['subject'] === subjectName)
-      if (assessmentSubject){
-        const assessmentSubjectIndex = userAuthStore.teacherData.studentsWithAssessments[assessmentIndex]['assignments'].indexOf(assessmentSubject)
-        const currentAssessment = userAuthStore.teacherData.studentsWithAssessments[assessmentIndex]['assignments'][assessmentSubjectIndex]['assessments'].find(item => item['title'] === assessmentTitle)
-        currentAssessment ? userAuthStore.teacherData.currentAssessments = currentAssessment : null
-      }
-    }
-  }
-  else if (newValue.split(',')[0] === 'TeacherStudentsExams' && userAuthStore.teacherData.studentsWithExams){
-    const className = newValue.split(',')[1]
-    const subjectName = newValue.split(',')[2]
-    const exams = userAuthStore.teacherData.studentsWithExams.find(item => item['class_name'] === className)
-    if (exams){
-      const examIndex = userAuthStore.teacherData.studentsWithExams.indexOf(exams)
-      const examSubject = userAuthStore.teacherData.studentsWithExams[examIndex]['exams'].find(item => item['subject'] === subjectName)
-      
-      examSubject ? userAuthStore.teacherData.currentExams = examSubject : null
-    }
+if (window.innerWidth >=576 && window.innerWidth < 1200){
+  elementsStore.btnSize1 = 'small'
+}else if (window.innerWidth > 1200){
+  elementsStore.btnSize1 = 'default'
+}
+window.addEventListener('resize', ()=>{
+  if (window.innerWidth < 576){
+    elementsStore.btnSize1 = 'x-small'
+    elementsStore.navDrawer = false
+  }else if (window.innerWidth <=1200 && window.innerWidth >= 576){
+    elementsStore.btnSize1 = 'small'
+    elementsStore.navDrawer = false
+  }else if (window.innerWidth > 1300){
+    elementsStore.btnSize1 = 'default'
   }
 })
+
+watch(()=> userAuthStore.teacherData.courseWork, (newValue, oldValue)=>{
+  if (newValue && newValue.length > 0){
+    elementsStore.activePage = `TeacherCoursework,${newValue[0]['students_class']['name']},${0}`
+  }
+}, {'once': true})
 
 const updateStaffData = async()=>{
   loading.value = true
@@ -205,186 +194,66 @@ window.addEventListener('resize', (event)=>{
     <StaffNavContainerMob v-if="!onDesk"/>
     <StaffNavContainerDesk v-if="onDesk"/>
     <div class="pages-container">
-      <TeacherCourseWork v-show="elementsStore.activePage.split(',')[0] ==='TeacherCourseWork' "/>
-      <TeacherStudentsAttendance v-show="elementsStore.activePage ==='TeacherStudentsAttendance' "/>
-      <TeacherStudentsAssessments v-show="elementsStore.activePage.split(',')[0] ==='TeacherStudentsAssessments' "/>
-      <TeacherStudentsExams v-show="elementsStore.activePage.split(',')[0] ==='TeacherStudentsExams' "/>
-      <HelpForm v-show="elementsStore.activePage ==='Help' "/>
-      <!-- <div class="page-nav-container">
-        <button class="nav-btn" @click="changePage('page1')" :class="{'nav-btn-active': activePage==='page1'}"
-        v-if="userAuthStore.userData && userAuthStore.userData['role'] && userAuthStore.userData['role'] === 'head'">
-        <v-icon icon="mdi-eye"/>
-          OVERVIEW
-        </button>
-        
-        <button class="nav-btn" @click="changePage('page2')" :class="{'nav-btn-active': activePage==='page2'}"
-        v-if="userAuthStore.userData && userAuthStore.userData['role'] && userAuthStore.userData['role'] === 'head'"
-        ><v-icon icon="mdi-account"/>
-          DEPARTMENTS
-        </button>
-
-        <button class="nav-btn" @click="changePage('page3')" :class="{'nav-btn-active': activePage==='page3'}"
-        v-if="userAuthStore.userData && userAuthStore.userData['role'] && userAuthStore.userData['role'] === 'head'"
-        ><v-icon icon="mdi-account-group-outline"/>
-          STUDENTS
-        </button>
-
-        <button class="nav-btn" @click="changePage('page4')" :class="{'nav-btn-active': activePage==='page4'}"
-        v-if="userAuthStore.userData && userAuthStore.userData['role'] && userAuthStore.userData['role'] === 'head'"
-        ><v-icon icon="mdi-chart-bar"/>
-          ANALYTICS
-        </button>
-
-        <button class="nav-btn" @click="changePage('page5')" :class="{'nav-btn-active': activePage==='page5'}"
-        v-if="userAuthStore.userData && userAuthStore.userData['role'] && userAuthStore.userData['role'] === 'head'"
-        ><v-icon icon="mdi-alert-octagon-outline"/>
-          HELP
-        </button>
-
-
-        <button class="nav-btn" @click="changePage('page1')" :class="{'nav-btn-active': activePage==='page1'}"
-        v-if="userAuthStore.userData && userAuthStore.userData['staff_role']=== 'teacher' || userAuthStore.userData && userAuthStore.userData['staff_role']=== 'hod'"
-        ><v-icon icon="mdi-book-open-outline"/>
-          COURSEWORK
-        </button>
-
-        <button class="nav-btn" @click="changePage('page2')" :class="{'nav-btn-active': activePage==='page2'}"
-        v-if="userAuthStore.userData && userAuthStore.userData['staff_role']=== 'teacher' || userAuthStore.userData && userAuthStore.userData['staff_role']=== 'hod' "
-        ><v-icon icon="mdi-account-group-outline"/>
-          STUDENTS
-        </button>
-
-        <button class="nav-btn" @click="changePage('page3')" :class="{'nav-btn-active': activePage==='page3'}"
-        v-if="userAuthStore.userData && userAuthStore.userData['staff_role']=== 'teacher' || userAuthStore.userData && userAuthStore.userData['staff_role']=== 'hod' "
-        ><v-icon icon="mdi-chart-bar"/>
-          ANALYTICS
-        </button>
-
-        <button class="nav-btn" @click="changePage('page4')" :class="{'nav-btn-active': activePage==='page4'}"
-        v-if="userAuthStore.userData && userAuthStore.userData['staff_role']=== 'hod'"
-        ><v-icon icon="mdi-account-multiple"/>
-          TEACHERS
-        </button>
-        
-        <button class="nav-btn" @click="changePage('page5')" :class="{'nav-btn-active': activePage==='page5'}"
-        v-if="userAuthStore.userData && userAuthStore.userData['staff_role']=== 'hod' "
-        ><v-icon icon="mdi-chart-line"/>
-          PERFORMANCE
-        </button>
-
-
-        <button class="nav-btn" @click="changePage('page1')" :class="{'nav-btn-active': activePage==='page1'}"
-        v-if="userAuthStore.userData && userAuthStore.userData['staff_role']=== 'admin'"
-        ><v-icon icon="mdi-calendar"/>
-          CALENDAR
-        </button>
-
-        <button class="nav-btn" @click="changePage('page2')" :class="{'nav-btn-active': activePage==='page2'}"
-        v-if="userAuthStore.userData && userAuthStore.userData['staff_role']=== 'admin'"
-        ><v-icon icon="mdi-account-group-outline"/>
-          STUDENTS
-        </button>
-
-        <button class="nav-btn" @click="changePage('page3')" :class="{'nav-btn-active': activePage==='page3'}"
-        v-if="userAuthStore.userData && userAuthStore.userData['staff_role']=== 'admin' "
-        ><v-icon icon="mdi-account-multiple"/>
-          TEACHERS
-        </button>
-
-        <button class="nav-btn" @click="changePage('page4')" :class="{'nav-btn-active': activePage==='page4'}"
-        v-if="userAuthStore.userData && userAuthStore.userData['staff_role']=== 'admin' "
-        ><v-icon icon="mdi-account"/>
-          HEAD
-        </button>
-
-
-        <button class="nav-btn" @click="changePage('page6')" :class="{'nav-btn-active': activePage==='page6'}"
-        v-if="userAuthStore.userData && userAuthStore.userData['role']=== 'staff' "
-        ><v-icon icon="mdi-alert-octagon-outline"/>
-          HELP
-        </button>
+      <div class="component-wrapper" v-if="!userAuthStore.teacherData.courseWork || userAuthStore.teacherData.courseWork?.length ===0 ">
+        <TeacherCourseWork :class="{'is-active-component': elementsStore.activePage.split(',')[0] === 'TeacherCoursework'}" />
+      </div>
+      <div class="component-wrapper" v-if="userAuthStore.teacherData.courseWork?.length >0 " :class="{'is-active-component': elementsStore.activePage.split(',')[0] === 'TeacherCoursework'}" >
+        <TeacherCourseWork v-for="(course, index) in userAuthStore.teacherData.courseWork" :key="`${course['students_class']['name']}${index}`" 
+        :className="course['students_class']['name']" 
+        :classIndex="index" 
+        :subjects="course['subjects'].map(item => item['name'])" 
+        :students="course['students_class']['students'].map(item => ({'name': `${item['user']['first_name']} ${item['user']['last_name']}`, 'st_id': item['st_id'], 'gender': item['gender'], 'img': item['img']}))" 
+        />
+      </div>
+      
+      <div class="component-wrapper" v-if="userAuthStore.teacherData.studentsattendance?.length > 0" :class="{'is-active-component': elementsStore.activePage.split(',')[0] === 'TeacherStudentsAttendance'}" >
+        <TeacherStudentsAttendance v-for="(_class, index) in userAuthStore.teacherData.studentsattendance" :key="`${_class['name']}${index}`" 
+        :className="_class['class_name']" 
+        :classIndex="index" 
+        :students="_class['students']" 
+        />
+      </div>
+      
+      <div class="component-wrapper" v-if="userAuthStore.teacherData.studentsAssessments?.length >0 " :class="{'is-active-component': elementsStore.activePage.split(',')[0] === 'TeacherStudentsAssessments'}" >
+        <div class="component-wrapper" v-for="(_class, index) in userAuthStore.teacherData.studentsAssessments" :key="`${_class['class_name']}${index}`">
+          <div class="component-wrapper" v-for="(_course, ind) in _class['assignments']" :key="`${_class['class_name']}${_course['subject']}${ind}`">
+            <TeacherStudentsAssessments v-for="(_assessment, i) in _course['assessments']" :key="`${_class['class_name']}${_course['subject']}${_assessment['title']}${i}`" 
+            :className="_class['class_name']" :classIndex="index"
+            :subjectName="_course['subject']" :subjectIndex="ind"
+            :assessment="_assessment" :assessmentIndex="i"
+            />
+          </div>
+        </div>
+      </div>
+      
+      <div class="component-wrapper" v-if="userAuthStore.teacherData.studentsExams?.length >0 " :class="{'is-active-component': elementsStore.activePage.split(',')[0] === 'TeacherStudentsExams'}" >
+        <div class="component-wrapper" v-for="(_class, index) in userAuthStore.teacherData.studentsExams" :key="`${_class['class_name']}${index}`">
+          <TeacherStudentsExams v-for="(_subject, ind) in _class['exams']" :key="`${_subject['subject']}${ind}`" 
+          :className="_class['class_name']" 
+          :classIndex="index" 
+          :subjectName="_subject['subject']" 
+          :subjectIndex="ind"
+          :examsData="_subject" 
+          />
+        </div>
       </div>
 
-
-      <div class="pages" :style="activePage==='page1' ? {'display': 'flex'}: {'display': 'none'}"
-      v-if="userAuthStore.userData && userAuthStore.userData['role'] && userAuthStore.userData['role'] === 'head'"
-      ><HeadOverview />
+      <div class="component-wrapper" v-if="userAuthStore.teacherData.studentsResults?.length >0 " :class="{'is-active-component': elementsStore.activePage.split(',')[0] === 'TeacherStudentsResults'}" >
+        <div class="component-wrapper" v-for="(_class, index) in userAuthStore.teacherData.studentsResults" :key="`${_class['class_name']}${index}`">
+          <TeacherStudentsResults v-for="(_subject, ind) in _class['results']" :key="`${_subject['subject']}${ind}`" 
+          :className="_class['class_name']" 
+          :classIndex="index" 
+          :subjectName="_subject['subject']" 
+          :subjectIndex="ind"
+          :resultData="_subject" 
+          />
+        </div>
       </div>
 
-      <div class="pages" :style="activePage==='page2' ? {'display': 'flex'}: {'display': 'none'}"
-      v-if="userAuthStore.userData && userAuthStore.userData['role'] && userAuthStore.userData['role']=== 'head'"
-      ><HeadDepartments />
+      <div class="component-wrapper" :class="{'is-active-component': elementsStore.activePage === 'Help'}" >
+        <HelpForm v-show="elementsStore.activePage ==='Help' "/>
       </div>
-
-      <div class="pages" :style="activePage==='page3' ? {'display': 'flex'}: {'display': 'none'}"
-      v-if="userAuthStore.userData && userAuthStore.userData['role'] && userAuthStore.userData['role']=== 'head'"
-      ><HeadStudents />
-      </div>
-
-      <div class="pages" :style="activePage==='page4' ? {'display': 'flex'}: {'display': 'none'}"
-      v-if="userAuthStore.userData && userAuthStore.userData['role'] && userAuthStore.userData['role']=== 'head'"
-      ><HeadPerformanceDepartment />
-      </div>
-
-      <div class="pages" :style="activePage==='page5' ? {'display': 'flex'}: {'display': 'none'}"
-      v-if="userAuthStore.userData && userAuthStore.userData['role'] && userAuthStore.userData['role']=== 'head' "
-      ><HelpForm />
-      </div>
-
-
-      <div class="pages" :style="activePage==='page1' ? {'display': 'flex'}: {'display': 'none'}"
-      v-if="userAuthStore.userData && userAuthStore.userData['staff_role']=== 'teacher' || userAuthStore.userData && userAuthStore.userData['staff_role']=== 'hod' "
-      ><TeacherCourseWork />
-      </div>
-
-      <div class="pages" :style="activePage==='page2' ? {'display': 'flex'}: {'display': 'none'}"
-      v-if="userAuthStore.userData && userAuthStore.userData['staff_role']=== 'teacher' || userAuthStore.userData && userAuthStore.userData['staff_role']=== 'hod' "
-      ><TeacherStudents />
-      </div>
-
-      <div class="pages" :style="activePage==='page3' ? {'display': 'flex'}: {'display': 'none'}"
-      v-if="userAuthStore.userData && userAuthStore.userData['staff_role']=== 'teacher' || userAuthStore.userData && userAuthStore.userData['staff_role']=== 'hod' "
-      ><TeacherAnalytics />
-      </div>
-
-      <div class="pages" :style="activePage==='page4' ? {'display': 'flex'}: {'display': 'none'}"
-      v-if="userAuthStore.userData && userAuthStore.userData['staff_role']=== 'hod'"
-      ><HodTeachers />
-      </div>
-
-      <div class="pages" :style="activePage==='page5' ? {'display': 'flex'}: {'display': 'none'}"
-      v-if="userAuthStore.userData && userAuthStore.userData['staff_role']=== 'hod' "
-      ><HodPerformance />
-      </div>
-
-      <div class="pages" :style="activePage==='page1' ? {'display': 'flex'}: {'display': 'none'}"
-      v-if="userAuthStore.userData && userAuthStore.userData['staff_role']=== 'admin' "
-      ><AdminCalendar />
-      </div>
-
-      <div class="pages" :style="activePage==='page2' ? {'display': 'flex'}: {'display': 'none'}"
-      v-if="userAuthStore.userData && userAuthStore.userData['staff_role']=== 'admin' "
-      ><AdminStudents />
-      </div>
-
-      <div class="pages" :style="activePage==='page3' ? {'display': 'flex'}: {'display': 'none'}"
-      v-if="userAuthStore.userData && userAuthStore.userData['staff_role']=== 'admin' "
-      ><AdminStaff />
-      </div>
-
-      <div class="pages" :style="activePage==='page4' ? {'display': 'flex'}: {'display': 'none'}"
-      v-if="userAuthStore.userData && userAuthStore.userData['staff_role']=== 'admin' "
-      ><AdminHead />
-      </div>
-
-
-      <div class="pages" :style="activePage==='page6' ? {'display': 'flex'}: {'display': 'none'}"
-      v-if="userAuthStore.userData && userAuthStore.userData['role'] && userAuthStore.userData['role']=== 'staff' "
-      ><HelpForm />
-
-      </div> -->
     </div>
-
   </main>
   <TheFooter />
 </template>

@@ -4,34 +4,17 @@ const userAuthStore = useUserAuthStore()
 const elementsStore = useElementsStore()
 
 
-const onDesk = ref(false)
-
-if (window.innerWidth > 1000){
-    onDesk.value = true
-}else{
-    onDesk.value = false
-}
-
-const changePage = (page_name:string)=>{
+const changePage = (page_name:any)=>{
     elementsStore.activePage = page_name
 }
 
 const showOverlay = ()=>{
   const logoutOverlay = document.getElementById('logout')
-  !onDesk.value ? elementsStore.navDrawer = false : null
     if (logoutOverlay){
         elementsStore.overlayPath = '/'
         logoutOverlay.style.display = 'flex'
     }
 }
-
-window.addEventListener('resize', (event)=>{
-  if (window.innerWidth > 1000){
-    onDesk.value = true;
-  }else{
-    onDesk.value = false;
-  }
-});
 
 
 </script>
@@ -40,83 +23,86 @@ window.addEventListener('resize', (event)=>{
 <template>
     <div class="nav-container">
         <v-list class="nav-list-container">
-            <v-list-item class="nav-title nav-link" @click="changePage('TeacherStudentsAttendance')" prepend-icon="mdi-account-group-outline">
-                STUDENTS ATTENDANCE
-            </v-list-item>
-
             <v-list-group>
                 <template v-slot:activator="{ props }">
-                    <v-list-item v-bind="props" class="nav-title">
-                        MY CLASS(S)
+                    <v-list-item v-bind="props" prepend-icon="mdi-account-group-outline" class="nav-item">
+                        MY CLASS
                     </v-list-item>
                 </template>
-                <v-list-item class="nav-item nav-link" v-for="(class_name, index) in userAuthStore.teacherData.courseWork" :key="index" @click="changePage(`TeacherCourseWork,${index}`)">
-                    {{ class_name['students_class']['name'] }}
+                <v-list-item class="nav-title nav-link" v-if="!userAuthStore.teacherData.courseWork || userAuthStore.teacherData.courseWork?.length ===0 " 
+                @click="changePage('TeacherCoursework,Class,0')">
+                    NO CLASS
+                </v-list-item>
+                <v-list-item class="nav-title nav-link" v-for="(_course, index) in userAuthStore.teacherData.courseWork" :key="`${_course['students_class']['name']}${index}`" 
+                @click="changePage(`TeacherCoursework,${_course['students_class']['name']},${index}`)">
+                    {{ _course['students_class']['name'] }}
                 </v-list-item>
             </v-list-group>
 
-            <v-list-group v-for="(year, index) in userAuthStore.studentData.academicYearsData" :key="index">
+            <v-list-group v-if="userAuthStore.teacherData.studentsattendance?.length >0 ">
                 <template v-slot:activator="{ props }">
-                    <v-list-item v-bind="props" class="nav-title" prepend-icon="mdi-book-open-outline">
-                        {{ year['name'] }}
+                    <v-list-item v-bind="props" prepend-icon="mdi-clipboard-text-outline" class="nav-item">
+                        STUDENTS ATTENDANCE
                     </v-list-item>
                 </template>
-                <v-list-group>
+                <v-list-item class="nav-title nav-link" v-for="(class_name, index) in userAuthStore.teacherData.studentsattendance" :key="index" 
+                @click="changePage(`TeacherStudentsAttendance,${class_name['class_name']},${index}`)">
+                    {{ class_name['class_name'] }}
+                </v-list-item>
+            </v-list-group>
+
+            <v-list-group>
+                <template v-slot:activator="{ props }">
+                    <v-list-item v-bind="props" class="nav-item" prepend-icon="mdi-book-open-outline">
+                        ASSESSMENTS
+                    </v-list-item>
+                </template>
+                <v-list-group v-for="(_class, index) in userAuthStore.teacherData.studentsAssessments" :key="`${_class['class_name']}${index}`">
                     <template v-slot:activator="{ props }">
-                        <v-list-item v-bind="props" class="nav-sub-title">
-                            ATTENDANCE
+                        <v-list-item v-bind="props" class="nav-item">
+                            {{ _class['class_name'] }}
                         </v-list-item>
                     </template>
-                    <v-list-item class="nav-item nav-link" v-if="year['period_division'] !== 'SEMESTER' " @click="changePage(`StudentAttendance,${year['name']},${year['period_division']},3`)">
-                        {{ year['period_division'] }} 3
-                    </v-list-item>
-                    <v-list-item class="nav-item nav-link" @click="changePage(`StudentAttendance,${year['name']},${year['period_division']},2`)">
-                        {{ year['period_division'] }} 2
-                    </v-list-item>
-                    <v-list-item class="nav-item nav-link" @click="changePage(`StudentAttendance,${year['name']},${year['period_division']},1`)">
-                        {{ year['period_division'] }} 1
-                    </v-list-item>
-                </v-list-group>
-                <v-list-group>
-                    <template v-slot:activator="{ props }">
-                        <v-list-item v-bind="props" class="nav-sub-title">
-                            ASSESSMENTS
-                        </v-list-item>
-                    </template>
-                    <v-list-item class="nav-item nav-link" v-if="year['period_division'] !== 'SEMESTER' " @click="changePage(`StudentAssessments,${year['name']},${year['period_division']},3`)">
-                        {{ year['period_division'] }} 3
-                    </v-list-item>
-                    <v-list-item class="nav-item nav-link" @click="changePage(`StudentAssessments,${year['name']},${year['period_division']},2`)">
-                        {{ year['period_division'] }} 2
-                    </v-list-item>
-                    <v-list-item class="nav-item nav-link" @click="changePage(`StudentAssessments,${year['name']},${year['period_division']},1`)">
-                        {{ year['period_division'] }} 1
-                    </v-list-item>
-                </v-list-group>
-                <v-list-group>
-                    <template v-slot:activator="{ props }">
-                        <v-list-item v-bind="props" class="nav-sub-title">
-                            RESULTS
-                        </v-list-item>
-                    </template>
-                    <v-list-item class="nav-item nav-link" v-if="year['period_division'] !== 'SEMESTER' " @click="changePage(`StudentResults,${year['name']},${year['period_division']},3`)">
-                        {{ year['period_division'] }} 3
-                    </v-list-item>
-                    <v-list-item class="nav-item nav-link" @click="changePage(`StudentResults,${year['name']},${year['period_division']},2`)">
-                        {{ year['period_division'] }} 2
-                    </v-list-item>
-                    <v-list-item class="nav-item nav-link" @click="changePage(`StudentResults,${year['name']},${year['period_division']},1`)">
-                        {{ year['period_division'] }} 1
-                    </v-list-item>
+                    <v-list-group v-for="(subject, ind) in _class['assignments']" :key="`${_class['class_name']}${subject['subject']}${ind}`">
+                        <template v-slot:activator="{ props }">
+                            <v-list-item v-bind="props" class="nav-item">
+                                {{ subject['subject'] }}
+                            </v-list-item>
+                        </template>
+                        <h4 class="nav-title nav-link" v-for="(assess, i) in subject['assessments']" :key="`${_class['class_name']}${subject['subject']}${assess['title']}${i}`" 
+                        @click="changePage(`TeacherStudentsAssessments,${_class['class_name']},${subject['subject']},${assess['title']},${i}`)">
+                            {{ assess['title'] }}
+                        </h4>
+                    </v-list-group>
                 </v-list-group>
             </v-list-group>
-            <v-list-item v-if="userAuthStore.userData['level'] === 'SHS' " class="nav-title nav-link" @click="changePage('StudentTranscript')" prepend-icon="mdi-book-outline">
+
+            <v-list-group>
+                <template v-slot:activator="{ props }">
+                    <v-list-item v-bind="props" class="nav-item" prepend-icon="mdi-trophy-outline">
+                        EXAMS
+                    </v-list-item>
+                </template>
+                <v-list-group v-for="(_class, index) in userAuthStore.teacherData.courseWork" :key="index">
+                    <template v-slot:activator="{ props }">
+                        <v-list-item v-bind="props" class="nav-item">
+                            {{ _class['students_class']['name'] }}
+                        </v-list-item>
+                    </template>
+                    <h4 class="nav-title nav-link" v-for="(subject, ind) in userAuthStore.teacherData.courseWork[index]['subjects']" :key="ind" @click="changePage(`TeacherStudentsExams,${_class['students_class']['name']},${subject['name']}`)">
+                        {{ subject['name'] }}
+                    </h4>
+                </v-list-group>
+            </v-list-group>
+
+            
+            <v-list-item v-if="userAuthStore.userData['level'] === 'SHS' " class="nav-item nav-link" @click="changePage('StudentTranscript')" prepend-icon="mdi-book-outline">
                 TRANSCRIPT
             </v-list-item>
-            <v-list-item v-if="userAuthStore.userData['level'] === 'JHS' " class="nav-title nav-link" @click="changePage('StudentTranscript')" prepend-icon="mdi-book-outline">
+            <v-list-item v-if="userAuthStore.userData['level'] === 'JHS' " class="nav-item nav-link" @click="changePage('StudentTranscript')" prepend-icon="mdi-book-outline">
                 TERMINAL REPORT
             </v-list-item>
-            <v-list-item @click="changePage('Help')" class="nav-title nav-link" prepend-icon="mdi-help">
+            <v-list-item @click="changePage('Help')" class="nav-item nav-link" prepend-icon="mdi-help">
                 HELP
             </v-list-item>
             <div class="flex-all mt-15">
@@ -128,7 +114,6 @@ window.addEventListener('resize', (event)=>{
 
 
 <style scoped>
-
 
 
 </style>

@@ -752,6 +752,18 @@ def get_student_transcript(student, request):
         return default_storage.url(save_file)
 
 
+def check_assessment_percentage(teacher, school, subject_obj, students_class, academic_year, academic_term:int, new_assessment:dict):
+    assessments = list(Assessment.objects.filter(school=school, teacher=teacher, subject=subject_obj, student_class=students_class, academic_year=academic_year, academic_term=academic_term).values('title', 'percentage'))
+    assessments.insert(0, new_assessment)
+    assessments_percentages = []
+    assesment_titles = set()
+    for _assessment in assessments:
+        if _assessment['title'] not in assesment_titles:
+            assessments_percentages.append(float(_assessment['percentage']))
+            assesment_titles.add(_assessment['title'])
+    
+    return sum(assessments_percentages) <= 100
+
 # Get the current academic year
 def get_current_academic_year(school_user, user_data):
     academic_years = AcademicYear.objects.filter(school=school_user.school).order_by('-start_date')
@@ -810,7 +822,7 @@ def get_hod_subject_assignments(hod, academic_year):
 
     try:
         department = DepartmentSerializer(Department.objects.get(hod=hod)).data
-        classes_data = ClasseSerializer(Classe.objects.filter(school=hod.school, is_active=True), many=True).data
+        classes_data = ClasseSerializer(Classe.objects.filter(school=hod.school), many=True).data
 
         for item in department['teachers']:
             staff.append({

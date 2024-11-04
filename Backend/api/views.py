@@ -18,6 +18,7 @@ from api.serializer import *
 from email_validator import validate_email
 from api.utils import *
 import json
+import time
 
 def root(request):
     return HttpResponse("<h1>Welcome to Cassandra, a school management system</h1>")
@@ -146,12 +147,7 @@ def get_user_data(request):
             user_data['role'] = 'staff'
             user_data['img'] = staff_data['img']
             user_data['school'] = staff_data['school']
-            
-            if staff_data['school']['staff_id']:
-                user_data['staff_id'] = staff_data['staff_id']
-            else:
-                user_data['staff_id'] = staff_data['user']['username']
-                    
+            user_data['staff_id'] = staff_data['staff_id']
             user_data['staff_role'] = staff_data['role']
             # user_data['level'] = staff_data['level']['name']
             
@@ -178,7 +174,7 @@ def get_user_data(request):
             user_data['pob'] = staff_data['pob']
             user_data['region'] = staff_data['region']
             user_data['nationality'] = staff_data['nationality']
-
+            time.sleep(10)
             return Response(user_data)
 
         except User.staff.RelatedObjectDoesNotExist:
@@ -333,7 +329,7 @@ def notification(request):
                 
         elif data['type'] == 'getClassStudents':     
             try:
-                st_class = ClasseSerializer(Classe.objects.get(school=from_obj.school, is_active=True, name=data['className'])).data
+                st_class = ClasseSerializer(Classe.objects.get(school=from_obj.school, name=data['className'])).data
                 students = []
                 for st in st_class['students']:
                     students.append({'label': f"{st['user']['first_name']} {st['user']['last_name']}", 'st_id': st['st_id']})
@@ -397,7 +393,7 @@ def notification(request):
             all_staff = SpecificStaffSerializer(Staff.objects.filter(school=from_obj.school).exclude(staff_id=from_obj.staff_id), many=True).data
         else:
             all_staff = SpecificStaffSerializer(Staff.objects.filter(school=from_obj.school), many=True).data
-        all_classes = ClasseWithoutStudentsSerializer(Classe.objects.filter(school=from_obj.school, is_active=True), many=True).data
+        all_classes = ClasseWithoutStudentsSerializer(Classe.objects.filter(school=from_obj.school), many=True).data
         
         for item in all_staff:
             staff.append({'label': f"{item['user']['first_name']} {item['user']['last_name']}", 'staff_id': item['staff_id']})

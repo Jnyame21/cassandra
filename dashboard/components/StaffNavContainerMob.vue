@@ -23,40 +23,54 @@ const showOverlay = ()=>{
 <template>
     <div class="nav-container-drawer" v-show="elementsStore.navDrawer">
         <v-list class="nav-list-container">
-            <v-list-item class="nav-item nav-link" @click="changePage('TeacherStudentsAttendance')" prepend-icon="mdi-clipboard-text-outline">
-                STUDENTS ATTENDANCE
-            </v-list-item>
-
             <v-list-group>
                 <template v-slot:activator="{ props }">
                     <v-list-item v-bind="props" prepend-icon="mdi-account-group-outline" class="nav-item">
                         MY CLASS
                     </v-list-item>
                 </template>
-                <v-list-item class="nav-title nav-link" v-for="(class_name, index) in userAuthStore.teacherData.courseWork" :key="index" @click="changePage(`TeacherCourseWork,${index}`)">
-                    {{ class_name['students_class']['name'] }}
+                <v-list-item class="nav-title nav-link" v-if="!userAuthStore.teacherData.courseWork || userAuthStore.teacherData.courseWork?.length ===0 " 
+                @click="changePage('TeacherCoursework,Class,0')">
+                    NO CLASS
+                </v-list-item>
+                <v-list-item class="nav-title nav-link" v-for="(_course, index) in userAuthStore.teacherData.courseWork" :key="`${_course['students_class']['name']}${index}`" 
+                @click="changePage(`TeacherCoursework,${_course['students_class']['name']},${index}`)">
+                    {{ _course['students_class']['name'] }}
                 </v-list-item>
             </v-list-group>
 
-            <v-list-group v-if="userAuthStore.teacherData.studentsWithAssessments">
+            <v-list-group v-if="userAuthStore.teacherData.studentsattendance?.length >0 ">
                 <template v-slot:activator="{ props }">
-                    <v-list-item v-bind="props" class="nav-item" prepend-icon="mdi-book-open-outline">
-                        ASSESSMENTS
+                    <v-list-item v-bind="props" prepend-icon="mdi-clipboard-text-outline" class="nav-item">
+                        STUDENT ATTENDANCE
                     </v-list-item>
                 </template>
-                <v-list-group v-for="(_class, index) in userAuthStore.teacherData.studentsWithAssessments" :key="index">
+                <v-list-item class="nav-title nav-link" v-for="(class_name, index) in userAuthStore.teacherData.studentsattendance" :key="index" 
+                @click="changePage(`TeacherStudentsAttendance,${class_name['class_name']},${index}`)">
+                    {{ class_name['class_name'] }}
+                </v-list-item>
+            </v-list-group>
+
+            <v-list-group>
+                <template v-slot:activator="{ props }">
+                    <v-list-item v-bind="props" class="nav-item" prepend-icon="mdi-book-open-outline">
+                        STUDENT ASSESSMENTS
+                    </v-list-item>
+                </template>
+                <v-list-group v-for="(_class, index) in userAuthStore.teacherData.studentsAssessments" :key="`${_class['class_name']}${index}`">
                     <template v-slot:activator="{ props }">
                         <v-list-item v-bind="props" class="nav-item">
                             {{ _class['class_name'] }}
                         </v-list-item>
                     </template>
-                    <v-list-group v-for="(subject, ind) in _class['assignments']" :key="ind">
+                    <v-list-group v-for="(subject, ind) in _class['assignments']" :key="`${_class['class_name']}${subject['subject']}${ind}`">
                         <template v-slot:activator="{ props }">
                             <v-list-item v-bind="props" class="nav-item">
                                 {{ subject['subject'] }}
                             </v-list-item>
                         </template>
-                        <h4 class="nav-title nav-link" v-for="(assess, i) in subject['assessments']" :key="i" @click="changePage(`TeacherStudentsAssessments,${_class['class_name']},${subject['subject']},${assess['title']}`)">
+                        <h4 class="nav-title nav-link" v-for="(assess, i) in subject['assessments']" :key="`${_class['class_name']}${subject['subject']}${assess['title']}${i}`" 
+                        @click="changePage(`TeacherStudentsAssessments,${_class['class_name']},${subject['subject']},${assess['title']},${i}`)">
                             {{ assess['title'] }}
                         </h4>
                     </v-list-group>
@@ -65,18 +79,38 @@ const showOverlay = ()=>{
 
             <v-list-group>
                 <template v-slot:activator="{ props }">
-                    <v-list-item v-bind="props" class="nav-item" prepend-icon="mdi-trophy-outline">
-                        EXAMS
+                    <v-list-item v-bind="props" class="nav-item" prepend-icon="mdi-file-check-outline">
+                        STUDENT EXAMS
                     </v-list-item>
                 </template>
-                <v-list-group v-for="(_class, index) in userAuthStore.teacherData.courseWork" :key="index">
+                <v-list-group v-for="(_class, index) in userAuthStore.teacherData.studentsExams" :key="index">
                     <template v-slot:activator="{ props }">
                         <v-list-item v-bind="props" class="nav-item">
-                            {{ _class['students_class']['name'] }}
+                            {{ _class['class_name'] }}
                         </v-list-item>
                     </template>
-                    <h4 class="nav-title nav-link" v-for="(subject, ind) in userAuthStore.teacherData.courseWork[index]['subjects']" :key="ind" @click="changePage(`TeacherStudentsExams,${_class['students_class']['name']},${subject['name']}`)">
-                        {{ subject['name'] }}
+                    <h4 class="nav-title nav-link" v-for="(_subject, ind) in _class['exams']" :key="ind" 
+                    @click="changePage(`TeacherStudentsExams,${_class['class_name']},${_subject['subject']},${ind}`)">
+                        {{ _subject['subject'] }}
+                    </h4>
+                </v-list-group>
+            </v-list-group>
+
+            <v-list-group>
+                <template v-slot:activator="{ props }">
+                    <v-list-item v-bind="props" class="nav-item" prepend-icon="mdi-trophy-outline">
+                        STUDENT RESULTS
+                    </v-list-item>
+                </template>
+                <v-list-group v-for="(_class, index) in userAuthStore.teacherData.studentsResults" :key="index">
+                    <template v-slot:activator="{ props }">
+                        <v-list-item v-bind="props" class="nav-item">
+                            {{ _class['class_name'] }}
+                        </v-list-item>
+                    </template>
+                    <h4 class="nav-title nav-link" v-for="(_subject, ind) in _class['results']" :key="ind" 
+                    @click="changePage(`TeacherStudentsResults,${_class['class_name']},${_subject['subject']},${ind}`)">
+                        {{ _subject['subject'] }}
                     </h4>
                 </v-list-group>
             </v-list-group>

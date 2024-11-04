@@ -44,7 +44,7 @@ document.addEventListener('click', (event)=>{
             ROLE
           </v-list-item-title>
           <v-list-item-subtitle v-if="userAuthStore.userData['role']==='staff'" class="drawer-subtitle">
-            {{ userAuthStore.userData['staff_role'] }}
+            {{ userAuthStore.userData['staff_role'].toUpperCase() }}
           </v-list-item-subtitle>
         </v-list-item>
 

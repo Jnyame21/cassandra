@@ -36,7 +36,7 @@ def get_head_data(request):
     programs = []
 
     sch_programs = ProgramSerializer(Program.objects.filter(schools=head.school), many=True).data
-    classes = ClasseSerializer(Classe.objects.filter(school=head.school, is_active=True).order_by('students_year'), many=True).data
+    classes = ClasseSerializer(Classe.objects.filter(school=head.school).order_by('students_year'), many=True).data
     for program in sch_programs:
         program_data = {'name': program['name'],
             'classes': [x for x in classes if program['name'] == x['program']['name']]

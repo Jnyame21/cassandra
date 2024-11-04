@@ -20,12 +20,9 @@ onBeforeUnmount(()=>{
 })
 
 onBeforeMount(()=>{
-  if (userAuthStore.isAuthenticated){
-    document.title = "Cassandra"
-  }
   document.body.style.overflow = 'hidden'
+  document.title = "Cassandra"
   elementsStore.activePage = 'StudentSubjects'
-
   rozmachAuth.value = localStorage.getItem('RozmachAuth')
   if (rozmachAuth.value){
     rozmachAuth.value = JSON.parse(rozmachAuth.value)

@@ -11,6 +11,9 @@ interface states {
     navDrawer: boolean;
     activePage: string;
     errorMessage: boolean;
+    deleteFunction: any;
+    deleteOverlayMessage: string;
+    btnSize1: string;
 }
 
 export const useElementsStore = defineStore('elementsStore', {
@@ -25,6 +28,9 @@ export const useElementsStore = defineStore('elementsStore', {
             navDrawer: false,
             activePage: 'page1',
             errorMessage: false,
+            deleteFunction: null,
+            deleteOverlayMessage: '',
+            btnSize1: 'x-small',
         }
     },
 
@@ -59,6 +65,13 @@ export const useElementsStore = defineStore('elementsStore', {
         HideLoadingOverlay(){
             const overlay = document.getElementById('LoadingOverlay')
             overlay ? overlay.style.display = 'none' : null
+        },
+
+        ShowDeletionOverlay(func:any, message:string){
+            const overlay = document.getElementById('deleteOverlay')
+            this.deleteFunction = func
+            this.deleteOverlayMessage = message
+            overlay ? overlay.style.display = 'flex' : null
         },
     }
 })

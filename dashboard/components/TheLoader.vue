@@ -26,9 +26,9 @@ onMounted(()=>{
 <style scoped>
 
 .loaderOverlay{
-    width: 100%;
-    height: 100%;
-    background-color: white;
+    width: 100% !important;
+    height: 100% !important;
+    background-color: white !important;
 }
 
 

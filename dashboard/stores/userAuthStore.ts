@@ -4,6 +4,7 @@ import { defaultAxiosInstance } from "../utils/axiosInstance";
 import axiosInstance from '../utils/axiosInstance'
 import { useRouter } from 'vue-router';
 import { useElementsStore } from '../stores/elementsStore'
+import { AxiosError } from "axios";
 
 interface states {
     authTokens: any;
@@ -23,12 +24,9 @@ interface states {
         courseWork: any;
         currentCourseWork: any;
         studentsattendance: any;
-        studentsWithoutAssessments: any;
-        studentsWithAssessments: any;
-        studentsWithoutExams: any;
-        studentsWithExams: any;
-        currentAssessments: any;
-        currentExams: any;
+        studentsAssessments: any;
+        studentsExams: any;
+        studentsResults: any;
     };
     message: string;
     isAuthenticated: boolean;
@@ -102,12 +100,9 @@ export const useUserAuthStore = defineStore('userAuth',{
                 courseWork: null,
                 currentCourseWork: null,
                 studentsattendance: null,
-                studentsWithoutAssessments: null,
-                studentsWithoutExams: null,
-                studentsWithExams: null,
-                studentsWithAssessments: null,
-                currentAssessments: null,
-                currentExams: null,
+                studentsExams: null,
+                studentsAssessments: null,
+                studentsResults: null,
             },
             message: '',
             isAuthenticated: false,
@@ -215,8 +210,7 @@ export const useUserAuthStore = defineStore('userAuth',{
         async getTeacherStudentsAssessments(){
             await axiosInstance.get("teacher/assessments", {params: {'year': this.activeAcademicYear, 'term': this.activeTerm}})
                 .then(response =>{
-                    this.teacherData.studentsWithAssessments = response.data['with_assessments']
-                    this.teacherData.studentsWithoutAssessments = response.data['without_assessments']
+                    this.teacherData.studentsAssessments = response.data['assessments']
                 })
                 .catch(e =>{
                     return Promise.reject()
@@ -225,8 +219,7 @@ export const useUserAuthStore = defineStore('userAuth',{
         async getTeacherStudentsExams(){
             await axiosInstance.get("teacher/exams", {params: {'year': this.activeAcademicYear, 'term': this.activeTerm}})
                 .then(response =>{
-                    this.teacherData.studentsWithExams = response.data['with_exams']
-                    this.teacherData.studentsWithoutExams = response.data['without_exams']
+                    this.teacherData.studentsExams = response.data['exams_data']
                 })
                 .catch(e =>{
                     return Promise.reject()
@@ -315,10 +308,9 @@ export const useUserAuthStore = defineStore('userAuth',{
         },
 
         async getTeacherStudentResults(){
-            await axiosInstance.get("teacher/results/upload/", {params: {'year': this.activeAcademicYear, 'term': this.activeTerm}})
+            await axiosInstance.get("teacher/students-result", {params: {'year': this.activeAcademicYear, 'term': this.activeTerm}})
                 .then(response =>{
-                    this.staffStudentResultsSubjectAssignment = response.data[0]
-                    this.staffStudentResultsEdit = response.data[1]
+                    this.teacherData.studentsResults = response.data
                 })
                 .catch(e =>{
                     return Promise.reject()
@@ -379,67 +371,51 @@ export const useUserAuthStore = defineStore('userAuth',{
                 const response = await defaultAxiosInstance.post('login', formData)
                 if (response.status === 200){
                     this.authTokens = response.data
+                    localStorage.setItem('authTokens', JSON.stringify(response.data))
                     await this.getUserData()
                     .then(secondResponse =>{
-                        // Tokens storage location
-                        localStorage.setItem('authTokens', JSON.stringify(response.data))
-
                         const userInfo:any = jwtDecode(response.data['access'])
-
                         if (userInfo['last_login']){
                             localStorage.setItem('RozmachAuth', JSON.stringify({'last_login': true, 'reset': userInfo['reset']}))
                         }else {
                             localStorage.setItem('RozmachAuth', JSON.stringify({'last_login': false, 'reset': userInfo['reset']}))
                         }
-
                         this.isAuthenticated = true
                         this.message = "Login successful"
                     })
-
                     .catch(e =>{
                         return Promise.reject(e)
                     })
-
                 }
                 else{
                     this.message = "Oops! the username or password is wrong."
                     return Promise.reject()
                 }
             }
-            catch (e) {
-                if (e.response && e.response.status === 401 ){
+            catch (error) {
+                if (error instanceof AxiosError && error.response && error.response.status === 401 ){
                     this.message = "Oops! the username or password is wrong."
-                    return Promise.reject(e)
+                    return Promise.reject(error)
                 }
-
                 else{
                     this.message = "Oops! something went wrong"
-                    return Promise.reject(e)
+                    return Promise.reject(error)
                 }
             }
         },
 
         async UpdateToken(){
-            if (this.authTokens && this.authTokens['refresh']){
-                await defaultAxiosInstance.post("api/token/refresh/", {'refresh': this.authTokens['refresh']})
-                .then(response =>{
-                    this.authTokens = response.data
-                    // Tokens storage
-                    localStorage.setItem('authTokens', JSON.stringify(response.data))
-                })
-                .catch(e =>{
-                    const router = useRouter()
-                    this.logoutUser()
-                    router.push('/')
-                })
-            }
-            else {
-                const router = useRouter()
-                this.logoutUser()
-                router.push('/')
-                return Promise.reject()
-            }
+            await defaultAxiosInstance.post("api/token/refresh/", {'refresh': this.authTokens['refresh']})
+            .then(response =>{
+                this.authTokens = response.data
+                // Tokens storage
+                localStorage.setItem('authTokens', JSON.stringify(response.data))
+            })
+            .catch(e =>{
+                return Promise.reject(e)
+            })
         },
+
         async startUpServer(){
             defaultAxiosInstance.get('start_up')
             .then(response =>{

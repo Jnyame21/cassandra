@@ -3,6 +3,7 @@ from api.models import *
 from django.http import HttpResponse
 from datetime import date
 from django.utils import timezone
+from django.db import connection
 import time
 from api.serializer import *
 import pandas as pd
@@ -262,8 +263,34 @@ def query(request):
     # end = time.time()
     # # Student.objects.bulk_update(student, ['level'])    
     # print(f"time taken: {end - start}")
-
+    # grade = [
+    #     {"Lower Limit": 80, "Upper Limit": 100, "Letter Grade": "A1", "Interpretation": "EXCELLENT"},
+    #     {"Lower Limit": 75, "Upper Limit": 79,  "Letter Grade": "B2", "Interpretation": "VERY GOOD"},
+    #     {"Lower Limit": 70, "Upper Limit": 74,  "Letter Grade": "B3", "Interpretation": "GOOD"},
+    #     {"Lower Limit": 65, "Upper Limit": 69,  "Letter Grade": "C4", "Interpretation": "CREDIT"},
+    #     {"Lower Limit": 60, "Upper Limit": 64,  "Letter Grade": "C5", "Interpretation": "CREDIT"},
+    #     {"Lower Limit": 55, "Upper Limit": 59,  "Letter Grade": "C6", "Interpretation": "CREDIT"},
+    #     {"Lower Limit": 50, "Upper Limit": 54,  "Letter Grade": "D7", "Interpretation": "PASS"},
+    #     {"Lower Limit": 45, "Upper Limit": 49,  "Letter Grade": "E8", "Interpretation": "WEAK PASS"},
+    #     {"Lower Limit": 0,  "Upper Limit": 44,  "Letter Grade": "F9", "Interpretation": "FAIL"}
+    # ]
+    # grades_to_create = []
+    # for _grade in grade:
+    #     grades_to_create.append(GradingSystem.objects.create(
+    #         label=_grade['Letter Grade'],
+    #         upper_limit=_grade['Upper Limit'],
+    #         lower_limit=_grade['Lower Limit'],
+    #         remark=_grade['Interpretation']
+    #     ))
+    # GradingSystem.objects.bulk_create(grades_to_create)
     return HttpResponse('Operation success')
+
+# table_name = 'api_gradingsystem_schools'
+#     def delete_table(table_name):
+#         with connection.cursor() as cursor:
+#             cursor.execute(f"DROP TABLE IF EXISTS {table_name}")
+
+#     delete_table(table_name)
 
 
 

@@ -1,168 +1,460 @@
 <script setup lang="ts">
+import { AxiosError } from 'axios';
 
 const userAuthStore = useUserAuthStore()
+const elementsStore = useElementsStore()
+const femaleStudents = ref(0)
+const maleStudents = ref(0)
+const subjectSelected:any = ref(null)
+const assessmentTitle = ref('')
+const assessmentTotalScore:any = ref(null)
+const assessmentDescription = ref('')
+const assessmentDate = ref('')
+const academicYearStartDate = new Date(userAuthStore.userData['academic_year']['start_date'])
+const academicYearEndDate = new Date(userAuthStore.userData['academic_year']['end_date'])
 const formErrorMessage = ref('')
-const formSuccessMessage = ref('')
-const date = ref('')
+const examsPercentage:any = ref(null)
+const assessmentsAll:any = ref([])
+const resultUploadErrorType = ref('')
 const loading = ref(false)
-const selectedStudents:any = ref(null)
-const students:any = ref([])
-const className:any = ref(null)
-const subjects:any = ref([])
+const typeSelected = ref('')
+const examsTotalScore:any = ref(null)
 
+interface Props {
+  className?: string;
+  classIndex?: number;
+  students?: any[];
+  subjects?: string[];
+}
+interface assessmentSubjectData {
+  subject: string;
+  assessments: {
+    'title': string;
+    'percentage': any;
+    'totalScore': number;
+  }[]
+}
+const props = defineProps<Props>()
+const className = props.className || 'Class'
+const classIndex = props.classIndex || 0
+const students = props.students || []
+const subjects = props.subjects || []
 
-const clearMessage = ()=>{
+const showErrorMessage = (message:string)=>{
+  formErrorMessage.value = message
+  loading.value = false
   setTimeout(()=>{
     formErrorMessage.value = ''
-    formSuccessMessage.value = ''
   }, 10000)
 }
 
-const showOverlay = (overlay:string)=>{
-  if (overlay === 'attendance'){
-    const overlay = document.getElementById('studentAttendanceOverlay')
-    overlay ? overlay.style.display = 'flex' : null
-  }
-  else if (overlay === 'results'){
-    const overlay = document.getElementById(`teacherStudentsResultsOverlay${className.value}`)
-    overlay ? overlay.style.display = 'flex' : null
-  }
-  else{
-    const overlay = document.getElementById('teacherSubjectsOverlay')
-    overlay ? overlay.style.display = 'flex' : null
-  }
-}
+const typeOptions = [
+  {'label': 'EXAM', 'value': 'exams'},
+  {'label': 'ASSESSMENT', 'value': 'assessments'},
+]
 
-const uploadAttendance = async()=>{
+watch(()=> userAuthStore.teacherData?.studentsAssessments?.[classIndex]?.assignments, (newValue, oldValue)=>{
+  if (newValue?.length > 0){
+    const newAssessments:any = []
+    newValue.forEach(item =>{
+      let assessmentSubject: assessmentSubjectData = {'subject': item['subject'], 'assessments': []}
+      if (item.assessments?.length > 0 ){
+        item.assessments.forEach(_assess =>{
+          assessmentSubject.assessments.push({
+            'title': _assess['title'], 
+            'percentage': null,
+            'totalScore': Number(_assess['total_score'])
+          })
+        })
+      }
+      newAssessments.push(assessmentSubject)
+    })
+    assessmentsAll.value = newAssessments
+  }
+}, {'deep': 2, 'immediate': true})
+
+const createAssessmentAndExam = async()=>{
   formErrorMessage.value = ''
-  formSuccessMessage.value = ''
   loading.value = true
-  const formData = new FormData
-  formData.append('className', userAuthStore.teacherData.currentCourseWork['students_class']['name'])
-  formData.append('absentStudents', selectedStudents.value)
+  const formData = new FormData()
+  if (typeSelected.value === 'assessments'){
+    if (assessmentTotalScore.value <= 0){
+      showErrorMessage('The total score of the assessment cannot be negative or zero(0)')
+      return;
+    }else if (assessmentDescription.value.length >100){
+      showErrorMessage("The maximum characters for the description must not exceed 100")
+      return;
+    }else if (assessmentTitle.value.length >50){
+      showErrorMessage("The maximum characters for the title must not exceed 50")
+      return;
+    }else if (new Date(assessmentDate.value) < academicYearStartDate || new Date(assessmentDate.value) > academicYearEndDate) {
+      showErrorMessage(`The assessment date must be between the academic year start date and end date, which are ${academicYearStartDate.toDateString()} and ${academicYearEndDate.toDateString()} respectively.`)
+      return;
+    }
+    const _assessmentClass = userAuthStore.teacherData.studentsAssessments.find(item => item['class_name'] ===className)
+    if (_assessmentClass){
+      const _assessmentSubject = _assessmentClass['assignments'].find(item => item['subject'] === subjectSelected.value)
+      if (_assessmentSubject){
+        let _assessmentsTitles:any = []
+        _assessmentSubject['assessments'].forEach(item =>{
+          _assessmentsTitles.push(item['title'])
+        })
+        if (_assessmentsTitles.includes(assessmentTitle.value)){
+          showErrorMessage(`Assessment with title '${assessmentTitle.value}' already exists! Use a different title`)
+          return;
+        }
+      }
+    }
+    formData.append('title', assessmentTitle.value)
+    formData.append('description', assessmentDescription.value)
+    formData.append('totalScore', assessmentTotalScore.value)
+    formData.append('date', assessmentDate.value)
+    formData.append('type', 'createAssessment')
+  }
+  else if (typeSelected.value === 'exams'){
+    if (examsTotalScore.value <= 0){
+      showErrorMessage('The total score of the exams cannot be negative or zero(0)')
+      return;
+    }
+    formData.append('totalScore', examsTotalScore.value)
+    formData.append('type', 'createExams')
+  }
   formData.append('year', userAuthStore.activeAcademicYear)
   formData.append('term', userAuthStore.activeTerm)
-  formData.append('type', 'create')
-  formData.append('date', date.value)
-
+  formData.append('studentsClassName', className)
+  formData.append('subject', subjectSelected.value)
+  loading.value = false
+  elementsStore.ShowLoadingOverlay()
   try{
-    const response = await axiosInstance.post('teacher/students/attendance', formData)
-    if (response.status === 200){
-      userAuthStore.teacherData.studentsattendance.unshift(response.data)
-      formSuccessMessage.value = 'Upload successful'
-      selectedStudents.value = null
+    if (typeSelected.value === 'assessments'){
+      const response = await axiosInstance.post('teacher/assessments', formData)
+      const _assessmentData = {
+        'title': assessmentTitle.value,
+        'total_score': assessmentTotalScore.value,
+        'description': assessmentDescription.value,
+        'percentage': 0,
+        'assessment_date': assessmentDate.value,
+        'students_with_assessment': [],
+        'students_without_assessment': students.map(item => ({'name': item['name'], 'st_id': item['st_id']})),
+      }
+      const assessmentSubject = userAuthStore.teacherData.studentsAssessments['assignments'].find(item => item['subject'] === subjectSelected.value)
+      if (assessmentSubject){
+        const assessmentSubjectIndex = userAuthStore.teacherData.studentsAssessments['assignments'].indexOf(assessmentSubject)
+        userAuthStore.teacherData.studentsAssessments[classIndex]['assignments'][assessmentSubjectIndex]['assessments'].unshift(_assessmentData)
+      }
+      assessmentTitle.value = ''
+      assessmentDescription.value = ''
+      assessmentDate.value = ''
+      assessmentTotalScore.value = null
+      elementsStore.HideLoadingOverlay()
+      elementsStore.ShowOverlay(response.data.message, 'green', null, null)
     }
-    else if (response.status === 201){
-      formErrorMessage.value = response.data.ms
+    else if (typeSelected.value === 'exams'){
+      const response = await axiosInstance.post('teacher/exams', formData)
+      const examSubject = userAuthStore.teacherData.studentsExams[classIndex]['exams'].fin(item => item['subject'] === subjectSelected.value)
+      if (examSubject){
+        const examSubjectIndex = userAuthStore.teacherData.studentsExams[classIndex]['exams'].indexOf(examSubject)
+        userAuthStore.teacherData.studentsExams[classIndex]['exams'][examSubjectIndex]['total_score'] = examsTotalScore.value
+      }
+      elementsStore.HideLoadingOverlay()
+      examsTotalScore.value = null
+      subjectSelected.value = null
+      elementsStore.ShowOverlay(response.data.message, 'green', null, null)
     }
   }
-  catch(e){
-    formErrorMessage.value = 'Oops! something went wrong'
-    return Promise.reject(e)
-  }
-  finally{
-    loading.value = false
-    clearMessage()
+  catch (error){
+    elementsStore.HideLoadingOverlay()
+    if (error instanceof AxiosError){
+      if(error.response){
+        if (error.response.status === 400 && error.response.data.message){
+          elementsStore.ShowOverlay(error.response.data.message, 'red', null, null)
+        }else{
+          elementsStore.ShowOverlay('Oops! something went wrong. Try again later', 'red', null, null)
+        }
+      }
+      else if (!error.response && (error.code === 'ECONNABORTED' || !navigator.onLine)){
+        elementsStore.ShowOverlay('A network error occurred! Please check you internet connection', 'red', null, null)
+      }
+      else{
+        elementsStore.ShowOverlay('An unexpected error occurred!', 'red', null, null)
+      }
+    }
   }
 }
 
-const checkInput = computed(()=>{
-  return !(date.value)
-})
+const checkResultUpload = ()=>{
+  let uploadResults = true
+  const assessmentClass = userAuthStore.teacherData.studentsAssessments.find(item => item['class_name'] === className)
+  if (assessmentClass){
+    const assessmentSubject = assessmentClass['assignments'].find(item => item['subject'] === subjectSelected.value)
+    if (assessmentSubject){
+      assessmentSubject['assessments'].forEach(item =>{
+        if (item['students_without_assessment'].length > 0){
+          uploadResults = false
+          resultUploadErrorType.value = item['title']
+        }
+      })
+    }
+  }
+  if (uploadResults){
+    const examClass = userAuthStore.teacherData.studentsAssessments.find(item => item['class_name'] === className)
+    if (examClass){
+      const examSubject = examClass['exams'].find(item => item['subject'] === subjectSelected.value)
+      if (examSubject?.students_without_exam?.length > 0){
+        uploadResults = false
+        resultUploadErrorType.value = 'exams'
+      }
+    }
+  }
+  return uploadResults
+}
 
-const closeOverlay = ()=>{
+const generateResults = async()=>{
   formErrorMessage.value = ''
-  formSuccessMessage.value = ''
-  selectedStudents.value = null
-  date.value = ''
-
-  const overlay = document.getElementById('studentAttendanceOverlay')
-  overlay ? overlay.style.display = 'none' : null
-
-  const overlayTwo = document.getElementById('teacherSubjectsOverlay')
-  overlayTwo ? overlayTwo.style.display = 'none' : null
+  loading.value = true
+  if (!checkResultUpload){
+    if (resultUploadErrorType.value === 'exams'){
+      showErrorMessage(`You have not uploaded the ${subjectSelected.value} exam data for some of the students in this class. Please ensure you do so before proceeding.`)
+      return;
+    }else{
+      showErrorMessage(`For assessment with title "${resultUploadErrorType.value}" under ${subjectSelected.value}, you have not uploaded the assessment data for some students in this class. Please ensure you do so before proceeding.`)
+    }
+  }
+  let totalAssessmentPercentage = 0
+  let validInput:any = 1
+  const resultsData:any = {'examsPercentage': examsPercentage.value, 'assessments': []}
+  const assessmentsAllSubject = assessmentsAll.value.find(item => item['subject'] === subjectSelected.value)
+  if (assessmentsAllSubject){
+    const assessmentsAllSubjectIndex = assessmentsAll.value.indexOf(assessmentsAllSubject)
+    assessmentsAll.value[assessmentsAllSubjectIndex]['assessments'].forEach(item =>{
+      item['percentage'] ? totalAssessmentPercentage += item['percentage'] : validInput = null
+      resultsData['assessments'].push(item)
+    })
+  }
+  if (!validInput || examsPercentage.value <= 0){
+    showErrorMessage("All the values(percentages) must be greater than 0")
+    return;
+  }
+  else if ((totalAssessmentPercentage + examsPercentage.value) !== 100){
+    showErrorMessage("The total percentage must be 100. Ensure that the assessments, along with the exam percentage, add up to 100.")
+    return;
+  }
+  resultsData['totalAssessmentPercentage'] = totalAssessmentPercentage
+  loading.value = false
+  const formData = new FormData()
+  formData.append('year', userAuthStore.activeAcademicYear)
+  formData.append('term', userAuthStore.activeTerm)
+  formData.append('studentsClassName', className)
+  formData.append('subject', subjectSelected.value)
+  formData.append('resultsData', JSON.stringify(resultsData))
+  formData.append('type', 'createResults')
+  elementsStore.ShowLoadingOverlay()
+  try{
+    const response = await axiosInstance.post('teacher/students-result', formData)
+    const assessmentSubject = userAuthStore.teacherData.studentsAssessments[classIndex]['assignments'].find(item => item['subject'] === subjectSelected.value)
+    if (assessmentSubject){
+      const assessmentSubjectIndex = userAuthStore.teacherData.studentsAssessments[classIndex]['assignments'].indexOf(assessmentSubject)
+      console.log(assessmentsAllSubject)
+      if (assessmentsAllSubject['assessments']?.length > 0){
+        assessmentsAllSubject['assessments'].forEach(item =>{
+          const assessmentTitle = assessmentSubject['assessments'].find(title => title['title'] === item['title'])
+          if (assessmentTitle){
+            const assessmentTitleIndex = assessmentSubject['assessments'].indexOf(assessmentTitle)
+            userAuthStore.teacherData.studentsAssessments[classIndex]['assignments'][assessmentSubjectIndex]['assessments'][assessmentTitleIndex]['percentage'] = item['percentage']
+          }
+        })
+      }
+    }
+    const examSubject = userAuthStore.teacherData.studentsExams[classIndex]['exams'].find(item => item['subject'] === subjectSelected.value)
+    if (examSubject){
+      const examSubjectIndex = userAuthStore.teacherData.studentsExams[classIndex]['exams'].indexOf(examSubject)
+      userAuthStore.teacherData.studentsExams[classIndex]['exams'][examSubjectIndex]['percentage'] = examsPercentage.value
+    }
+    const resultSubject = userAuthStore.teacherData.studentsResults[classIndex]['results'].find(item => item['subject'] === subjectSelected.value)
+    if (resultSubject){
+      const resultSubjectIndex = userAuthStore.teacherData.studentsResults[classIndex]['results'].indexOf(resultSubject)
+      userAuthStore.teacherData.studentsResults[classIndex]['results'][resultSubjectIndex]['exam_percentage'] = response.data['exam_percentage']
+      userAuthStore.teacherData.studentsResults[classIndex]['results'][resultSubjectIndex]['total_assessment_percentage'] = response.data['total_assessment_percentage']
+      userAuthStore.teacherData.studentsResults[classIndex]['results'][resultSubjectIndex]['student_results'] = response.data['student_results']
+    }
+    clearAsessmentPercentages()
+    subjectSelected.value = null
+    examsPercentage.value = null
+    elementsStore.HideLoadingOverlay()
+    elementsStore.ShowOverlay('Operation Successful', 'green', null, null)
+  }
+  catch (error){
+    elementsStore.HideLoadingOverlay()
+    if (error instanceof AxiosError){
+      if(error.response){
+        if (error.response.status === 400 && error.response.data.message){
+          elementsStore.ShowOverlay(error.response.data.message, 'red', null, null)
+        }else{
+          elementsStore.ShowOverlay('Oops! something went wrong. Try again later', 'red', null, null)
+        }
+      }
+      else if (!error.response && (error.code === 'ECONNABORTED' || !navigator.onLine)){
+        elementsStore.ShowOverlay('A network error occurred! Please check you internet connection', 'red', null, null)
+      }
+      else{
+        elementsStore.ShowOverlay('An unexpected error occurred!', 'red', null, null)
+      }
+    }
+  }
 }
 
-watch(()=> userAuthStore.teacherData.currentCourseWork, (newValue, oldValue)=>{
-  if (newValue){
-    const students_data:any = ref([])
-    newValue['students_class']['students'].forEach(item =>{
-      students_data.value.push({'name': `${item['user']['first_name']} ${item['user']['last_name']}`, 'st_id': item['st_id']})
-    })
-    students.value = students_data.value
-    className.value = newValue['students_class']['name']
-    subjects.value = newValue['subjects']
+const isAssessmentExamsFormValid = computed(()=>{
+  if (typeSelected.value === 'assessments'){
+    return !(subjectSelected.value && assessmentTitle.value && assessmentTotalScore.value && assessmentDate.value)
+  }
+  else if (typeSelected.value === 'exams'){
+    return !(examsTotalScore.value)
+  }
+  else {
+    return true;
   }
 })
 
+const isResultsFormValid = computed(()=>{
+  return !(examsPercentage.value)
+})
+
+const showOverlay = (element:string)=>{
+  const overlay = document.getElementById(element)
+  overlay ? overlay.style.display = 'flex' : null
+}
+
+const clearAsessmentPercentages = ()=>{
+  assessmentsAll.value.forEach(item =>{
+    item.assessments.forEach(_asesss =>{
+      _asesss.percentage = null
+    })
+  })
+}
+const closeOverlay = (element:string)=>{
+  formErrorMessage.value = ''
+  subjectSelected.value = null
+  assessmentTitle.value = ''
+  typeSelected.value = ''
+  assessmentTotalScore.value = null
+  assessmentDescription.value = ''
+  examsTotalScore.value = null
+  examsPercentage.value = null
+  assessmentDate.value = ''
+  if (element === `teacherStudentsResultsCreationOverlay${className}${classIndex}`){
+    clearAsessmentPercentages()
+  }
+  const overlay = document.getElementById(element)
+  overlay ? overlay.style.display = 'none' : null
+}
+
+students.forEach(item =>{
+  item['gender'].toLowerCase() === 'male' ? maleStudents.value += 1 : null
+  item['gender'].toLowerCase() === 'female' ? femaleStudents.value += 1 : null
+})
 
 
 </script>
 
 <template>
-  <div class="content-wrapper">
-    <TeacherStudentsResultsUpload v-if="className && students && subjects" :students="students" :className="className" :subjects="subjects" />
-    <div id="teacherSubjectsOverlay" class="overlay" v-if="userAuthStore.teacherData.currentCourseWork">
-      <div class="info-container">
-        <v-btn @click="closeOverlay()" color="red" size="small" class="close-btn">X</v-btn>
-        <div class="flex-all-c mt-15 mb-5">
-          <h3 style="color: green; font-size: .9rem; font-family: monospace">SUBJECT(S) ASSIGNED TO THIS CLASS [{{ userAuthStore.teacherData.currentCourseWork['subjects'].length }}]</h3>
-          <p class="teacher-subject" v-for="(subject, index) in userAuthStore.teacherData.currentCourseWork['subjects']" :key="index">
-            {{ subject['name'] }}
+  <div class="content-wrapper" v-show="elementsStore.activePage === `TeacherCoursework,${className},${classIndex}`" >
+    <div :id="`teacherSubjectsOverlay${className}${classIndex}`" class="overlay" v-if="subjects.length >0 ">
+      <div class="overlay-card">
+        <v-btn @click="closeOverlay(`teacherSubjectsOverlay${className}${classIndex}`)" color="red" size="small" variant="flat" class="close-btn">X</v-btn>
+        <div class="overlay-card-info-container">
+          <h3 class="mb-5" style="color: green; font-size: .9rem; font-family: monospace">SUBJECT(S) ASSIGNED TO THIS CLASS [{{ subjects.length }}]</h3>
+          <p class="teacher-subject" v-for="(_subject, index) in subjects" :key="index">
+            {{ _subject }}
           </p>
         </div>
       </div>
     </div>
 
-    <div id="studentAttendanceOverlay" class="overlay" v-if="userAuthStore.teacherData.currentCourseWork">
-      <div class="card" style="position: relative">
-          <v-btn @click="closeOverlay()" :disabled="loading" color="red" size="small" class="close-btn flex-all">X</v-btn>
-          <h2 class="info mt-5"><strong>CLASS: </strong>{{userAuthStore.teacherData.currentCourseWork['students_class']['name']}}</h2>
-          <h2 v-if="formSuccessMessage" class="form-message" style="color: green">{{formSuccessMessage}}</h2>
-          <h2 v-if="formErrorMessage" class="form-message" style="color: red">{{formErrorMessage}}</h2>
-          
-          <v-text-field
-          label="DATE"
-          class="input-field"
-          v-model="date"
-          hint="select the date for the class attendance"
-          persistent-hint
-          clearable
-          variant="outlined"
-          type="date"
-          density="compact"
-          />
-
-          <v-select :disabled="loading" v-if="userAuthStore.teacherData.currentCourseWork" clearable multiple chips v-model="selectedStudents" class="select" label="STUDENTS" 
-          :items="userAuthStore.teacherData.currentCourseWork['students_class']['students']" item-title="user.last_name" item-value="st_id" persistent-hint hint="Select the students who did not attend class for the specified date">
-            <template v-slot:item="{ props, item }">
-                <v-list-item v-bind="props" :subtitle="item.raw.user.first_name"></v-list-item>
-            </template>
-          </v-select>
-          
-          <v-btn :loading="loading" :disabled="checkInput" @click="uploadAttendance" size="small" color="green"  class="mt-5" type="submit">UPLOAD</v-btn>
+      <!-- assessment/exams creation overlay -->
+    <div :id="`teacherAssessmentExamsCreationOverlay${className}${classIndex}`" class="overlay upload" v-if="userAuthStore.teacherData.courseWork?.length >0 ">
+      <div class="overlay-card">
+        <v-btn @click="closeOverlay(`teacherAssessmentExamsCreationOverlay${className}${classIndex}`)" color="red" size="small" variant="flat" class="close-btn">X</v-btn>
+        <p class="form-message" v-if="formErrorMessage" style="color: red">{{formErrorMessage}}</p>
+        <div class="overlay-card-info-container">
+          <h4 class="info-text">CLASS: <span class="info-text-value">{{ className }}</span></h4>
         </div>
+        <div class="overlay-card-content-container">
+          <v-select class="select" :items="typeOptions" label="SELECT" v-model="typeSelected" item-title="label" item-value="value" variant="solo-filled" density="comfortable" persistent-hint hint="Select whether you want to create assessment or exam"/>
+          <v-select class="select" :items="subjects" label="SUBJECT" v-model="subjectSelected" variant="solo-filled" density="comfortable" persistent-hint hint="Select the subject you want to create the assessment for"/>
+          <v-text-field class="input-field" v-if="typeSelected === 'assessments'" v-model="assessmentTitle" label="TITLE" variant="solo-filled" placeholder="Eg. History Essay: The Impact of World War II" density="comfortable" persistent-hint hint="Enter a title for the assessment" />
+          <v-text-field class="input-field" v-if="typeSelected === 'assessments'" v-model="assessmentDescription" label="DESCRIPTION(OPTIONAL)" placeholder="Eg. Examines WWII's effects on politics and society." density="comfortable" variant="solo-filled" persistent-hint hint="Enter a description for the assessment" />
+          <v-text-field class="input-field" v-if="typeSelected === 'assessments'" v-model.number="assessmentTotalScore" label="TOTAL SCORE" placeholder="Eg. 40" density="comfortable" type="number" variant="solo-filled" persistent-hint hint="Enter the total score of the assessment" />
+          <v-text-field class="input-field" v-if="typeSelected === 'assessments'" v-model="assessmentDate" label="DATE" density="comfortable" type="date" variant="solo-filled" persistent-hint hint="Select the date the assessment was conducted" />
+          <v-text-field class="input-field" v-if="typeSelected === 'exams'" v-model.number="examsTotalScore" label="TOTAL SCORE" placeholder="Eg. 40" density="comfortable" type="number" variant="solo-filled" persistent-hint hint="Enter the total score of the exam" />
+        </div>
+        <div class="overlay-card-action-btn-container">
+          <v-btn @click="createAssessmentAndExam" :disabled="isAssessmentExamsFormValid" :ripple="false" variant="flat" type="submit" color="black" size="small" append-icon="mdi-checkbox-marked-circle">SUBMIT</v-btn>
+        </div>
+      </div>
     </div>
+    
+    <!-- results creation overlay -->
+    <div :id="`teacherStudentsResultsCreationOverlay${className}${classIndex}`" class="overlay upload" v-if="userAuthStore.teacherData.courseWork?.length >0 ">
+      <div class="overlay-card">
+        <v-btn :disabled="loading" @click="closeOverlay(`teacherStudentsResultsCreationOverlay${className}${classIndex}`)" color="red" size="small" variant="flat" class="close-btn">X</v-btn>
+        <p class="form-message" v-if="formErrorMessage" style="color: red">{{formErrorMessage}}</p>
+        <div class="overlay-card-info-container">
+          <h4 class="info-text">CLASS: <span class="info-text-value">{{ className }}</span></h4>
+        </div>
+        <div class="overlay-card-content-container">
+          <v-select class="select" :items="subjects" label="SUBJECT" v-model="subjectSelected" variant="solo-filled" density="comfortable" persistent-hint hint="Select the subject for the results"/>
+          <div v-for="(_subject, index) in assessmentsAll" :key="index">
+            <div v-if="_subject['subject'] === subjectSelected">
+              <v-text-field class="input-field" v-for="(_assessment, ind) in _subject['assessments']" :key="ind" v-model.number="_assessment.percentage" :label="_assessment['title']" type="number" placeholder="Eg. 20" variant="solo-filled" density="comfortable" persistent-hint hint="Enter the percentage you want this assessment to contribute to the overall results" />
+            </div>
+          </div>
+          <v-text-field v-if="subjectSelected" class="input-field" v-model.number="examsPercentage" label="EXAMS PERCENTAGE" placeholder="Eg. 30" density="comfortable" type="number" variant="solo-filled" persistent-hint hint="Enter the percentage you want the exams to contribute to the overall results" />
+        </div>
+        <div class="overlay-card-action-btn-container">
+          <v-btn @click="generateResults" :loading="loading" :disabled="isResultsFormValid" :ripple="false" variant="flat" type="submit" color="black" size="small" append-icon="mdi-checkbox-marked-circle">SUBMIT</v-btn>
+        </div>
+      </div>
+    </div>
+
     <TheLoader v-if="!userAuthStore.teacherData.courseWork" />
-    <div class="no-data" v-if="userAuthStore.teacherData.courseWork && !userAuthStore.teacherData.currentCourseWork">
+    <div class="no-data" v-if="userAuthStore.teacherData.courseWork?.length ===0 ">
       <p>YOU HAVE NOT BEEN ASSIGNED TO A CLASS YET</p>
     </div>
-    <div class="info-wrapper" v-if="userAuthStore.teacherData.currentCourseWork">
-      <div class="flex-all">
+    <div class="content-header title" v-if="students.length >0 ">
+      <h4 class="content-header-title">{{ className }}</h4>
+    </div>
+    <div class="content-header" v-if="students.length >0 ">
+      <div class="content-header-text">
         TOTAL NUMBER OF STUDENTS:
-        <h4 class="ml-2">
-          {{ userAuthStore.teacherData.currentCourseWork['students_class']['students'].length }}
-        </h4>
+        <span class="content-header-text-value">
+          {{ students.length }}
+        </span>
       </div>
-      <div class="flex-all">
-        <v-btn @click="showOverlay('subjects')" class="ma-1" color="blue" size="small">SUBJECT(S)</v-btn>
-        <v-btn @click="showOverlay('attendance')" class="ma-1" v-if="userAuthStore.teacherData.currentCourseWork['students_class']['head_teacher']['user']['username'] === userAuthStore.userData['username'] " color="blue" size="small">UPLOAD ATTENDANCE</v-btn>
+      <div class="content-header-text">
+        MALE STUDENTS:
+        <span class="content-header-text-value">
+          {{ maleStudents }} [{{ ((maleStudents/students.length)*100).toFixed(1) }}%]
+        </span>
       </div>
-      <div class="flex-all-c">
-        <v-btn @click="showOverlay('results')" class="ma-1" color="blue" size="small">UPLOAD ASSESSMENT/EXAMS</v-btn>
+      <div class="content-header-text">
+        FEMALE STUDENTS:
+        <span class="content-header-text-value">
+          {{ femaleStudents }} [{{ ((femaleStudents/students.length)*100).toFixed(1) }}%]
+        </span>
       </div>
     </div>
-    <v-table fixed-header class="table" v-if="userAuthStore.teacherData.currentCourseWork">
+    <div class="content-header btn-container" v-if="students.length >0 ">
+      <v-btn @click="showOverlay(`teacherSubjectsOverlay${className}${classIndex}`)" class="ma-1" color="blue" :size="elementsStore.btnSize1">
+        SUBJECT(S)
+      </v-btn>
+      <v-btn @click="showOverlay(`teacherAssessmentExamsCreationOverlay${className}${classIndex}`)" class="ma-1" color="blue" :size="elementsStore.btnSize1">
+        CREATE ASSESSMENT/EXAM
+      </v-btn>
+      <v-btn @click="showOverlay(`teacherStudentsResultsCreationOverlay${className}${classIndex}`)" class="ma-1" color="blue" :size="elementsStore.btnSize1">
+        GENERATE RESULTS
+      </v-btn>
+    </div>
+    <v-table fixed-header class="table" v-if="students.length >0 ">
       <thead>
       <tr>
         <th class="table-head">NAME</th>
@@ -171,8 +463,8 @@ watch(()=> userAuthStore.teacherData.currentCourseWork, (newValue, oldValue)=>{
       </tr>
       </thead>
       <tbody>
-      <tr v-for="(st, i) in userAuthStore.teacherData.currentCourseWork['students_class']['students']" :key="i">
-        <td class="table-data">{{st['user']['first_name']}} {{st['user']['last_name']}}</td>
+      <tr v-for="(st, index) in students" :key="index">
+        <td class="table-data">{{st['name']}}</td>
         <td class="table-data">{{st['gender']}}</td>
         <td class="table-data"><img class="profile-img" :src="st['img']"></td>
       </tr>
@@ -182,35 +474,25 @@ watch(()=> userAuthStore.teacherData.currentCourseWork, (newValue, oldValue)=>{
 </template>
 
 <style scoped>
-
-.info-wrapper{
-  height: 20% !important;
-  flex-wrap: wrap !important;
+.content-header{
+  min-height: 20% !important;
+}
+.title{
+  min-height: 10% !important;
+}
+.btn-container{
+  min-height: 15% !important;
 }
 .table{
-  height: 80% !important;
+  height: 55% !important;
 }
-.overlay{
-  position: absolute !important;
-  background: rgba(0, 0, 0, .5) !important;
-  top: 0 !important;
-  left: 0 !important;
+.overlay-card{
+  height: max-content!important;
+  max-width: 500px !important;
+}
+.overlay-card-info-container{
   height: 100% !important;
-  width: 100% !important;
-  z-index: 10 !important;
-  align-items: center !important;
-  justify-content: center !important;
-  display: none;
-}
-.info-container{
-  position: relative;
-  width: 95%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  background-color: white;
-  border-radius: .3em;
-  max-width: 500px;
+  margin-top: 4em !important;
 }
 .teacher-subject{
   color: white;
@@ -222,59 +504,58 @@ watch(()=> userAuthStore.teacherData.currentCourseWork, (newValue, oldValue)=>{
   border-radius: .2em;
   font-size: .8rem;
 }
-.card{
-  background-color: white;
-  padding: .5em 1em;
-  border-radius: .3em;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 95%;
-  height: 80%;
-  max-width: 800px;
-  max-height: 700px;
+.upload .overlay-card{
+  max-width: 700px !important;
+  height: 90% !important;
+  max-height: 600px !important;
+}
+.upload .overlay-card-info-container{
+  height: 10% !important;
+}
+.upload .overlay-card-content-container{
+  height: 60% !important;
 }
 
-.info{
-  font-size: 1rem;
-  text-align: center;
-  font-family: Verdana, Geneva, Tahoma, sans-serif;
+@media screen and (min-width: 450px) {
+  .content-header{
+    min-height: 15% !important;
+  }
+  .btn-container, .title{
+    min-height: 10% !important;
+  }
+  .table{
+    height: 65% !important;
+  }
 }
-
-.info strong{
-  font-size: 1rem;
-  color: seagreen
+@media screen and (min-width: 480px) {
+  .content-header-text{
+    font-size: .75rem !important;
+  }
 }
-.form-message{
-  font-size: .8rem;
-  margin-top: 1em;
-  text-align: center;
-  border: 1px solid;
-  text-transform: uppercase;
-  padding: .1em 1em;
+@media screen and (min-width: 576px) {
+  .content-header-text{
+    font-size: .8rem !important;
+  }
 }
-
-.select{
-  font-weight: bold;
-  margin-top: 2em;
-  color: black;
-  min-width: 300px  !important;
-  width: 80% !important;
-  margin-bottom: 1em;
-  max-height: 100px !important;
-  overflow-y: auto !important;
+@media screen and (min-width: 767px) {
+  .content-header-text{
+    font-size: .9rem !important;
+  }
 }
-
-.input-field{
-  color: black;
-  font-weight: bold;
-  margin-top: 2em;
-  width: 220px !important;
-  max-height: 100px !important;
-  font-size: .7rem;
-  font-family:monospace;
+@media screen and (min-width: 1200px) {
+  .content-header-text{
+    font-size: 1rem !important;
+  }
+  .content-header, .btn-container{
+    min-height: 15% !important;
+  }
+  .title{
+    min-height: 10% !important;
+  }
+  .table{
+    height: 60% !important;
+  }
 }
-
 
 
 </style>
