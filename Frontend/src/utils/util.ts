@@ -22,6 +22,26 @@ export const sleep = (ms: number): Promise<void> => {
     return new Promise(resolve => setTimeout(resolve, ms));
 };
 
+// download a file sent from django using django's FileRsponse 
+export const downloadFile = (responseHeaders:any, responseData:any, defaultFileName:string) => {
+    const url = window.URL.createObjectURL(new Blob([responseData]))
+    const link = document.createElement('a')
+    link.href = url
+    let fileName = defaultFileName
+    const contentDisposition = responseHeaders['content-disposition']
+    if (contentDisposition){
+        const match = contentDisposition.match(/filename="(.+)"/)
+        if (match){
+            fileName = match[1]
+        }
+    }
+    link.setAttribute('download', fileName)
+    document.body.appendChild(link)
+    link.click()
+    window.URL.revokeObjectURL(url)
+    link.remove()
+};
+
 export const getWeeksInMonth = (year: number, month: number): WeekAttendance[] => {
     const firstDay = new Date(year, month, 1);
     const lastDay = new Date(year, month + 1, 0);

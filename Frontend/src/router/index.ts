@@ -60,28 +60,31 @@ const checkStudent = async (to: any, from: any, next: NavigationGuardNext) => {
     if (to.path !== '/') {
       return next('/')
     }
-  } 
-  else if (userAuthStore.userData?.['role'] === 'student') {
+  } else if (userAuthStore.userData?.['role'] === 'student') {
     if (!userAuthStore.studentData.subjects) {
       userAuthStore.getStudentData()
     }
-  } 
-  else if (userAuthStore.userData?.['role']?.toLowerCase() === 'staff') {
-    if (!userAuthStore.staffData.courseWork && ['teacher', 'hod'].includes(userAuthStore.userData['staff_role'].toLowerCase())) {
+  } else if (userAuthStore.userData?.['role']?.toLowerCase() === 'staff') {
+    if (
+      !userAuthStore.staffData.courseWork &&
+      ['teacher', 'hod'].includes(
+        userAuthStore.userData['staff_role'].toLowerCase(),
+      )
+    ) {
       userAuthStore.getstaffData()
       userAuthStore.getTeacherStudentsAssessments()
       userAuthStore.getTeacherStudentsExams()
       userAuthStore.getTeacherStudentResults()
-      if (userAuthStore.userData?.['staff_role'].toLowerCase() === 'hod'){
+      if (userAuthStore.userData?.['staff_role'].toLowerCase() === 'hod') {
         userAuthStore.getHodData()
       }
-    }
-    else if (userAuthStore.userData?.['staff_role'].toLowerCase() === 'admin') {
+    } else if (
+      userAuthStore.userData?.['staff_role'].toLowerCase() === 'administrator'
+    ) {
       userAuthStore.getAdminData()
     }
     next('/staff')
-  } 
-  else {
+  } else {
     if (to.path !== '/') {
       return next('/')
     }
@@ -97,20 +100,25 @@ const checkStaff = async (to: any, from: any, next: NavigationGuardNext) => {
     if (to.path !== '/') {
       return next('/')
     }
-  } 
-  if (!userAuthStore.staffData.courseWork && ['teacher', 'hod'].includes(userAuthStore.userData['staff_role'].toLowerCase())) {
+  }
+  if (
+    !userAuthStore.staffData.courseWork &&
+    ['teacher', 'hod'].includes(
+      userAuthStore.userData['staff_role'].toLowerCase(),
+    )
+  ) {
     userAuthStore.getstaffData()
     userAuthStore.getTeacherStudentsAssessments()
     userAuthStore.getTeacherStudentsExams()
     userAuthStore.getTeacherStudentResults()
-    if (userAuthStore.userData?.['staff_role'].toLowerCase() === 'hod'){
+    if (userAuthStore.userData?.['staff_role'].toLowerCase() === 'hod') {
       userAuthStore.getHodData()
     }
-  }
-  else if (userAuthStore.userData?.['staff_role'].toLowerCase() === 'admin') {
+  } else if (
+    userAuthStore.userData?.['staff_role'].toLowerCase() === 'administrator'
+  ) {
     userAuthStore.getAdminData()
-  }
-  else if (userAuthStore.userData?.['role'] === 'student') {
+  } else if (userAuthStore.userData?.['role'] === 'student') {
     if (!userAuthStore.studentData.subjects) {
       userAuthStore.getStudentData()
     }

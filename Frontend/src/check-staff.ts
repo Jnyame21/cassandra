@@ -3,7 +3,7 @@ export default defineNuxtRouteMiddleware((to, from) => {
     const userAuthStore = useUserAuthStore()
     if (
       userAuthStore.userData?.['role'] === 'staff' &&
-      userAuthStore.userData['staff_role'] != 'admin' &&
+      userAuthStore.userData['staff_role'] != 'administrator' &&
       !userAuthStore.staffData?.courseWork
     ) {
       userAuthStore.getstaffData()
@@ -24,7 +24,7 @@ export default defineNuxtRouteMiddleware((to, from) => {
     //     userAuthStore.getNotifications()
     // }
 
-    // if (userAuthStore.userData['staff_role']==='admin' && !userAuthStore.adminClasses.yearOne ){
+    // if (userAuthStore.userData['staff_role']==='administrator' && !userAuthStore.adminClasses.yearOne ){
     //     userAuthStore.getAdminData()
     //     userAuthStore.getNotifications()
     // }

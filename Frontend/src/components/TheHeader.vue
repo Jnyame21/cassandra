@@ -43,7 +43,7 @@ window.addEventListener('resize', ()=>{
       <img @click.stop="elementsStore.drawer =!elementsStore.drawer" class="user-img" :src="userAuthStore.userData['img']">
     </div>
     <div class="flex-all" style="text-align: center;" >
-      <p v-if="userAuthStore.userData" class="year-info">ACADEMIC CALENDAR: {{userAuthStore.activeAcademicYear}} {{userAuthStore.userData['academic_year']['period_division']['name']}} {{userAuthStore.activeTerm}}</p>
+      <p v-if="userAuthStore.userData" class="year-info">ACADEMIC CALENDAR: {{userAuthStore.activeAcademicYear}} {{userAuthStore.userData['academic_year']['period_division']}} {{userAuthStore.activeTerm}}</p>
     </div>
     <div class="flex-all">
       <v-icon @click="showMessage" class="notice" color="yellow" icon="mdi-bell"/>

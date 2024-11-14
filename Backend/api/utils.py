@@ -6,8 +6,10 @@ from api.serializer import *
 from django.conf import settings
 from rest_framework.response import Response
 from django.core.files.storage import default_storage
+import re
 
 # Document Manipulation
+from openpyxl import Workbook, load_workbook, styles
 from docx import Document
 from docx.shared import Inches, Pt, RGBColor
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT, WD_ALIGN_PARAGRAPH
@@ -16,7 +18,10 @@ from docx.oxml.ns import qn
 from docx.enum.style import WD_STYLE_TYPE
 from docx.oxml.shared import OxmlElement
 
-
+import phonenumbers
+from phonenumbers import NumberParseException
+from staticfiles.files import country_info
+from countryinfo import CountryInfo
 
 # Base url
 def base_url(value):
@@ -24,7 +29,103 @@ def base_url(value):
     host = value.get_host()
     return f"{scheme}://{host}"
 
+def valid_phone_number(number:str):
+    try:
+        phone_number = phonenumbers.parse(number, None)
+        if not phonenumbers.is_valid_number(phone_number):
+            return False
+    except NumberParseException:
+        return False
+    return True
 
+
+class ErrorMessageException(Exception):
+    def __init__(self, message):
+        self.message = message
+        super().__init__(self.message)
+    def __str__(self) -> str:
+        return self.message
+        
+        
+def get_country_from_nationality(nationality:str):
+    try:
+        country = country_info.nationality_to_country[nationality.title()]
+        return country
+    except Exception:
+        return None
+    
+    
+def validate_nationality(nationality:str):
+    try:
+        country = country_info.nationality_to_country[nationality.title()]
+    except Exception:
+        return False
+    return True
+
+
+def get_country_regions(country:str):
+    try:
+        regions = CountryInfo(country.title()).provinces()
+        return regions
+    except Exception:
+        return None
+    
+
+def validate_country_region(country:str, region:str):
+    try:
+        regions = CountryInfo(country.title()).provinces()
+        if region.title() not in regions:
+            return False
+    except Exception:
+        return False
+    return True
+    
+        
+def format_staff_creation_file(staff):
+    excel_file = None
+    department_options = None
+    unlocked_cell_range = None
+    subjects = Subject.objects.filter(schools=staff.school)
+    subject_options = ""
+    for _subj in subjects:
+        subject_options += f"{_subj.name.capitalize()}, "
+    
+    if staff.school.staff_id and staff.school.has_departments:
+        excel_file = f"staticfiles/files/staff-creation-file-with-staff_id-with-department.xlsx"
+        unlocked_cell_range = 'A11:R111'
+        departments = Department.objects.filter(school=staff.school)
+        department_options = ""
+        for _dept in departments:
+            department_options += f"{_dept.name.capitalize()}, "
+        
+    elif staff.school.staff_id and not staff.school.has_departments:
+        excel_file = f"staticfiles/files/staff-creation-file-with-staff_id-without-department.xlsx"
+        unlocked_cell_range = 'A10:Q110'
+        
+    elif not staff.school.staff_id and staff.school.has_departments:
+        excel_file = f"staticfiles/files/staff-creation-file-without-staff_id-with-department.xlsx"
+        unlocked_cell_range= 'A11:Q111'
+    
+    elif not staff.school.staff_id and not staff.school.has_departments:
+        excel_file = f"staticfiles/files/staff-creation-file-without-staff_id-without-department.xlsx"
+        unlocked_cell_range = 'A10:P110'
+    
+    wb = load_workbook(excel_file)
+    ws = wb.worksheets[0]
+    ws['B4'] = subject_options
+    if department_options:
+        ws['B5'] = department_options
+    for row in ws[unlocked_cell_range]:
+        for cell in row:
+            cell.protection = styles.Protection(locked=False)
+            
+    ws.protection.sheet = True
+    byte_file = io.BytesIO()
+    wb.save(byte_file)
+    byte_file.seek(0)
+    
+    return byte_file
+    
 def get_school_folder(school_name: str):
     name = school_name.replace(".", "_").replace(" ", "_").replace("'", "").lower()
     return name
@@ -77,28 +178,28 @@ def get_student_transcript(student, request):
     top_bar_paragraph.paragraph_format.element.get_or_add_pPr().append(top_bar_shd)
 
     # School logo
-    sch_logo = doc.add_paragraph()
-    sch_logo.add_run().add_picture(f"media/{get_school_folder(student_data['school']['name'])}/images/{get_school_folder(student_data['school']['name'])}_logo.png", height=Inches(1.0))
+    logo = doc.add_paragraph()
+    logo.add_run().add_picture(f"media/{get_school_folder(student_data['school']['name'])}/images/{get_school_folder(student_data['school']['name'])}_logo.png", height=Inches(1.0))
     # if os.environ['DJANGO_SETTINGS_MODULE'].split('.')[1] == 'development':
-    #     sch_logo.add_run().add_picture(f"media/{get_school_folder}/images/{get_school_folder}_logo.png", height=Inches(1.0))
+    #     logo.add_run().add_picture(f"media/{get_school_folder}/images/{get_school_folder}_logo.png", height=Inches(1.0))
     # try:
-    #     sch_logo.add_run().add_picture(f"{student_data['school']['sch_logo'].replace('https://storage.googleapis.com/cassandra-bkt/', '')}", height=Inches(1.0))
+    #     logo.add_run().add_picture(f"{student_data['school']['logo'].replace('https://storage.googleapis.com/cassandra-bkt/', '')}", height=Inches(1.0))
     # except Exception as e:
     #     print(e)
     # if settings.DEBUG:
-    #     sch_logo.add_run().add_picture(f"{student_data['school']['sch_logo']}", height=Inches(1.0))
+    #     logo.add_run().add_picture(f"{student_data['school']['logo']}", height=Inches(1.0))
     # else:
-    #     sch_logo.add_run().add_picture(f"{student_data['school']['sch_logo'].replace(f'{base_url(request)}/media/', '')}", height=Inches(1.0))
+    #     logo.add_run().add_picture(f"{student_data['school']['logo'].replace(f'{base_url(request)}/media/', '')}", height=Inches(1.0))
     
-    sch_logo.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
-    sch_logo.paragraph_format.space_before = Pt(20)
-    sch_logo.paragraph_format.space_after = Pt(0)
+    logo.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+    logo.paragraph_format.space_before = Pt(20)
+    logo.paragraph_format.space_after = Pt(0)
     # School Logo Shade
     logo_shd = OxmlElement('w:shd')
     logo_shd.set(qn('w:val'), 'clear')
     logo_shd.set(qn('w:color'), 'auto')
     logo_shd.set(qn('w:fill'), 'FFF6D3')
-    sch_logo.paragraph_format.element.get_or_add_pPr().append(logo_shd)
+    logo.paragraph_format.element.get_or_add_pPr().append(logo_shd)
 
     sch_name = doc.add_paragraph(f"{student_data['school']['name']}")
     sch_address = doc.add_paragraph(student_data['school']['address'])

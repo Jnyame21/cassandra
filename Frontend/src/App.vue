@@ -156,7 +156,7 @@ const continueDeletion = ()=>{
       </div>
 
       <RouterView/>
-      <TheLoader v-if="!userAuthStore.userData"/>
+      <TheLoader :func="userAuthStore.getUserData" v-if="!userAuthStore.userData"/>
     </div>
     </v-app>
 </template>
@@ -166,8 +166,8 @@ div:hover{
   cursor: default;
 }
 .overlay-card{
+  max-width: 95% !important;
   width: fit-content !important;
-  height: fit-content !important;
 }
 .overlay-text{
   margin-top: 1em;

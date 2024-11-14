@@ -5,7 +5,10 @@ from django.db.utils import IntegrityError as IntergrityError_unique_constraint
 from django.core.files.storage import default_storage
 from django.core.exceptions import SuspiciousOperation
 from django.core.exceptions import ValidationError
+from django.core.validators import EmailValidator
 from django.utils import timezone
+from django.http import FileResponse
+from django.forms import DateField
 
 
 # Document Manipulation
@@ -15,11 +18,13 @@ from openpyxl import Workbook, load_workbook
 
 from api.models import *
 from api.serializer import *
+from collections import defaultdict
 import random
-import re
 import io
 from datetime import datetime
+import time
 import json
+from api.utils import format_staff_creation_file, ErrorMessageException, valid_phone_number, validate_nationality, validate_country_region, get_country_from_nationality, get_country_regions
 
 # Django Restframework
 from rest_framework.decorators import api_view, permission_classes
@@ -47,7 +52,7 @@ def school_admin_data(request):
             programs_data = ProgramNameSerializer(Program.objects.filter(schools=school), many=True).data
             programs = [_program['name'] for _program in programs_data]
             
-        staff = StaffSerializerOne(Staff.objects.filter(school=school, is_active=True), many=True).data
+        staff = StaffSerializerOne(Staff.objects.filter(school=school, is_active=True).order_by('-date_created'), many=True).data
         subjects = SubjectsSerializer(Subject.objects.filter(schools=school), many=True).data
         subject_names = [_subject['name'] for _subject in subjects]
         
@@ -224,7 +229,7 @@ def school_admin_academic_years(request):
         except AcademicYear.DoesNotExist:
             with transaction.atomic():
                 try:
-                    repeated_students = Student.objects.filter(school=school, st_id__in=repeated_students_ids)
+                    repeated_students = Student.objects.filter(school=school, st_id__in=repeated_students_ids).distint()
                     all_repeated_students = []
                     for _student in repeated_students:
                         _student.repeated = True
@@ -400,13 +405,23 @@ def admin_staff(request):
     sch_admin = request.user.staff
     school = sch_admin.school
     
-    if data['type'] == 'create':
+    if data['type'] == 'createWithoutFile':
         department = None
         staff_id = None
         first_name = data['firstName']
         last_name = data['lastName']
         role = data['role']
         gender = data['gender']
+        img =  data['img'] if data['img'] else None
+        contact = data['contact']
+        address = data['address']
+        date_enrolled = data['dateEnrolled']
+        region = data['region']
+        religion = data['religion']
+        alt_contact = data['altContact']
+        pob = data['pob']
+        email = data['email']
+        nationality = data['nationality']
         subjects = json.loads(data['subjects'])
         dob = data['dateOfBirth']
         if school.has_departments:
@@ -415,7 +430,7 @@ def admin_staff(request):
         user_no = random.randint(100, 999)
         username = f"{data['firstName'].replace(' ', '')[0].upper()}{data['lastName'].replace(' ', '').lower()}{user_no}"
         if school.staff_id:
-            staff_id = data['staffId']
+            staff_id = data['staff_id']
         else:
             staff_id = username
         
@@ -430,288 +445,369 @@ def admin_staff(request):
                     first_name=first_name,
                     last_name=last_name,
                 )
-                user.save()
-                staff_user = User.objects.get(username=username)
                 staff_obj = Staff.objects.create(
-                    user=staff_user,
+                    user=user,
                     staff_id=staff_id,
                     department=department,
                     role=role,
                     gender=gender,
                     dob=dob,
                     school=school,
+                    alt_contact=alt_contact,
                     is_active=True,
+                    contact=contact,
+                    address=address,    
+                    email=email,
+                    region=region,
+                    religion=religion,
+                    pob=pob,
+                    date_enrolled=date_enrolled,
+                    nationality=nationality,
+                    img=img,
                 )
                 subjects_objs = Subject.objects.filter(schools=school, name__in=subjects).distinct()
                 staff_obj.subjects.set(subjects_objs)
+                user.save()
+                staff_obj.save()
+                if department:
+                    department.teachers.add(staff_obj)
+                    department.save()
 
-            except IntegrityError:
-                return Response({'message': 'A user with these details already exists'}, status=400)
+            except Exception as e:
+                print(e)
+                transaction.set_rollback(True)
+                return Response(status=400)
+        
+        staff_data = StaffSerializerOne(Staff.objects.get(school=school, staff_id=staff_id)).data
+        return Response(staff_data, status=200)
+
+    elif data['type'] == 'setDepartmentHOD':
+        staff_hod = Staff.objects.select_related('department').get(school=school, staff_id=data['staffId'])
+        department = Department.objects.prefetch_related('teachers').get(school=school, name=data['department'])
+        previous_hod_id = None
+        if staff_hod not in department.teachers.all():
+            transaction.set_rollback(True)
+            return Response({'message': f"The staff you selected is not in the {department} department"}, status=400)
+        
+        with transaction.atomic():
+            try:
+                if department.hod:
+                    previous_hod = department.hod
+                    previous_hod.role = 'teacher'
+                    previous_hod_id = previous_hod.staff_id
+                    previous_hod.save()
+                department.hod = staff_hod
+                staff_hod.role = 'hod'
+                department.save()
+                staff_hod.save()
+            except:
+                transaction.set_rollback(True)
+                return Response(status=400) 
+            
+        return Response({'previous_hod_id': previous_hod_id}, status=200) 
+            
+    elif data['type'] == 'getFile':
+        filepath = format_staff_creation_file(sch_admin)
+        filename = 'staff-creation-file.xlsx'
+        response = FileResponse(filepath, as_attachment=True, filename=filename)
+        response['Content-Type'] = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        response['Access-Control-Expose-Headers'] = 'Content-Disposition'
+        return response            
+
+    elif data['type'] == 'createWithFile':
+        setting_up_start_time = time.time()
+        df = None
+        title_options = ['Mr', 'Miss', 'Mrs', 'Dr', 'Prof', 'Rev', 'Sir', 'Hon', 'Madam', 'Pastor', 'Imam', 'Bishop', 'Archbishop']
+        role_options = ['teacher', 'hod', 'head master', 'head mistress', 'assistant head master', 'assistant head mistress', 'head of academics', 'assistant head of academics', 'administrator']
+        religion_options = ['Christianity', 'Islam', 'Traditional African Religions', 'Buddhism', 'Hinduism', 'Sikhism', 'Judaism', 'Other', 'None']
+        skipped_rows = 0
+        date_field = DateField()
+        email_validator = EmailValidator()
+        staff_to_create_ids = set()
+        existing_staff_ids = []
+        users_to_create = []
+        staff_to_create = []
+        staff_instances = []
+        staff_departments = []
+        staff_subjects_mappings = defaultdict(list)
+        created_staff = []
+        try:
+            if school.has_departments:
+                df = pd.read_excel(data['file'], header=0, sheet_name=0, skiprows=8)
+                skipped_rows = 8
+            else:
+                df = pd.read_excel(data['file'], header=0, sheet_name=0, skiprows=7)
+                skipped_rows = 7
+                
+            df = df.drop(index=0)
+            df = df.dropna(how='all')
+        except Exception as e:
+            return Response({'message': 'Invalid file! Make sure you upload the excel file you generated'}, status=400)
+        
+        if school.staff_id:
+            existing_staff_ids = [x.staff_id for x in Staff.objects.filter(school=school, is_active=True)]
+        def show_error_message(label_name:str, column_name:str, row_idx:int):
+            return f"The {label_name} cannot be empty! Check the value in the '{column_name}' column in row {row_idx+2+skipped_rows}"
+        
+        def get_data(row, type:str):
+            first_name = row['FIRST NAME'].strip().title() if row['FIRST NAME'] else None
+            last_name = row['LAST NAME (MIDDLE NAME + SURNAME)'].strip().title() if row['LAST NAME (MIDDLE NAME + SURNAME)'] else None
+            title = row['TITLE'].strip().replace('.', '').title() if row['TITLE'] else None
+            staff_id = row['STAFF ID'].strip() if school.staff_id and row.get('STAFF ID') else None
+            gender = row['GENDER'].strip().lower() if row['GENDER'] else None
+            dob = row['DATE OF BIRTH'].strip() if row['DATE OF BIRTH'] else None
+            role = row['ROLE'].strip().lower() if row['ROLE'] else None
+            subjects = row['SUBJECT(S)'].strip() if row['SUBJECT(S)'] else None
+            department = row['DEPARTMENT'].strip() if school.has_departments and row.get('DEPARTMENT') else None
+            date_enrolled = row['DATE EMPLOYED(OPTIONAL)'].strip() if row['DATE EMPLOYED(OPTIONAL)'] else None
+            religion = row['RELIGION'].strip().title() if row['RELIGION'] else None
+            nationality = row['NATIONALITY'].strip().title() if row['NATIONALITY'] else None
+            region = row['REGION/STATE'].strip() if row['REGION/STATE'] else None
+            pob = row['PLACE OF BIRTH'].strip() if row['PLACE OF BIRTH'] else None
+            contact = row['PHONE NUMBER'].strip()
+            alt_contact = row['SECOND PHONE NUMBER(OPTIONAL)'].strip() if row['SECOND PHONE NUMBER(OPTIONAL)'] else None
+            address = row['RESIDENTIAL ADDRESS'].strip() if row['RESIDENTIAL ADDRESS'] else None
+            email = row['EMAIL(OPTIONAL)'].strip() if row['EMAIL(OPTIONAL)'] else None
+            if not first_name:
+                error_message = show_error_message(first_name, 'first name', 'FIRST NAME', index)
+                raise ErrorMessageException(error_message)
+            elif not last_name:
+                error_message = show_error_message(last_name, 'last name', 'LAST NAME', index)
+                raise ErrorMessageException(error_message)
+            elif not gender:
+                error_message = show_error_message(gender, 'gender', 'GENDER', index)
+                raise ErrorMessageException(error_message)
+            elif gender not in ['male', 'female']:
+                error_message = f"'{gender}' is not a valid gender! Check the value in the 'GENDER' column in row {index+2+skipped_rows}. Valid values are {['Male', 'Female']}"
+                raise ErrorMessageException(error_message)
+            elif not dob:
+                error_message = show_error_message(dob, 'date of birth', 'DATE OF BIRTH', index)
+                raise ErrorMessageException(error_message)
+            elif not title:
+                error_message = show_error_message(title, 'title', 'TITLE', index)
+                raise ErrorMessageException(error_message)
+            elif title not in title_options:
+                error_message = f"'{title}' is not a valid title! Check the value in the 'TITLE' column in row {index+2+skipped_rows}. Valid values are {title_options}"
+                raise ErrorMessageException(error_message)
+            elif school.staff_id and not staff_id:
+                error_message = show_error_message(title, 'title', 'TITLE', index)
+                raise ErrorMessageException(error_message)
+            elif not role:
+                error_message = show_error_message(role, 'role', 'ROLE', index)
+                raise ErrorMessageException(error_message)
+            elif role not in role_options:
+                error_message = f"'{role}' is not a valid role! Check the value in the 'ROLE' column in row {index+2+skipped_rows}. Valid values are {[x.title() for x in role_options]}"
+                raise ErrorMessageException(error_message)
+            elif school.has_departments and not department:
+                error_message = show_error_message(department, 'department', 'DEPARTMENT', index)
+                raise ErrorMessageException(error_message)
+            elif not religion:
+                error_message = show_error_message(religion, 'religion', 'RELIGION', index)
+                raise ErrorMessageException(error_message)
+            elif religion not in religion_options:
+                error_message = f"'{religion}' is not a valid religion! Check the value in the 'RELIGION' column in row {index+2+skipped_rows}. Valid values are {religion_options}"
+                raise ErrorMessageException(error_message)
+            elif not nationality:
+                error_message = show_error_message(nationality, 'nationality', 'NATIONALITY', index)
+                raise ErrorMessageException(error_message)
+            elif not validate_nationality(nationality):
+                error_message = f"'{nationality}' is not a valid nationality! Check the value in the 'NATIONALITY' column in row {index+2+skipped_rows}."
+                raise ErrorMessageException(error_message)
+            elif not region:
+                error_message = show_error_message(region, 'region', 'REGION/STATE', index)
+                raise ErrorMessageException(error_message)
+            elif not validate_country_region(get_country_from_nationality(nationality), region):
+                error_message = f"'{region}' is not a valid region/state in {nationality}! Check the value in the 'REGION/STATE' column in row {index+2+skipped_rows}."
+                raise ErrorMessageException(error_message)
+            elif not pob:
+                error_message = show_error_message(pob, 'place of birth', 'PLACE OF BIRTH', index)
+                raise ErrorMessageException(error_message)
+            elif not contact :
+                error_message = show_error_message(contact, 'phone number', 'PHONE NUMBER', index)
+                raise ErrorMessageException(error_message)
+            elif not valid_phone_number(contact):
+                error_message = f"'{contact}' is not a valid phone number! Check the value in the 'PHONE NUMBER' column in row {index+2+skipped_rows}."
+                raise ErrorMessageException(error_message)
+            elif alt_contact and not valid_phone_number(alt_contact):
+                error_message = f"'{alt_contact}' is not a valid phone number! Check the value in the 'SECOND PHONE NUMBER' column in row {index+2+skipped_rows}."
+                raise ErrorMessageException(error_message)
+            elif not address :
+                error_message = show_error_message(address, 'residential addresss', 'RESIDENTIAL ADDRESS', index)
+                raise ErrorMessageException(error_message)
+            
+            try:
+                dob = datetime.strptime(dob, "%d-%m-%Y").strftime("%Y-%m-%d")
+                date_field.clean(dob)
+            except Exception:
+                error_message = f"'{dob}' is not a valid date! Check the value in the 'DATE OF BIRTH' column in row {index+2+skipped_rows}."
+                raise ErrorMessageException(error_message)
+            
+            if school.staff_id:
+                if staff_id in staff_to_create_ids:
+                    error_message = f"Two staff cannot have the same staff ID. The staff ID in row {index+2+skipped_rows} conflicts with another staff ID on the sheet"
+                    raise ErrorMessageException(error_message)
+                elif staff_id in existing_staff_ids:
+                    error_message = f"Staff with ID '{staff_id}' already exists. Check the staff ID in row {index+2+skipped_rows}"
+                    raise ErrorMessageException(error_message)
+            else:
+                staff_id = username
+                    
+            if date_enrolled:
+                try:
+                    date_enrolled = datetime.strptime(date_enrolled, "%d-%m-%Y").strftime("%Y-%m-%d")
+                    date_field.clean(date_enrolled)
+                except Exception:
+                    error_message = f"'{date_enrolled}' is not a valid date! Check the value in the 'DATE EMPLOYED(OPTIONAL)' column in row {index+2+skipped_rows}."
+                    raise ErrorMessageException(error_message)
+                    
+            if email:
+                try:
+                    email_validator(email)
+                except Exception:
+                    error_message = f"'{email}' is not a valid email address! Check the value in the 'EMAIL(OPTIONAL)' column in row {index+2+skipped_rows}."
+                    raise ErrorMessageException(error_message)
+            
+            if subjects:
+                try:
+                    subjects_objs = Subject.objects.filter(schools=school, name__in=[x.strip().upper() for x in subjects.split(',')]).distinct()
+                    if len(subjects_objs) == 0:
+                        raise(ValueError)
+                    else:
+                        subjects = subjects_objs
+                except Exception as e:
+                    error_message = f"'{subjects}' is/are not a valid subject(s)! Check the value in the 'SUBJECT(S)' column in row {index+2+skipped_rows}."
+                    raise ErrorMessageException(error_message)
+                    
+            if school.has_departments:
+                try:
+                    department = Department.objects.get(school=school, name=department.strip().upper())
+                except Exception as e:
+                    error_message = f"'{department}' is not a valid department! Check the value in the 'DEPARTMENT' column in row {index+2+skipped_rows}."
+                    raise ErrorMessageException(error_message)
+            
+            user_no = random.randint(100, 999)
+            username = f"{first_name.replace(' ', '')[0].upper()}{last_name.replace(' ', '').lower()}{user_no}"
+            if type == 'user':
+                return {
+                    'first_name': first_name,
+                    'last_name': last_name,
+                    'username': username,
+                }
+            elif type == 'staff':
+                return {
+                    'staff_id': staff_id,
+                    'title': f"{title.title()}.",
+                    'department': department,
+                    'role': role,
+                    'gender': gender,
+                    'subjects': subjects,
+                    'dob': dob,
+                    'date_enrolled': date_enrolled,
+                    'religion': religion,
+                    'region': region,
+                    'nationality': nationality,
+                    'pob': pob,
+                    'contact': contact,
+                    'alt_contact': alt_contact,
+                    'email': email,
+                    'address': address,
+                }
+            else:
+                raise Exception("The type must be either 'user' or 'staff'")
+
+        setting_up_end_time = time.time()
+        print(f"Setting up time takend: {setting_up_end_time - setting_up_start_time}")
+        
+        with transaction.atomic():
+            try:
+                user_start_time = time.time()
+                for index, row in df.iterrows():
+                    user_data = get_data(row, 'user')
+                    staff_data = get_data(row, 'staff')
+                    user = User(
+                        username=user_data['username'],
+                        first_name=user_data['first_name'],
+                        last_name=user_data['last_name'],
+                    )
+                    user.set_password(user_data['username'])
+                    users_to_create.append(user)
+                    staff_to_create.append((user_data['username'], staff_data))
+                    staff_to_create_ids.add(staff_data['staff_id'])
+                    
+                User.objects.bulk_create(users_to_create)
+                created_users = User.objects.filter(username__in=[user.username for user in users_to_create])
+                user_mapping = {user.username: user for user in created_users}
+                user_end_time = time.time()
+                print(f"User creation time: {user_end_time - user_start_time}")
+                staff_start_time = time.time()
+                for username, staff_data in staff_to_create:
+                    user = user_mapping[username]
+                    staff = Staff(
+                        user=user,
+                        school=school,
+                        staff_id=staff_data['staff_id'],
+                        title=staff_data['title'],
+                        department=staff_data['department'],
+                        role=staff_data['role'],
+                        gender=staff_data['gender'],
+                        dob=staff_data['dob'],
+                        date_enrolled=staff_data['date_enrolled'],
+                        religion=staff_data['religion'],
+                        region=staff_data['region'],
+                        nationality=staff_data['nationality'],
+                        pob=staff_data['pob'],
+                        contact=staff_data['contact'],
+                        alt_contact=staff_data['alt_contact'],
+                        email=staff_data['email'],
+                        address=staff_data['address'],
+                        is_active=True,
+                    )
+                    staff_subjects_mappings[staff_data['staff_id']] = staff_data['subjects']
+                    staff_instances.append(staff)
+                    if school.has_departments and staff_data['department']:
+                        staff_departments.append(staff_data['department'])
+        
+                Staff.objects.bulk_create(staff_instances)
+                created_staff = Staff.objects.select_related('department').filter(school=school, staff_id__in=staff_to_create_ids)
+                staff_end_time = time.time()
+                print(f"Staff creation time: {staff_end_time - staff_start_time}")
+                
+                for _staff in created_staff:
+                    staff_subjects = staff_subjects_mappings[_staff.staff_id]
+                    if staff_subjects:
+                        _staff.subjects.set(staff_subjects)
+                    if _staff.department and _staff.department in staff_departments:
+                        department_index = staff_departments.index(_staff.department)
+                        staff_departments[department_index].teachers.add(_staff)
+            
+            except ErrorMessageException as e:
+                return Response({'message': str(e)}, status=400)
+            except Exception as e:
+                    transaction.set_rollback(True)
+                    print(e)
+                    return Response(status=400)
+        
+        staff_data = StaffSerializerOne(created_staff, many=True).data
+        return Response(staff_data, status=200)
+
+    elif data['type'] == 'delete':
+        staff_to_delete = Staff.objects.get(school=school, staff_id=data['staffId'])
+        user = staff_to_delete.user
+        if SubjectAssignment.objects.filter(school=school, teacher=staff_to_delete).exists():
+            return Response({'message': "You don't have permission to delete this staff"}, status=400)
+        
+        students_classes = Classe.objects.filter(school=school)
+        for _class in students_classes:
+            if _class.head_teacher == staff_to_delete:
+                return Response({'message': "You don't have permission to delete this staff"}, status=400)
+        
+        with transaction.atomic():
+            try:
+                user.delete()
+                staff_to_delete.delete()
             except Exception as e:
                 transaction.set_rollback(True)
                 return Response(status=400)
-
-            
-
-            try:
-                if isinstance(data['subjects'], str):
-                    subjects = data['subjects'].split(',')
-                    print(subjects)
-                    for subject in subjects:
-                        if subject != '':
-                            subject_obj = Subject.objects.get(schools=sch_admin.school, name=subject)
-                            try:
-                                if subject_obj in department.subjects.all():
-                                    stf_obj.subjects.add(subject_obj)
-                                else:
-                                    raise SuspiciousOperation
-
-                            except SuspiciousOperation:
-                                transaction.set_rollback(True)
-                                return Response({'ms': f"The {department_name} department does not teach {subject}"},
-                                                status=201)
-
-                elif isinstance(data['subjects'], list):
-                    for subject in data['subjects']:
-                        subject_obj = Subject.objects.get(name=subject)
-                        try:
-                            if subject_obj in department.subjects:
-                                stf_obj.subjects.add(subject_obj)
-                            else:
-                                raise SuspiciousOperation
-
-                        except SuspiciousOperation:
-                            transaction.set_rollback(True)
-                            return Response({'ms': f"The {department_name} department does not teach {subject}"},
-                                            status=201)
-
-                stf_obj.save()
-
-                staff_obj = Staff.objects.get(staff_id=data['staffId'])
-                department.teachers.add(staff_obj)
-                department.save()
-
-                response_staff = SpecificStaffSerializer(staff_obj).data
-                return Response({
-                    'ms': 'Teacher successfully created and saved',
-                    'staff': response_staff,
-                    'department_name': department_data['name'],
-                })
-
-            except IntegrityError:
-                return Response({'ms': 'Staff with these details already exists'}, status=201)
-
-    elif data['type'] == 'get-staff-file':
-        sch_admin_data = StaffSerializer(sch_admin).data
-        department_name = data['departmentName']
-        if Department.objects.filter(school=sch_admin.school, name=department_name).exists():
-            wb = load_workbook('staticfiles/files/create_staff.xlsx')
-            ws = wb.worksheets[0]
-            filename = f"{department_name}.xlsx"
-            ws.title = department_name
-            byte_file = io.BytesIO()
-            wb.save(byte_file)
-
-            if settings.DEBUG:
-                file_path = f"{get_school_folder(sch_admin_data['school']['name'])}/staff/{sch_admin_data['user']['username']}/{filename}"
-                if default_storage.exists(file_path):
-                    default_storage.delete(file_path)
-
-                save_file = default_storage.save(file_path, byte_file)
-
-                return Response({
-                    'filename': f"{filename}.xlsx",
-                    'file_path': f"http://localhost:8000{default_storage.url(save_file)}",
-                })
-
-            else:
-                file_path = f"{get_school_folder(sch_admin_data['school']['name'])}/staff/{sch_admin_data['user']['username']}/{filename}"
-                if default_storage.exists(file_path):
-                    default_storage.delete(file_path)
-
-                save_file = default_storage.save(file_path, byte_file)
-
-                return Response({
-                    'filename': f"{filename}.xlsx",
-                    'file_path': default_storage.url(save_file),
-                })
-
-    elif data['type'] == 'upload-staff-file':
-        department_name = data['departmentName']
-        wb = load_workbook(data['file'])
-        if department_name == wb.sheetnames[0]:
-            wb.close()
-            df = pd.read_excel(data['file'], sheet_name=department_name)
-            df_data = df.iloc[3:, :6].dropna().values.tolist()
-
-            existing_staff = Staff.objects.filter(school=sch_admin.school,
-                                                  staff_id__in=[stf[2] for stf in df_data]).first()
-            if existing_staff:
-                return Response({
-                    'ms': f"Staff with ID [ {SpecificStaffSerializer(existing_staff).data['staff_id']} ] already exists"},
-                    status=201)
-
-            with transaction.atomic():
-                staff_ids = []
-                department = Department.objects.get(school=sch_admin.school, name=department_name)
-                user_no = random.randint(100, 999)
-
-                for stf in df_data:
-                    username = f"{stf[0].replace(' ', '')[0].upper()}{stf[1].replace(' ', '').lower()}{user_no}"
-                    user = User.objects.create_user(
-                        username=username,
-                        password=username,
-                        first_name=stf[0].upper(),
-                        last_name=stf[1].upper(),
-                    )
-                    user.save()
-
-                    staff_user = User.objects.get(username=username)
-
-                    if str(stf[3]).upper() == 'MALE' or str(stf[3]).upper() == 'FEMALE':
-                        pass
-
-                    else:
-                        transaction.set_rollback(True)
-                        return Response({
-                            'ms': f"{stf[3]} is not a valid gender. Valid values are 'MALE' or 'FEMALE'. Recheck the gender for {stf[0]} {stf[1]} in the file"},
-                            status=201)
-
-                    try:
-                        stf_obj = Staff.objects.create(
-                            user=staff_user,
-                            staff_id=stf[2],
-                            role='teacher',
-                            department=department,
-                            gender=stf[3].upper(),
-                            dob=stf[4],
-                            school=sch_admin.school
-                        )
-
-                    except IntergrityError_unique_constraint:
-                        return Response({
-                            'ms': f"{stf[0]} {stf[1]}'s staff ID matches with another teacher's staff ID. Recheck that the ID {stf[2]} is unique in the file"
-                        }, status=201)
-
-                    except ValidationError:
-                        transaction.set_rollback(True)
-                        return Response({
-                            'ms': f"{stf[4]} is not a valid date, Recheck the date of birth of {stf[0]} {stf[1]} in the file"},
-                            status=201)
-
-                    subjects = stf[5].split(',')
-                    for subject in subjects:
-                        try:
-                            subject_obj = Subject.objects.get(schools=sch_admin.school, name=subject.strip().upper())
-                            if subject_obj in department.subjects.all():
-                                stf_obj.subjects.add(subject_obj)
-                            else:
-                                raise SuspiciousOperation
-
-                        except Subject.DoesNotExist:
-                            transaction.set_rollback(True)
-                            return Response({
-                                'ms': f"{subject} is not a valid subject name. Recheck the subject(s) for {stf[0]} {stf[1]} in the file"
-                            }, status=201)
-
-                        except SuspiciousOperation:
-                            transaction.set_rollback(True)
-                            return Response({
-                                'ms': f"The {department_name} department does not teach {subject}. Recheck the subject(s) of {stf[0]} {stf[1]}"
-                            }, status=201)
-
-                    stf_obj.save()
-
-                    staff_ids.append(stf[2])
-
-                for staff_id in staff_ids:
-                    staff_obj = Staff.objects.get(school=sch_admin.school, staff_id=staff_id)
-                    department.teachers.add(staff_obj)
-
-                department.save()
-
-            department_data = DepartmentSerializer(Department.objects.get(school=sch_admin.school, name=department_name)).data
-            return Response({
-                'ms': 'File uploaded and teachers saved successfully',
-                'data': department_data,
-            })
-
-        else:
-            return Response({'ms': 'The first sheet name must be the same as the selected department'}, status=201)
-
-    elif data['type'] == 'delete-staff':
-        staff_data = SpecificStaffSerializer(Staff.objects.get(school=sch_admin.school, staff_id=data['staffId'])).data
-        user = User.objects.get(username=staff_data['user']['username'])
-        with transaction.atomic():
-            # delete user object
-            user.delete()
-            teacher = Staff.objects.get(staff_id=data['staffId'])
-            department = Department.objects.get(school=sch_admin.school, teachers=teacher)
-            # remove staff from department
-            department.teachers.remove(teacher)
-            department.save()
-            # delete staff object
-            teacher.delete()
-
-        return Response({
-            'department_name': DepartmentSerializer(department).data['name'],
-        })
-
-
-@api_view(['POST'])
-@permission_classes([IsAuthenticated])
-def admin_head(request):
-    data = request.data
-    sch_admin = request.user.staff
-    if data['type'] == 'create-head':
-        user_no = random.randint(100, 999)
-        username = f"{data['firstName'].replace(' ', '')[0].upper()}{data['lastName'].replace(' ', '').lower()}{user_no}"
-
-        if Head.objects.filter(school=sch_admin.school, head_id=data['headId']).exists():
-            return Response({'ms': f"Head with ID [ {data['headId']} ] already exists"}, status=201)
-
-        with transaction.atomic():
-            try:
-                user = User.objects.create_user(
-                    username=username,
-                    password=username,
-                    first_name=data['firstName'].upper(),
-                    last_name=data['lastName'].upper(),
-                )
-                user.save()
-
-            except IntegrityError:
-                return Response({'ms': 'A user with these details already exists'}, status=201)
-
-            head_user = User.objects.get(username=username)
-            head_obj = Head.objects.create(
-                user=head_user,
-                head_id=data['headId'],
-                role=data['role'].lower().replace(' ', '_'),
-                gender=data['gender'].upper(),
-                dob=data['dob'].upper(),
-                school=sch_admin.school
-            )
-
-            try:
-                head_obj.save()
-
-                new_head = Head.objects.get(head_id=data['headId'])
-
-                response_head = HeadSerializer(new_head).data
-                return Response(response_head)
-
-            except IntegrityError:
-                return Response({'ms': 'Head with these details already exists'}, status=201)
-
-    elif data['type'] == 'delete-head':
-        head = Head.objects.select_related('user').get(school=sch_admin.school, head_id=data['headId'])
-        user = User.objects.get(username=head.user.username)
-        with transaction.atomic():
-            # delete user object
-            user.delete()
-            # delete head object
-            head.delete()
 
         return Response(status=200)
 
@@ -720,111 +816,100 @@ def admin_head(request):
 @permission_classes([IsAuthenticated])
 def admin_students(request):
     sch_admin = request.user.staff
+    school = sch_admin.school
     data = request.data
     
-    if data['type'] == 'create-class':
-        program = Program.objects.get(name=data['program'])
-        academic_year = AcademicYear.objects.get(school=sch_admin.school, name=data['year'])
-        class_name = f"{data['year'].split('/')[0]}-{data['className'].replace(' ', '-')}"
-        program_data = ProgramSerializer(program).data
-        students_year = int(data['studentsYear'])
-        program_subjects = [sub['name'] for sub in program_data['subjects']]
-        subjects = data['subjects'].split(',')
+    if data['type'] == 'createWithoutFile':
+        first_name = data['firstName']
+        last_name = data['lastName']
+        dob = data['dob']
+        contact = data['contact']
+        address = data['address']
+        guardian_contact = data['guardianContact']
+        guardian_address = data['guardianAddress']
+        guardian_email = data['guardianEmail']
+        guardian_nationality = data['guardianNationality']
+        guardian_occupation = data['guardianOccupation']
+        date_enrolled = data['dateEnrolled']
+        img = data['img']
+        email = data['email']
+        gender = data['gender']
+        nationality = data['nationality']
+        guardian_fullname = data['guardianFullname']
+        guardian_gender = data['guardianGender']
+        religion = data['religion']
+        region = data['region']
+        pob = data['pob']
+        student_id = None
+        user_no = random.randint(100, 999)
+        username = f"{first_name.replace(' ', '')[0].upper()}{last_name.replace(' ', '').lower()}{user_no}"
+        
+        if school.students_id:
+            student_id = data['studentId']
+        else:
+            student_id = username
 
         try:
-            Classe.objects.get(school=sch_admin.school, name=class_name.upper())
-            return Response({'ms': 'Class with this name already exists'}, status=201)
-
-        except Classe.DoesNotExist:
-            for subject in subjects:
-                if subject not in program_subjects:
-                    return Response({'ms': f"Students enrolled in {data['program']} do not study {subject}"},
-                                    status=201)
-
-            with transaction.atomic():
-                clas = Classe.objects.create(
-                    school=sch_admin.school,
-                    program=program,
-                    name=class_name.upper(),
-                    students_year=students_year,
-                    date_enrolled=data['enrollmentDate'],
-                    completion_date=data['completionDate']
-                )
-
-                clas.academic_years.add(academic_year)
-                for subject in subjects:
-                    if subject != '':
-                        subject_obj = Subject.objects.get(schools=sch_admin.school, name=subject)
-                        clas.subjects.add(subject_obj)
-
-                clas.save()
-
-                new_class = ClasseWithSubjectsSerializer(Classe.objects.get(school=sch_admin.school, name=class_name.upper())).data
-                return Response({
-                    'ms': "Class successfully created",
-                    'new_class': new_class,
-                    'class_name': f"{class_name.upper()} FORM-{new_class['students_year']}"
-                })
-
-    elif data['type'] == 'input-student':
-        class_name = data['className'].split()[0]
-        clas = Classe.objects.select_related('program').get(school=sch_admin.school, name=class_name)
-        class_data = ClasseSerializer(clas).data
-
-        user_no = random.randint(100, 999)
-        username = f"{data['firstName'].replace(' ', '')[0].upper()}{data['lastName'].replace(' ', '').lower()}{user_no}"
-
-        existing_student_ids = set(Student.objects.filter(
-            school=sch_admin.school,
-        ).values_list('st_id', flat=True))
-
-        st_id = data['studentId']
-        if st_id in existing_student_ids:
-            return Response({'ms': f'Student with ID {st_id} already exists'}, status=201)
-
+            Student.objects.get(school=school, st_id=student_id)
+            return Response({'message': f'Student with ID {student_id} already exists'}, status=400)
+        except Student.DoesNotExist:
+            pass
+        
+        years_to_complete = school.level.years_to_complete
+        academic_years = AcademicYear.objects.filter(school=school).order_by('-start_date')
+        current_year = academic_years[0]
+        student_class = Classe.objects.select_related('program').get(school=school, name=data['className'])
         with transaction.atomic():
             try:
                 user = User.objects.create_user(
                     username=username,
                     password=username,
-                    first_name=data['firstName'].upper(),
-                    last_name=data['lastName'].upper(),
+                    first_name=first_name,
+                    last_name=last_name,
                 )
+                student_obj = Student.objects.create(
+                    school=school,
+                    user=user,
+                    program=student_class.program,
+                    st_class=student_class,
+                    current_year=student_class.students_year,
+                    st_id=student_id,
+                    gender=gender,
+                    date_enrolled=date_enrolled,
+                    dob=dob,
+                    img=img if img else None,
+                    contact=contact,
+                    email=email,
+                    address=address,
+                    nationality=nationality,
+                    pob=pob,
+                    graduation_date=current_year.students_graduation_date if student_class.students_year == years_to_complete else None,
+                    religion=religion,
+                    region=region,
+                    guardian=guardian_fullname,
+                    guardian_address=guardian_address,
+                    guardian_gender=guardian_gender,
+                    guardian_contact=guardian_contact,
+                    guardian_email=guardian_email,
+                    guardian_occupation=guardian_occupation,
+                    guardian_nationality=guardian_nationality,
+                )
+                academic_year_count = 0
+                for _year in range(student_class.students_year):
+                    student_obj.academic_years.add(academic_years[academic_year_count])
+                    academic_year_count += 1
+                
+                student_class.students.add(student_obj)
                 user.save()
-
-            except IntegrityError:
-                return Response({'ms': 'A user with these details already exists'}, status=201)
-
-            st_user = User.objects.get(username=username)
-
-            student = Student.objects.create(
-                user=st_user,
-                program=clas.program,
-                st_class=clas,
-                current_year=class_data['students_year'],
-                date_enrolled=class_data['date_enrolled'],
-                st_id=st_id,
-                gender=data['gender'].upper(),
-                dob=data['dob'].upper(),
-                school=sch_admin.school
-            )
-
-            try:
-                student.save()
-                st_obj = Student.objects.get(school=sch_admin.school, st_id=st_id)
-                clas.students.add(st_obj)
-                clas.save()
-
-                response_student = SpecificStudentSerializer(st_obj).data
-                return Response({
-                    'ms': 'student successfully created and saved',
-                    'student': response_student,
-                    'year': 'yearOne' if class_data['students_year'] == 1 else ('yearTwo' if class_data['students_year'] == 2 else 'yearThree'),
-                    'class_name': class_data['name'],
-                })
-
-            except IntegrityError:
-                return Response({'ms': 'student with these details already exists'}, status=201)
+                student_obj.save()
+                student_class.save()
+           
+            except Exception as e:
+                transaction.set_rollback(True)
+                return Response(status=400)
+        
+        student_data = StudentSerializerOne(Student.objects.get(school=school, st_id=student_id)).data
+        return Response(student_data, status=200)
 
     elif data['type'] == 'get-students-file':
         sch_admin_data = StaffSerializer(sch_admin).data

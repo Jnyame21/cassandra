@@ -214,6 +214,7 @@ html, body{
   flex-direction: column !important;
   justify-content: flex-end !important;
   align-items: center !important;
+  min-width: 200px !important;
   width: 95% !important;
   height: fit-content !important;
   max-height: 95% !important;
@@ -553,9 +554,6 @@ div:hover{
     font-size: .8rem !important;
     margin: 0em 3em !important;
   }
-  .nav-list-container{
-    max-width: 300px !important;
-  }
   .nav-title{
     font-size: .9rem !important;
   }
@@ -593,8 +591,7 @@ div:hover{
   font-family: Verdana, Geneva, Tahoma, sans-serif !important;
   }
   .table-data{
-  font-size: .6rem !important;
-  text-transform: uppercase !important;
+  font-size: .65rem !important;
   font-weight: bold !important;
   text-align: center !important;
   font-family: Verdana, Geneva, Tahoma, sans-serif !important;
@@ -636,7 +633,7 @@ div:hover{
     font-size: .8rem !important;
   }
   .table-data{
-    font-size: .65em !important;
+    font-size: .7em !important;
   }
 }
 @media screen and (min-width: 767px) {
@@ -644,7 +641,7 @@ div:hover{
     font-size: .75rem !important;
   }
   .table-data{
-    font-size: .7em !important;
+    font-size: .75em !important;
   }
   .no-data{
     font-size: .9rem !important;
@@ -662,7 +659,7 @@ div:hover{
     font-size: .8rem !important;
   }
   .table-data{
-    font-size: .7em !important;
+    font-size: .8em !important;
   }
   .no-data{
     font-size: 1rem !important;
@@ -676,7 +673,7 @@ div:hover{
     font-size: .9rem !important;
   }
   .table-data{
-    font-size: .8em !important;
+    font-size: .9em !important;
   }
 }
 @media screen and (min-width: 3000px) {
@@ -684,7 +681,7 @@ div:hover{
     font-size: 1rem !important;
   }
   .table-data{
-    font-size: .9em !important;
+    font-size: 1em !important;
   }
 }
 

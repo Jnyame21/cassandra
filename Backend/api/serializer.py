@@ -4,23 +4,34 @@ from django.contrib.auth.models import User
 import os
 from django.conf import settings
 from pathlib import Path
+from Backend.production import ALLOWED_HOSTS
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-production_domain = "cassandra-o5ft.onrender.com"
+production_domain = ALLOWED_HOSTS[0]
 
 def get_image(data, type):
-    defaul_img = 'students_img.jpg' if type == 'student' else 'staff_img.jpg'
+    property_reference = 'img'
+    if type == 'student':
+        default_img = 'students_img.jpg'
+    elif type == 'staff':
+        default_img = 'staff_img.jpg'
+    elif type == 'school_logo':
+        default_img = 'school-logo.png'
+        property_reference = 'logo'
+    elif type == 'signature':
+        default_img = 'signature.png'
+    
     img = None
     if settings.DEBUG:
-        if data['img'] and data['img'] != 'null':
-            img = f"http://localhost:8000{data['img']}"
+        if data[property_reference] and data[property_reference] != 'null':
+            img = f"http://localhost:8000{data[property_reference]}"
         else:
-            img = f"http://localhost:8000/static/images/{defaul_img}"
+            img = f"http://localhost:8000/static/images/{default_img}"
     else:
-        if data['img'] and data['img'] != 'null':
-            img = data['img']
+        if data[property_reference] and data[property_reference] != 'null':
+            img = data[property_reference]
         else:
-            img = f"https://{production_domain}/static/images/{defaul_img}"
+            img = f"https://{production_domain}/static/images/{default_img}"
     
     return img
     
@@ -43,8 +54,7 @@ class SchoolSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        if settings.DEBUG:
-            data['sch_logo'] = f"http://localhost:8000{data['sch_logo']}"
+        data['logo'] = get_image(data, 'school_logo')
 
         return data
 
@@ -52,7 +62,7 @@ class SchoolSerializer(serializers.ModelSerializer):
 class SpecificSchoolSerializer(serializers.ModelSerializer):
     class Meta:
         model = School
-        fields = ('name', 'date_created')
+        fields = ('name')
 
 
 class GradingSystemSerializer(serializers.ModelSerializer):
@@ -88,13 +98,12 @@ class ProgramNameSerializer(serializers.ModelSerializer):
         model = Program
         fields = ('name',)
         
+        
 #  Student Serializers
 class StudentSerializer(serializers.ModelSerializer):
     school = SchoolSerializer()
-    user = UserSerializer()
-    level = EducationalLevelSerializer()
-    st_class = 'ClassSerializer'
-    program = ProgramNameSerializer()
+    st_class = serializers.SerializerMethodField()
+    program = serializers.SerializerMethodField()
 
     class Meta:
         model = Student
@@ -102,18 +111,17 @@ class StudentSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        if settings.DEBUG:
-            if data['img'] and data['img'] != 'null':
-                data['img'] = f"http://localhost:8000{data['img']}"
-            else:
-                data['img'] = f"http://localhost:8000/static/images/students_img.jpg"
-        else:
-            if data['img'] and data['img'] != 'null':
-                pass
-            else:
-                data['img'] = f"https://{production_domain}/static/images/students_img.jpg"
+        data['img'] = get_image(data, 'student')
 
         return data
+
+    def get_st_class(self, obj):
+        return obj.st_class.name
+    
+    def get_program(self, obj):
+        if obj.program:
+            return obj.program.name
+        return None
 
 
 class SpecificStudentSerializer(serializers.ModelSerializer):
@@ -156,9 +164,9 @@ class StudentSerializerOne(serializers.ModelSerializer):
     class Meta:
         model = Student
         fields = (
-            'user', 'st_id', 'gender', 'date_enrolled', 'index_no', 'img', 'dob', 'gender', 'nationality', 'guardian', 
-            'guardian_gender', 'guardian_nationality', 'guardian_contact', 'guardian_email', 'guardian_address'
-            )
+            'user', 'st_id', 'gender', 'date_enrolled', 'address', 'contact', 'pob', 'religion', 'region', 'index_no', 'img', 'dob', 'gender', 'nationality', 'guardian', 
+            'guardian_gender', 'guardian_nationality', 'guardian_contact', 'guardian_email', 'guardian_address', 'guardian_occupation', 'email'
+        )
         
     def get_user(self, obj):
         return obj.user.get_full_name()
@@ -177,12 +185,12 @@ class StudentNameAndIdSerializer(serializers.ModelSerializer):
         model = Student
         fields = ('user', 'st_id')    
 
+
 # Staff Serializers
 class StaffSerializer(serializers.ModelSerializer):
-    user = UserSerializer()
-    level = EducationalLevelSerializer()
     school = SchoolSerializer()
-    subjects = SubjectsSerializer(many=True)
+    subjects = serializers.SerializerMethodField()
+    department = serializers.SerializerMethodField()
 
     class Meta:
         model = Staff
@@ -190,30 +198,28 @@ class StaffSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-
-        if settings.DEBUG:
-            if data['img'] and data['img'] != 'null':
-                data['img'] = f"http://localhost:8000{data['img']}"
-            else:
-                data['img'] = f"http://localhost:8000/static/images/staff_img.jpg"
-        else:
-            if data['img'] and data['img'] != 'null':
-                pass
-            else:
-                data['img'] = f"https://{production_domain}/static/images/staff_img.jpg"
+        data['img'] = get_image(data, 'staff')
 
         return data
 
+    def get_department(self, obj):
+        if obj.department:
+            return obj.department.name
+        return None
+    
+    def get_subjects(self, obj):
+        return [_subject.name for _subject in obj.subjects.all()]
+    
 
 class SpecificStaffSerializer(serializers.ModelSerializer):
+    school = SchoolSerializer
     user = UserSerializer()
-    level = EducationalLevelSerializer()
     subjects = SubjectsSerializer(many=True)
     department = 'DepartmentNameSerializer'
 
     class Meta:
         model = Staff
-        fields = ('staff_id', 'contact', 'img', 'gender', 'user', 'subjects', 'department', 'role', 'dob', 'level', 'date_created')
+        fields = ('staff_id', 'contact', 'img', 'gender', 'user', 'subjects', 'department', 'role', 'dob', 'date_created')
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
@@ -237,16 +243,15 @@ class StaffSerializerOne(serializers.ModelSerializer):
 
     class Meta:
         model = Staff
-        fields = ('staff_id', 'contact', 'img', 'gender', 'user', 'subjects', 'department', 'role', 'dob', 'nationality')
+        fields = ('staff_id', 'contact', 'alt_contact', 'img', 'gender', 'user', 'subjects', 'department', 'role', 'dob', 'nationality', 'pob', 'region', 'religion', 'email', 'address', 'date_enrolled')
 
     def get_user(self, obj):
-        return obj.user.get_full_name()
+        return f"{obj.title} {obj.user.get_full_name()}"
     
     def get_department(self, obj):
         if obj.department:
             return obj.department.name
-        else:
-            return None
+        return None
     
     def get_subjects(self, obj):
         return [_subject.name for _subject in obj.subjects.all()]
@@ -264,13 +269,13 @@ class StaffSerializerTwo(serializers.ModelSerializer):
 
     class Meta:
         model = Staff
-        fields = ('staff_id', 'contact', 'img', 'gender', 'user', 'subjects', 'role', 'email')
+        fields = ('staff_id', 'contact', 'img', 'gender', 'user', 'subjects', 'role', 'email', 'alt_contact')
 
     def get_subjects(self, obj):
         return [_subject.name for _subject in obj.subjects.all()]
         
     def get_user(self, obj):
-        return obj.user.get_full_name()
+        return f"{obj.title} {obj.user.get_full_name()}"
     
     def to_representation(self, instance):
         data = super().to_representation(instance)
@@ -287,7 +292,7 @@ class StaffSerializerThree(serializers.ModelSerializer):
         fields = ('staff_id', 'img', 'user')
 
     def get_user(self, obj):
-        return obj.user.get_full_name()
+        return f"{obj.title} {obj.user.get_full_name()}"
     
     def to_representation(self, instance):
         data = super().to_representation(instance)
@@ -300,11 +305,10 @@ class SpecificStaffWithoutImageSerializer(serializers.ModelSerializer):
     user = UserSerializer()
     subjects = SubjectsSerializer(many=True)
     department = 'DepartmentNameSerializer'
-    level = EducationalLevelSerializer()
 
     class Meta:
         model = Staff
-        fields = ('staff_id', 'contact', 'gender', 'user', 'subjects', 'department', 'role', 'level', 'date_created')
+        fields = ('staff_id', 'contact', 'gender', 'user', 'subjects', 'department', 'role', 'date_created')
         
 
 # Department Serializers

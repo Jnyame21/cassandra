@@ -53,13 +53,13 @@ watch(() => userAuthStore.staffData.courseWork, (newValue) => {
 }, { 'once': true })
 
 watch(() => userAuthStore.userData, (newValue) => {
-  if (newValue && newValue['staff_role'].toLowerCase() === 'admin') {
+  if (newValue && newValue['staff_role'].toLowerCase() === 'administrator') {
     elementsStore.activePage = 'AdminAcademicYears'
   }
-  else if (newValue && ['teacher', 'hod'].includes(userAuthStore.userData?.['staff_role'].toLowerCase())){
+  else if (newValue && ['teacher', 'hod'].includes(userAuthStore.userData?.['staff_role'].toLowerCase())) {
     elementsStore.activePage = 'TeacherCoursework,Class,0'
   }
-}, { 'once': true , 'immediate': true})
+}, { 'once': true, 'immediate': true })
 
 const updateStaffData = async () => {
   elementsStore.ShowLoadingOverlay()
@@ -117,8 +117,8 @@ const checkInput = computed(() => {
     <v-card class="card flex-all-c">
       <v-card-title id="school-name">{{ userAuthStore.userData['school']['name'] }}</v-card-title>
       <v-card-text style="font-size: .9rem; font-family: sans-serif; text-align: left; line-height: 1.5">
-        <p style="text-align: center" class="mb-5"><strong>Welcome {{userAuthStore.userData['first_name']}}
-        {{userAuthStore.userData['last_name']}}! Update your information before you begin</strong></p>
+        <p style="text-align: center" class="mb-5"><strong>Welcome {{ userAuthStore.userData['first_name'] }}
+            {{ userAuthStore.userData['last_name'] }}! Update your information before you begin</strong></p>
         <h6 class="form-message" style="color: yellow" v-if="formSuccessMessage">{{ formSuccessMessage }}</h6>
         <h6 class="form-message" style="color: red" v-if="formErrorMessage">{{ formErrorMessage }}</h6>
         <div class="field-container flex-all-c">
@@ -151,29 +151,24 @@ const checkInput = computed(() => {
   <main class="main" v-if="userAuthStore.userData">
     <StaffNavContainerMob v-if="!elementsStore.onDesk" />
     <StaffNavContainerDesk v-if="elementsStore.onDesk" />
-    
     <!-- Admin -->
-    <div class="pages-container" v-if="userAuthStore.userData['staff_role'].toLowerCase() === 'admin'">
+    <div class="pages-container" v-if="userAuthStore.userData['staff_role'].toLowerCase() === 'administrator'">
       <div class="component-wrapper"
         :class="{ 'is-active-component': elementsStore.activePage === 'AdminAcademicYears' }">
         <AdminAcademicYears />
       </div>
-      <div class="component-wrapper" v-if="userAuthStore.adminData.classes?.length > 0"
+      <div class="component-wrapper"
         :class="{ 'is-active-component': elementsStore.activePage.split(',')[0] === 'AdminStudentsClass' }">
         <AdminStudentsClass v-for="(_class, index) in userAuthStore.adminData.classes"
-          :key="`${_class['name']}${index}`" :className="_class['name']"
-          :classIndex="index" :subjects="_class['subjects'].map((item: any)=>item['name'])"
-          :students="_class['students']" 
-          :program="_class['program']"
-          :students_year="_class['students_year']"
-          />
+          :key="`${_class['name']}${index}`" :className="_class['name']" :classIndex="index"
+          :subjects="_class['subjects']" :students="_class['students']" :program="_class['program']"
+          :students_year="_class['students_year']" />
       </div>
       <div class="component-wrapper"
         :class="{ 'is-active-component': elementsStore.activePage === 'AdminLinkedClases' }">
         <AdminLinkedClasses />
       </div>
-      <div class="component-wrapper" v-if="userAuthStore.adminData.staff?.length > 0"
-        :class="{ 'is-active-component': elementsStore.activePage === 'AdminStaff' }">
+      <div class="component-wrapper" :class="{ 'is-active-component': elementsStore.activePage === 'AdminStaff' }">
         <AdminStaff />
       </div>
       <div class="component-wrapper" :class="{ 'is-active-component': elementsStore.activePage === 'Help' }">
@@ -188,17 +183,16 @@ const checkInput = computed(() => {
         <TeacherCourseWork
           :class="{ 'is-active-component': elementsStore.activePage.split(',')[0] === 'TeacherCoursework' }" />
       </div>
-      <div class="component-wrapper" 
+      <div class="component-wrapper"
         :class="{ 'is-active-component': elementsStore.activePage === 'TeacherDepartment' }"
         v-if="userAuthStore.userData['department']">
-        <TeacherDepartment/>
+        <TeacherDepartment />
       </div>
       <div class="component-wrapper" v-if="userAuthStore.staffData.courseWork?.length > 0"
         :class="{ 'is-active-component': elementsStore.activePage.split(',')[0] === 'TeacherCoursework' }">
         <TeacherCourseWork v-for="(course, index) in userAuthStore.staffData.courseWork"
           :key="`${course['students_class']['name']}${index}`" :className="course['students_class']['name']"
-          :classIndex="index" :subjects="course['subjects']"
-          :students="course['students_class']['students']" />
+          :classIndex="index" :subjects="course['subjects']" :students="course['students_class']['students']" />
       </div>
 
       <div class="component-wrapper" v-if="userAuthStore.staffData.studentsattendance?.length > 0"

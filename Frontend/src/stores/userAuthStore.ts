@@ -32,36 +32,32 @@ interface states {
     }
   }
   adminData: {
-    academicYears?: any[]
+    academicYears: any[] | null
     departments: string[]
     heads: any
     classes: {
-      name: string;
+      name: string
       students: {
-        user: string;
-        st_id: string;
-        gender: string;
-        date_enrolled: string;
-        index_no?: string;
-        img: string;
-        dob: string;
-        nationality: string;
-        guardian: string;
-        guardian_gender: string;
-        guardian_nationality: string;
-        guardian_contact: string;
-        guardian_email: string;
-        guardian_address: string;
+        user: string
+        st_id: string
+        gender: string
+        date_enrolled: string
+        index_no: string | null
+        img: string
+        dob: string
+        nationality: string
+        guardian: string
+        guardian_gender: string
+        guardian_nationality: string
+        guardian_contact: string
+        guardian_email: string
+        guardian_address: string
       }[];
-      head_teacher?: {
-        user: string;
-        staff_id: string;
-        img: string;
-      };
-      students_year: number;
-      program?: string;
+      head_teacher: {user: string; staff_id: string; img: string} | null
+      students_year: number
+      program: string | null
       subjects: string[]
-    }[];
+    }[]
     staff: {
       'user': string
       'staff_id': string
@@ -73,7 +69,14 @@ interface states {
       'img': string
       'dob': string
       'subjects': string[]
-    }[]
+      'address': string
+      'alt_contact': string
+      'pob': string
+      'email': string
+      'date_enrolled': string
+      'region': string
+      'religion': string
+    }[] | null
     linkedClasses: any
     programs: string[]
     subjects: string[]
@@ -153,22 +156,15 @@ export const useUserAuthStore = defineStore('userAuthStore', {
         studentsResults: null,
         departmentData: null,
         hodData: {
-          subjectAssignmentData: null,
+          subjectAssignmentData: null
         },
       },
       adminData: {
-        academicYears: undefined,
+        academicYears: null,
         departments: [],
         heads: null,
-        classes: [{
-          name: '',
-          students_year: 0,
-          head_teacher: {'user': '', 'staff_id': '', 'img': ''},
-          subjects: [],
-          program: '',
-          students: [{user: '',st_id: '',gender: '',date_enrolled: '',index_no: '',img: '',dob: '',nationality: '',guardian: '',guardian_gender: '',guardian_nationality: '',guardian_contact: '',guardian_email: '',guardian_address: ''}]
-        }],
-        staff: [{'user': '','staff_id': '','gender': '','contact': '','nationality': '','department': '','role': '','img': '','dob': '','subjects': [],}],
+        classes: [],
+        staff: null,
         linkedClasses: null,
         programs: [],
         subjects: []

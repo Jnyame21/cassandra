@@ -41,9 +41,8 @@ urlpatterns = [
     path('school-admin/data', school_admin_data),
     path('school-admin/academic_years', school_admin_academic_years),
     path('school-admin/linked-class', school_admin_linked_class),
-    path('sch-admin/students', admin_students),
+    path('school-admin/students', admin_students),
     path('school-admin/staff', admin_staff),
-    path('sch-admin/head', admin_head),
     
     path('query', query),
 

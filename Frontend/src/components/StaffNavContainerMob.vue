@@ -25,7 +25,8 @@ const showOverlay = () => {
 <template>
     <div class="nav-container-drawer" v-show="elementsStore.navDrawer">
         <!-- Admin -->
-        <v-list class="nav-list-container" v-if="['admin'].includes(userAuthStore.userData['staff_role'].toLowerCase())">
+        <v-list class="nav-list-container"
+            v-if="['administrator'].includes(userAuthStore.userData['staff_role'].toLowerCase())">
             <v-list-item class="nav-item nav-link" prepend-icon="mdi-calendar"
                 @click="changePage('AdminAcademicYears')">
                 ACADEMIC YEAR
@@ -42,12 +43,13 @@ const showOverlay = () => {
                     {{ _class['name'] }}
                 </v-list-item>
             </v-list-group>
-            
+
             <v-list-item @click="changePage('AdminLinkedClases')" class="nav-item nav-link" prepend-icon="mdi-book">
                 LINKED CLASSES
             </v-list-item>
 
-            <v-list-item @click="changePage('AdminStaff')" class="nav-item nav-link" prepend-icon="mdi-account-multiple">
+            <v-list-item @click="changePage('AdminStaff')" class="nav-item nav-link"
+                prepend-icon="mdi-account-multiple">
                 STAFF
             </v-list-item>
 
@@ -149,7 +151,8 @@ const showOverlay = () => {
         </v-list>
 
         <!-- Teacher/Hod -->
-        <v-list class="nav-list-container" v-if="['teacher', 'hod'].includes(userAuthStore.userData['staff_role'].toLowerCase())">
+        <v-list class="nav-list-container"
+            v-if="['teacher', 'hod'].includes(userAuthStore.userData['staff_role'].toLowerCase())">
             <v-list-group>
                 <template v-slot:activator="{ props }">
                     <v-list-item v-bind="props" prepend-icon="mdi-account-group-outline" class="nav-item">

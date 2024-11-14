@@ -48,9 +48,9 @@ const deleteLinkedClass = async (index:number, from_class:string, to_class:strin
 <template>
     <div class="content-wrapper" v-show="elementsStore.activePage === 'AdminLinkedClases'" :class="{ 'is-active-page': elementsStore.activePage === 'AdminLinkedClases' }">
       <div class="no-data" v-if="userAuthStore.adminData.linkedClasses?.length === 0">
-        <p>NO DATA</p>
+        <p>YOU HAVE NOT LINKED ANY CLASSES</p>b
       </div>
-      <TheLoader v-if="!userAuthStore.adminData.linkedClasses" />
+      <TheLoader :func="userAuthStore.getAdminData" v-if="!userAuthStore.adminData.linkedClasses" />
       <v-table fixed-header class="table" v-if="userAuthStore.adminData.linkedClasses?.length >0">
         <thead>
         <tr>

@@ -33,7 +33,7 @@ document.addEventListener('click', (event:any)=>{
           </v-list-item-subtitle>
         </v-list-item>
 
-        <v-list-item class="drawer-item" v-if="userAuthStore.userData['staff_id']" prepend-icon="mdi-card-account-details-outline">
+        <v-list-item class="drawer-item" v-if="userAuthStore.userData['school']['staff_id'] && userAuthStore.userData['staff_id']" prepend-icon="mdi-card-account-details-outline">
           <v-list-item-title class="drawer-title">
             STAFF ID
           </v-list-item-title>
@@ -46,17 +46,26 @@ document.addEventListener('click', (event:any)=>{
           <v-list-item-title class="drawer-title">
             ROLE
           </v-list-item-title>
-          <v-list-item-subtitle v-if="userAuthStore.userData['role']==='staff'" class="drawer-subtitle">
+          <v-list-item-subtitle class="drawer-subtitle">
             {{ userAuthStore.userData['staff_role'].toUpperCase() }}
           </v-list-item-subtitle>
         </v-list-item>
 
-        <v-list-item class="drawer-item" v-if="['teacher', 'hod'].includes(userAuthStore.userData['staff_role'].toLowerCase())" prepend-icon="mdi-book-open-outline">
+        <v-list-item class="drawer-item" v-if="userAuthStore.userData['school']['has_departments'] && ['teacher', 'hod'].includes(userAuthStore.userData['staff_role'].toLowerCase())" prepend-icon="mdi-book-open-outline">
           <v-list-item-title class="drawer-title">
             DEPARTMENT
           </v-list-item-title>
           <v-list-item-subtitle class="drawer-subtitle">
             {{ userAuthStore.userData['department'] }}
+          </v-list-item-subtitle>
+        </v-list-item>
+
+        <v-list-item class="drawer-item" prepend-icon="mdi-account-outline">
+          <v-list-item-title class="drawer-title">
+            DATE EMPLOYED
+          </v-list-item-title>
+          <v-list-item-subtitle class="drawer-subtitle">
+            {{ userAuthStore.userData['date_enrolled'] }}
           </v-list-item-subtitle>
         </v-list-item>
 
@@ -134,6 +143,15 @@ document.addEventListener('click', (event:any)=>{
         <v-card-title class="drawer-head">PERSONAL INFORMATION</v-card-title>
         <v-list-item class="drawer-item" prepend-icon="mdi-account-outline">
           <v-list-item-title class="drawer-title">
+            TITLE
+          </v-list-item-title>
+          <v-list-item-subtitle class="drawer-subtitle">
+            {{ userAuthStore.userData['title'] }}
+          </v-list-item-subtitle>
+        </v-list-item>
+
+        <v-list-item class="drawer-item" prepend-icon="mdi-account-outline">
+          <v-list-item-title class="drawer-title">
             FIRST NAME
           </v-list-item-title>
           <v-list-item-subtitle class="drawer-subtitle">
@@ -150,7 +168,23 @@ document.addEventListener('click', (event:any)=>{
           </v-list-item-subtitle>
         </v-list-item>
 
-        <v-list-item class="drawer-item" prepend-icon="mdi-gender-male-female">
+        <v-list-item class="drawer-item" v-if="userAuthStore.userData['gender'].toLowerCase() === 'male'" prepend-icon="mdi-gender-male">
+          <v-list-item-title class="drawer-title">
+            GENDER
+          </v-list-item-title>
+          <v-list-item-subtitle class="drawer-subtitle">
+            {{ userAuthStore.userData['gender'] }}
+          </v-list-item-subtitle>
+        </v-list-item>
+        <v-list-item class="drawer-item" v-if="userAuthStore.userData['gender'].toLowerCase() === 'female'" prepend-icon="mdi-gender-female">
+          <v-list-item-title class="drawer-title">
+            GENDER
+          </v-list-item-title>
+          <v-list-item-subtitle class="drawer-subtitle">
+            {{ userAuthStore.userData['gender'] }}
+          </v-list-item-subtitle>
+        </v-list-item>
+        <v-list-item class="drawer-item" v-if="['other', 'none'].includes(userAuthStore.userData['gender'].toLowerCase())" prepend-icon="mdi-gender-male-female">
           <v-list-item-title class="drawer-title">
             GENDER
           </v-list-item-title>
@@ -168,6 +202,15 @@ document.addEventListener('click', (event:any)=>{
           </v-list-item-subtitle>
         </v-list-item>
 
+        <v-list-item class="drawer-item" prepend-icon="mdi-calendar-outline">
+          <v-list-item-title class="drawer-title">
+            RELIGION
+          </v-list-item-title>
+          <v-list-item-subtitle class="drawer-subtitle">
+            {{ userAuthStore.userData['religion'] }}
+          </v-list-item-subtitle>
+        </v-list-item>
+
         <v-list-item class="drawer-item" prepend-icon="mdi-phone">
           <v-list-item-title class="drawer-title">
             PHONE NUMBER
@@ -177,15 +220,15 @@ document.addEventListener('click', (event:any)=>{
           </v-list-item-subtitle>
         </v-list-item>
 
-        <v-list-item class="drawer-item" prepend-icon="mdi-email-outline">
+        <v-list-item class="drawer-item" prepend-icon="mdi-phone">
           <v-list-item-title class="drawer-title">
-            EMAIL
+            SECOND PHONE NUMBER
           </v-list-item-title>
           <v-list-item-subtitle class="drawer-subtitle">
-            {{ userAuthStore.userData['email'] }}
+            {{ userAuthStore.userData['alt_contact'] }}
           </v-list-item-subtitle>
         </v-list-item>
-
+        
         <v-list-item class="drawer-item" prepend-icon="mdi-map-marker">
           <v-list-item-title class="drawer-title">
             HOME CITY/TOWN
@@ -215,10 +258,19 @@ document.addEventListener('click', (event:any)=>{
 
         <v-list-item class="drawer-item" prepend-icon="mdi-home-outline">
           <v-list-item-title class="drawer-title">
-            ADDRESS
+            RESIDENTIAL ADDRESS
           </v-list-item-title>
           <v-list-item-subtitle class="drawer-subtitle">
             {{ userAuthStore.userData['address'] }}
+          </v-list-item-subtitle>
+        </v-list-item>
+
+        <v-list-item class="drawer-item" prepend-icon="mdi-email-outline">
+          <v-list-item-title class="drawer-title">
+            EMAIL
+          </v-list-item-title>
+          <v-list-item-subtitle class="drawer-subtitle">
+            {{ userAuthStore.userData['email'] }}
           </v-list-item-subtitle>
         </v-list-item>
       </v-list>
