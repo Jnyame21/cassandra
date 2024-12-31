@@ -28,7 +28,7 @@ def get_superuser_data(request):
     subjects = SuperuserSubjectsSerializer(Subject.objects.select_related('level').prefetch_related('schools').all(), many=True).data
     grading_system_ranges = SuperuserGradingSystemRangeSerializer(GradingSystemRange.objects.all(), many=True).data
     grading_systems = SuperuserGradingSystemSerializer(GradingSystem.objects.select_related('level').prefetch_related('schools', 'ranges').all(), many=True).data
-    staff_roles = StaffRoleSerializer(StaffRole.objects.all(), many=True).data
+    staff_roles = StaffRoleSerializer(StaffRole.objects.prefetch_related('levels').all(), many=True).data
     class_data = {}
     department_data = {}
     academic_year_data = {}
