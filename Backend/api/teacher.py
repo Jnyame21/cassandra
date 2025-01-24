@@ -26,12 +26,9 @@ import time
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_teacher_data(request):
-    start = time.time()
-    teacher = request.user.staff
+    teacher = Staff.objects.select_related('school', 'current_role__level').get(user=request.user)
     school = teacher.school
-    current_level = teacher.current_level
-    end = time.time()
-    print(f"time taken: {end - start}")
+    current_level = teacher.current_role.level
     current_term = int(request.GET.get('term'))
     current_academic_year = AcademicYear.objects.get(school=school, level=current_level, name=request.GET.get('year'))
     department_data = None
@@ -68,9 +65,9 @@ def get_teacher_data(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def teacher_students_attendance(request):
-    teacher = request.user.staff.select_related('school', 'current_level')
+    teacher = Staff.objects.select_related('school', 'current_role__level').get(user=request.user)
     school = teacher.school
-    current_level = teacher.current_level
+    current_level = teacher.current_role.level
     
     if request.method == 'POST':
         data = request.data
@@ -149,9 +146,9 @@ def teacher_students_attendance(request):
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 def teacher_assessments(request):
-    teacher = request.user.staff.select_related('school', 'current_level')
+    teacher = Staff.objects.select_related('school', 'current_role__level').get(user=request.user)
     school = teacher.school
-    current_level = teacher.current_level
+    current_level = teacher.current_role.level
     
     if request.method == 'GET':
         current_term = int(request.GET.get('term'))
@@ -639,9 +636,9 @@ def teacher_assessments(request):
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 def teacher_exams(request):
-    teacher = request.user.staff.select_related('school', 'current_level')
+    teacher = Staff.objects.select_related('school', 'current_role__level').get(user=request.user)
     school = teacher.school
-    current_level = teacher.current_level
+    current_level = teacher.current_role.level
     
     if request.method == 'GET':
         current_term = int(request.GET.get('term'))
@@ -1010,9 +1007,9 @@ def teacher_exams(request):
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 def teacher_students_results(request):
-    teacher = request.user.staff.select_related('school', 'current_level')
+    teacher = Staff.objects.select_related('school', 'current_role__level').get(user=request.user)
     school = teacher.school
-    current_level = teacher.current_level
+    current_level = teacher.current_role.level
     
     if request.method == 'GET':
         current_academic_year = AcademicYear.objects.get(school=school, level=current_level, name=request.GET.get('year'))

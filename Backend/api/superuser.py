@@ -4,17 +4,21 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.db.models import Q
 from django.core.validators import EmailValidator
-from api.utils import get_staff_creation_file, get_students_creation_file, ErrorMessageException, valid_phone_number, valid_email
+from api.utils import get_staff_creation_file, get_students_creation_file, ErrorMessageException, valid_phone_number, valid_email, staff_title_options, religion_options
 from api.models import *
 from api.serializer import (
     SchoolSerializer, SuperuserEducationalLevelSerializer, SuperuserProgramSerializer, SuperuserSubjectsSerializer, SuperuserDepartmentSerializer, 
-    SuperuserGradingSystemSerializer, SuperuserGradingSystemSerializer, SuperuserClasseSerializer, StaffUserIdSerializer, SuperuserGradingSystemRangeSerializer,
+    SuperuserGradingSystemSerializer, SuperuserGradingSystemSerializer, SuperuserClasseSerializer, SuperuserGradingSystemRangeSerializer,
     AcademicYearSerializer, StaffRoleSerializer, StaffSerializerOne
 )
 
 import imghdr
 from django.db import transaction
+from django.http import FileResponse
+from datetime import datetime
 import json
+import random
+import pandas as pd
 from pycountryinfo.countryinfo import PyCountryInfo
 from django.forms import DateField
 
@@ -28,7 +32,7 @@ def get_superuser_data(request):
     subjects = SuperuserSubjectsSerializer(Subject.objects.select_related('level').prefetch_related('schools').all(), many=True).data
     grading_system_ranges = SuperuserGradingSystemRangeSerializer(GradingSystemRange.objects.all(), many=True).data
     grading_systems = SuperuserGradingSystemSerializer(GradingSystem.objects.select_related('level').prefetch_related('schools', 'ranges').all(), many=True).data
-    staff_roles = StaffRoleSerializer(StaffRole.objects.prefetch_related('levels').all(), many=True).data
+    staff_roles = StaffRoleSerializer(StaffRole.objects.prefetch_related('schools').select_related('level').all(), many=True).data
     class_data = {}
     department_data = {}
     academic_year_data = {}
@@ -41,7 +45,7 @@ def get_superuser_data(request):
         department_data[_school.identifier] = SuperuserDepartmentSerializer(departments, many=True).data
         classes = Classe.objects.select_related('level', 'program', 'head_teacher__user', 'linked_class').prefetch_related('subjects').filter(school=_school)
         class_data[_school.identifier] = SuperuserClasseSerializer(classes, many=True).data
-        staff = Staff.objects.select_related('user').prefetch_related('subjects', 'levels', 'roles', 'departments').filter(school=_school)
+        staff = Staff.objects.select_related('user').prefetch_related('subjects', 'roles', 'departments').filter(school=_school)
         staff_data[_school.identifier] = StaffSerializerOne(staff, many=True).data
     
     return Response({
@@ -249,10 +253,13 @@ def superuser_subjects(request):
     elif data['type'] == 'delete':
         identifier = data['identifier']
         subject = Subject.objects.get(identifier=identifier)
+        
         if Assessment.objects.filter(subject=subject).exists():
             return Response({'message': f'There are assessments data for this subject. Delete those data before'}, status=400)
         elif Exam.objects.filter(subject=subject).exists():
             return Response({'message': f'There are exams data for this subject. Delete those data before'}, status=400)
+        elif Department.objects.filter(subjects=subject).exists():
+            return Response({'message': f'There are departments with this subject. Remove the subject from those departments before'}, status=400)
         elif StudentResult.objects.filter(subject=subject).exists():
             return Response({'message': f'There are student results data for this subject. Delete those data before'}, status=400)
         
@@ -366,6 +373,36 @@ def superuser_departments(request):
         
         return Response(status=200)
     
+    elif data['type'] == 'setDepartmentHOD':
+        school = School.objects.get(identifier=data['schoolIdentifier'])
+        staff_hod = Staff.objects.select_related('user').get(school=school, staff_id=data['staffId'])
+        department = Department.objects.prefetch_related('teachers').select_related('hod').get(id=data['departmentId'])
+        if staff_hod not in department.teachers.all():
+            return Response({'message': f"The staff you selected is not in the selected department"}, status=400)
+
+        with transaction.atomic():
+            try:
+                department.hod = staff_hod
+                department.save()
+            except:
+                transaction.set_rollback(True)
+                return Response(status=400)
+
+        return Response(f"{staff_hod.title}. {staff_hod.user.get_full_name()}", status=200)
+    
+    elif data['type'] == 'removeHOD':
+        department = Department.objects.select_related('hod').get(id=data['departmentId'])
+
+        with transaction.atomic():
+            try:
+                department.hod = None
+                department.save()
+            except:
+                transaction.set_rollback(True)
+                return Response(status=400)
+
+        return Response(status=200)
+    
     elif data['type'] == 'delete':
         department = Department.objects.select_related('hod').prefetch_related('teachers').get(id=int(data['id']))
         if department.hod:
@@ -422,8 +459,31 @@ def superuser_classes(request):
         
         return Response(to_class.identifier, status=200)
     
-    elif data['type'] == 'unLinkClass':
-        classe = Classe.objects.get(id=int(data['id']))
+    elif data['type'] == 'setClassHeadTeacher':
+        school = School.objects.get(identifier=data['schoolIdentifier'])
+        classe = Classe.objects.select_related('head_teacher').get(id=int(data['classId']))
+        head_teacher = Staff.objects.get(school=school, staff_id=data['staffId'])
+        try:
+            classe.head_teacher = head_teacher
+            classe.save()
+        except Exception:
+            return Response(status=400)
+        
+        staff_data = StaffSerializerOne(head_teacher).data
+        return Response({'user': staff_data['user'], 'staff_id': staff_data['staff_id']}, status=200)
+    
+    elif data['type'] == 'removeClassHeadTeacher':
+        classe = Classe.objects.select_related('head_teacher').get(id=int(data['classId']))
+        try:
+            classe.head_teacher = None
+            classe.save()
+        except Exception:
+            return Response(status=400)
+        
+        return Response(status=200)
+    
+    elif data['type'] == 'removeLinkedClass':
+        classe = Classe.objects.get(id=int(data['classId']))
         try:
             classe.linked_class = None
             classe.save()
@@ -443,7 +503,7 @@ def superuser_classes(request):
         
         return Response(status=200)
     
-    elif data['type'] == 'delete':
+    elif data['type'] == 'deleteClass':
         classe = Classe.objects.prefetch_related('students').get(id=int(data['id']))
         if classe.students.all().exists():
             return Response({'message': f'There are students in this class. Remove them before'}, status=400)
@@ -619,23 +679,58 @@ def superuser_academic_years(request):
         return Response(status=200)
     
 
-
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def superuser_staff_roles(request):
+    data = request.data
+    if data['type'] == 'create':
+        name = data['name'].strip().upper()
+        level = EducationalLevel.objects.get(identifier=data['levelIdentifier'])
+        identifier = f"{name} | {level.identifier}"
+        
+        staff_role = StaffRole.objects.create(
+            name=name,
+            level=level,
+            identifier=identifier,
+        )
+        staff_role_data = StaffRoleSerializer(staff_role).data
+        
+        return Response(staff_role_data, status=200)  
+    
+    elif data['type'].split('S')[-1] == 'chool':
+        staff_role = StaffRole.objects.get(id=int(data['id']))
+        schools = School.objects.filter(identifier__in=json.loads(data['schoolIdentifiers']))
+        try:
+            staff_role.schools.add(*schools) if data['type'].split('S')[0] == 'add' else staff_role.schools.remove(*schools)
+        except Exception:
+            return Response(status=400)         
+        
+        return Response(status=200)
+    
+    elif data['type'] == 'delete':
+        staff_role = StaffRole.objects.get(id=int(data['id']))
+        if Staff.objects.filter(roles=staff_role).all().exists():
+            return Response({'message': f'There are staff with this role. Remove the role from the staff before'}, status=400)
+        
+        with transaction.atomic():
+            staff_role.delete()
+        
+        return Response(status=200)
+    
+    
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def superuser_staff(request):
     data = request.data
+    school = School.objects.get(identifier=data['schoolIdentifier'])
 
     if data['type'] == 'createWithoutFile':
         date_field = DateField()
         email_validator = EmailValidator()
-        department = None
         staff_id = None
-        school = School.objects.get(identifier=data['schoolIdentifier'])
-        levels = EducationalLevel.objects.filter(schools=school, name__in=json.loads(data['levels']))
         first_name = data['firstName'].strip()
         last_name = data['lastName'].strip()
         title = data['title'].title()
-        role = data['role'].lower()
         gender = data['gender'].lower()
         img = data['img'] if data['img'] else ''
         if img and not imghdr.what(img):
@@ -643,7 +738,6 @@ def superuser_staff(request):
         contact = data['contact'].strip()
         address = data['address'].strip()
         date_enrolled = data['dateEnrolled']
-        levels = json.loads(data['levels'])
         region = data['region'].strip()
         religion = data['religion']
         alt_contact = data['altContact'].strip()
@@ -681,31 +775,12 @@ def superuser_staff(request):
         if nationality.lower() == 'ghanaian' and not countryinfo.is_valid_country_province('Ghana', region.title()):
             return Response({'message': f"{region} is not a valid region in 'Ghana'!. Check the region of the staff"}, status=400)
 
-        if current_level.has_departments and role == 'teacher':
-            department = Department.objects.get(school=school, level=current_level, name=data['department'])
-
         user_no = random.randint(100, 999)
         username = f"{first_name.replace(' ', '')[0].upper()}{last_name.replace(' ', '').lower()}{user_no}"
         if school.staff_id:
             staff_id = data['staff_id']
         else:
             staff_id = username
-
-        if Staff.objects.filter(school=school, staff_id=staff_id).exists():
-            return Response({'message': f"Staff with ID [ {staff_id} ] already exists"}, status=400)
-
-        if role.lower() in ['head master', 'head mistress', 'assistant head master', 'assistant head mistress']:
-            
-            return Response({'message': f"Staff with a role of '{role}' already exists"}, status=400)
-
-        if role == 'head' and gender == 'male':
-            role = 'head master'
-        elif role == 'head' and gender == 'female':
-            role = 'head mistress'
-        elif role == 'assistant head' and gender == 'male':
-            role = 'assistant head master'
-        elif role == 'assistant head' and gender == 'female':
-            role = 'assistant head mistress'
             
         with transaction.atomic():
             try:
@@ -718,8 +793,6 @@ def superuser_staff(request):
                 staff_obj = Staff.objects.create(
                     user=user,
                     staff_id=staff_id,
-                    department=department,
-                    role=role,
                     title=title,
                     gender=gender,
                     dob=dob,
@@ -731,193 +804,136 @@ def superuser_staff(request):
                     region=region.lower(),
                     religion=religion.lower(),
                     pob=pob.lower(),
-                    date_enrolled=date_enrolled,
+                    date_enrolled=date_enrolled if date_enrolled else None,
                     nationality=nationality.lower(),
                     img=img,
                     is_active=True,
                 )
-                levels = EducationalLevel.objects.filter(name__in=levels)
-                staff.levels.set(levels)
-                subjects_objs = Subject.objects.filter(level=current_level, name__in=subjects).distinct()
+                subjects_objs = Subject.objects.filter(identifier__in=subjects).distinct()
                 staff_obj.subjects.set(subjects_objs)
-                user.save()
-                staff_obj.save()
-                if department:
-                    department.teachers.add(staff_obj)
 
             except Exception as e:
-                print(e)
                 transaction.set_rollback(True)
                 return Response(status=400)
 
-        staff_data = StaffSerializerOne(Staff.objects.get(school=school, staff_id=staff_id)).data
+        created_staff = Staff.objects.select_related('user').prefetch_related('subjects', 'departments', 'roles').get(school=school, staff_id=staff_id)
+        staff_data = StaffSerializerOne(created_staff).data
         return Response(staff_data, status=200)
 
-    elif data['type'] == 'setDepartmentHOD':
-        staff_hod = Staff.objects.select_related('department').get(school=school, staff_id=data['staffId'])
-        department = Department.objects.prefetch_related('teachers').select_related('hod').get(school=school, level=current_level, name=data['department'])
-        previous_hod_id = None
-        if staff_hod not in department.teachers.all():
-            transaction.set_rollback(True)
-            return Response({'message': f"The staff you selected is not in the {department} department"}, status=400)
-
-        with transaction.atomic():
-            try:
-                if department.hod:
-                    previous_hod = department.hod
-                    previous_hod_new_role = StaffRole.objects.get(name='teacher')
-                    previous_hod.role = previous_hod_new_role
-                    previous_hod_id = previous_hod.staff_id
-                    previous_hod.save()
-                department.hod = staff_hod
-                staff_hod_new_role = StaffRole.objects.get(name='hod')
-                staff_hod.role = staff_hod_new_role
-                department.save()
-                staff_hod.save()
-            except:
-                transaction.set_rollback(True)
-                return Response(status=400)
-
-        return Response({'previous_hod_id': previous_hod_id}, status=200)
-
     elif data['type'] == 'getFile':
-        filepath = get_staff_creation_file(sch_admin)
+        byte_file = get_staff_creation_file(school)
         filename = 'staff-creation-file.xlsx'
-        response = FileResponse(filepath, as_attachment=True, filename=filename)
+        response = FileResponse(byte_file, as_attachment=True, filename=filename)
         response['Content-Type'] = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         response['Access-Control-Expose-Headers'] = 'Content-Disposition'
         return response
 
     elif data['type'] == 'createWithFile':
         df = None
-        title_options = ['Mr', 'Miss', 'Mrs', 'Dr', 'Prof', 'Rev', 'Sir', 'Hon', 'Madam', 'Pastor', 'Imam', 'Bishop', 'Archbishop']
-        religion_options = ['Christianity', 'Islam', 'Traditional African Religions', 'Buddhism', 'Hinduism', 'Sikhism', 'Judaism', 'Other', 'None']
-        skipped_rows = 0
+        skipped_rows = 3
         date_field = DateField()
         email_validator = EmailValidator()
+        countryinfo = PyCountryInfo()
         staff_to_create_ids = set()
         existing_staff_ids = []
-        staff_to_create_roles = set()
         users_to_create = []
         staff_to_create = []
         staff_instances = []
-        staff_departments = []
-        staff_subjects_mappings = {}
-        staff_levels_mappings = {}
         created_staff = []
         try:
-            if current_level.has_departments:
-                df = pd.read_excel(data['file'], header=0, sheet_name=0, skiprows=8)
-                skipped_rows = 8
-            else:
-                df = pd.read_excel(data['file'], header=0, sheet_name=0, skiprows=7)
-                skipped_rows = 7
-
+            df = pd.read_excel(data['file'], header=1, sheet_name=0, skiprows=skipped_rows)
+            # Drop the example row "Eg. Cassandra, Eg. Akua Afriyie, ..."
             df = df.drop(index=0)
             df = df.dropna(how='all')
         except Exception as e:
             return Response({'message': 'Invalid file! Make sure you upload the excel file you generated'}, status=400)
 
-        all_existing_staff = Staff.objects.filter(school=school)
-        if current_level.staff_id:
-            existing_staff_ids = [x.staff_id for x in all_existing_staff]
+        if school.staff_id:
+            existing_staff_ids = [x.staff_id for x in Staff.objects.filter(school=school)]
 
         def show_error_message(label_name: str, column_name: str, row_idx: int):
-            return f"The {label_name} cannot be empty! Check the value in the '{column_name}' column in row {row_idx + 2 + skipped_rows}"
+            return f"The {label_name} cannot be empty! Check the value in the '{column_name}' column in row {row_idx}"
 
-        countryinfo = PyCountryInfo()
-
-        def get_data(row):
-            first_name = str(row['FIRST NAME'].strip()) if row['FIRST NAME'] else None
-            last_name = str(row['LAST NAME (MIDDLE NAME + SURNAME)']).strip() if row['LAST NAME (MIDDLE NAME + SURNAME)'] else None
-            title = str(row['TITLE']).strip().replace('.', '').title() if row['TITLE'] else None
-            staff_id = str(row['STAFF ID']).strip() if school.staff_id and row.get('STAFF ID') else None
-            gender = str(row['GENDER']).strip().lower() if row['GENDER'] else None
-            dob = str(row['DATE OF BIRTH']).strip() if row['DATE OF BIRTH'] else None
-            subjects = str(row['SUBJECT(S)']).strip() if row['SUBJECT(S)'] else None
-            levels = str(row['LEVEL(S)']).strip() if row['LEVEL(S)'] else None
-            department = str(row['DEPARTMENT']).strip() if school.has_departments and row.get('DEPARTMENT') else None
-            date_enrolled = str(row['DATE EMPLOYED(OPTIONAL)']).strip() if row['DATE EMPLOYED(OPTIONAL)'] else None
-            religion = str(row['RELIGION']).strip() if row['RELIGION'] else None
-            nationality = str(row['NATIONALITY']).strip() if row['NATIONALITY'] else None
-            region = str(row['REGION/STATE']).strip() if row['REGION/STATE'] else None
-            pob = str(row['PLACE OF BIRTH']).strip() if row['PLACE OF BIRTH'] else None
-            contact = str(row['PHONE NUMBER']).strip()
-            alt_contact = str(row['SECOND PHONE NUMBER(OPTIONAL)']).strip() if row['SECOND PHONE NUMBER(OPTIONAL)'] else None
-            address = str(row['RESIDENTIAL ADDRESS']).strip() if row['RESIDENTIAL ADDRESS'] else None
-            email = str(row['EMAIL(OPTIONAL)']).strip() if row['EMAIL(OPTIONAL)'] else None
+        def get_data(row, index:int):
+            row_index = index + 2 + skipped_rows
+            first_name = str(row['FIRST NAME'].strip()) if pd.notna(row.get('FIRST NAME')) else None
+            last_name = str(row['LAST NAME (MIDDLE NAME + SURNAME)']).strip() if pd.notna(row.get('LAST NAME (MIDDLE NAME + SURNAME)')) else None
+            title = str(row['TITLE']).strip().replace('.', '').title() if pd.notna(row.get('TITLE')) else None
+            staff_id = str(row['STAFF ID']).strip() if school.staff_id and pd.notna(row.get('STAFF ID')) else None
+            gender = str(row['GENDER']).strip().lower() if pd.notna(row.get('GENDER')) else None
+            dob = str(row['DATE OF BIRTH']).strip() if pd.notna(row.get('DATE OF BIRTH')) else None
+            date_enrolled = str(row['DATE EMPLOYED(OPTIONAL)']).strip() if pd.notna(row.get('DATE EMPLOYED(OPTIONAL)')) else None
+            religion = str(row['RELIGION']).strip() if pd.notna(row.get('RELIGION')) else None
+            nationality = str(row['NATIONALITY']).strip() if pd.notna(row.get('NATIONALITY')) else None
+            region = str(row['REGION/STATE']).strip() if pd.notna(row.get('REGION/STATE')) else None
+            pob = str(row['HOME CITY/TOWN']).strip() if pd.notna(row.get('HOME CITY/TOWN')) else None
+            contact = str(row['PHONE NUMBER']).strip() if pd.notna(row.get('PHONE NUMBER')) else None
+            alt_contact = str(row['SECOND PHONE NUMBER(OPTIONAL)']).strip() if pd.notna(row.get('SECOND PHONE NUMBER(OPTIONAL)')) else ''
+            address = str(row['RESIDENTIAL ADDRESS']).strip() if pd.notna(row.get('RESIDENTIAL ADDRESS')) else None
+            email = str(row['EMAIL(OPTIONAL)']).strip() if pd.notna(row.get('EMAIL(OPTIONAL)')) else ''
             if not first_name:
-                error_message = show_error_message('first name', 'FIRST NAME', index)
+                error_message = show_error_message('first name', 'FIRST NAME', row_index)
                 raise ErrorMessageException(error_message)
             elif not last_name:
-                error_message = show_error_message('last name', 'LAST NAME', index)
+                error_message = show_error_message('last name', 'LAST NAME', row_index)
                 raise ErrorMessageException(error_message)
             elif not gender:
-                error_message = show_error_message('gender', 'GENDER', index)
+                error_message = show_error_message('gender', 'GENDER', row_index)
                 raise ErrorMessageException(error_message)
             elif gender not in ['male', 'female']:
-                error_message = f"'{gender}' is not a valid gender! Check the value in the 'GENDER' column in row {index + 2 + skipped_rows}. Valid values are {['Male', 'Female']}"
+                error_message = f"'{gender}' is not a valid gender! Check the value in the 'GENDER' column in row {row_index}. Valid values are {['Male', 'Female']}"
                 raise ErrorMessageException(error_message)
             elif not dob:
-                error_message = show_error_message('date of birth', 'DATE OF BIRTH', index)
+                error_message = show_error_message('date of birth', 'DATE OF BIRTH', row_index)
                 raise ErrorMessageException(error_message)
             elif not title:
-                error_message = show_error_message('title', 'TITLE', index)
+                error_message = show_error_message('title', 'TITLE', row_index)
                 raise ErrorMessageException(error_message)
-            elif title not in title_options:
-                error_message = f"'{title}' is not a valid title! Check the value in the 'TITLE' column in row {index + 2 + skipped_rows}. Valid values are {title_options}"
+            elif title not in staff_title_options:
+                error_message = f"'{title}' is not a valid title! Check the value in the 'TITLE' column in row {row_index}. Valid values are {staff_title_options}"
                 raise ErrorMessageException(error_message)
             elif school.staff_id and not staff_id:
-                error_message = show_error_message('staff id', 'STAFF ID', index)
-                raise ErrorMessageException(error_message)
-            elif not role:
-                error_message = show_error_message('role', 'ROLE', index)
-                raise ErrorMessageException(error_message)
-            elif current_level.has_departments and not department:
-                error_message = show_error_message('department', 'DEPARTMENT', index)
-                raise ErrorMessageException(error_message)
-            elif not levels:
-                error_message = show_error_message('levels', 'LEVEL(S)', index)
+                error_message = show_error_message('staff id', 'STAFF ID', row_index)
                 raise ErrorMessageException(error_message)
             elif not religion:
-                error_message = show_error_message('religion', 'RELIGION', index)
+                error_message = show_error_message('religion', 'RELIGION', row_index)
                 raise ErrorMessageException(error_message)
             elif religion.title() not in religion_options:
-                error_message = f"'{religion}' is not a valid religion! Check the value in the 'RELIGION' column in row {index + 2 + skipped_rows}. Valid values are {religion_options}"
+                error_message = f"'{religion}' is not a valid religion! Check the value in the 'RELIGION' column in row {row_index}. Valid values are {religion_options}"
                 raise ErrorMessageException(error_message)
             elif not nationality:
-                error_message = show_error_message('nationality', 'NATIONALITY', index)
+                error_message = show_error_message('nationality', 'NATIONALITY', row_index)
                 raise ErrorMessageException(error_message)
             elif not countryinfo.is_valid_nationality(nationality.title()):
-                error_message = f"'{nationality}' is not a valid nationality! Check the value in the 'NATIONALITY' column in row {index + 2 + skipped_rows}."
+                error_message = f"'{nationality}' is not a valid nationality! Check the value in the 'NATIONALITY' column in row {row_index}."
                 raise ErrorMessageException(error_message)
             elif not region:
-                error_message = show_error_message('region', 'REGION/STATE', index)
+                error_message = show_error_message('region', 'REGION/STATE', row_index)
                 raise ErrorMessageException(error_message)
             elif nationality.lower() == 'ghanaian' and not countryinfo.is_valid_country_province('Ghana', region):
-                error_message = f"'{region}' is not a valid region in 'Ghana'! Check the value in the 'REGION/STATE' column in row {index + 2 + skipped_rows}."
+                error_message = f"'{region}' is not a valid region in 'Ghana'! Check the value in the 'REGION/STATE' column in row {row_index}."
                 raise ErrorMessageException(error_message)
             elif not pob:
-                error_message = show_error_message('place of birth', 'PLACE OF BIRTH', index)
+                error_message = show_error_message('home city/town', 'HOME CITY/TOWN', row_index)
                 raise ErrorMessageException(error_message)
             elif not contact:
-                error_message = show_error_message('phone number', 'PHONE NUMBER', index)
+                error_message = show_error_message('phone number', 'PHONE NUMBER', row_index)
                 raise ErrorMessageException(error_message)
             elif not valid_phone_number(contact):
-                error_message = f"'{contact}' is not a valid phone number! Check the value in the 'PHONE NUMBER' column in row {index + 2 + skipped_rows}."
+                error_message = f"'{contact}' is not a valid phone number! Check the value in the 'PHONE NUMBER' column in row {row_index}."
                 raise ErrorMessageException(error_message)
             elif alt_contact and not valid_phone_number(alt_contact):
-                error_message = f"'{alt_contact}' is not a valid phone number! Check the value in the 'SECOND PHONE NUMBER' column in row {index + 2 + skipped_rows}."
+                error_message = f"'{alt_contact}' is not a valid phone number! Check the value in the 'SECOND PHONE NUMBER' column in row {row_index}."
                 raise ErrorMessageException(error_message)
             elif not address:
-                error_message = show_error_message('residential addresss', 'RESIDENTIAL ADDRESS', index)
+                error_message = show_error_message('residential addresss', 'RESIDENTIAL ADDRESS', row_index)
                 raise ErrorMessageException(error_message)
 
             try:
                 dob = datetime.strptime(dob, "%d-%m-%Y").strftime("%Y-%m-%d")
                 date_field.clean(dob)
             except Exception:
-                error_message = f"'{dob}' is not a valid date! Check the value in the 'DATE OF BIRTH' column in row {index + 2 + skipped_rows}."
+                error_message = f"'{dob}' is not a valid date! Check the value in the 'DATE OF BIRTH' column in row {row_index}."
                 raise ErrorMessageException(error_message)
 
             if date_enrolled:
@@ -925,53 +941,25 @@ def superuser_staff(request):
                     date_enrolled = datetime.strptime(date_enrolled, "%d-%m-%Y").strftime("%Y-%m-%d")
                     date_field.clean(date_enrolled)
                 except Exception:
-                    error_message = f"'{date_enrolled}' is not a valid date! Check the value in the 'DATE EMPLOYED(OPTIONAL)' column in row {index + 2 + skipped_rows}."
+                    error_message = f"'{date_enrolled}' is not a valid date! Check the value in the 'DATE EMPLOYED(OPTIONAL)' column in row {row_index}."
                     raise ErrorMessageException(error_message)
 
             if email:
                 try:
                     email_validator(email)
                 except Exception:
-                    error_message = f"'{email}' is not a valid email address! Check the value in the 'EMAIL(OPTIONAL)' column in row {index + 2 + skipped_rows}."
+                    error_message = f"'{email}' is not a valid email address! Check the value in the 'EMAIL(OPTIONAL)' column in row {row_index}."
                     raise ErrorMessageException(error_message)
                 
-            try:
-                level_objs = EducationalLevel.objects.filter(name__in=[x.strip().upper() for x in levels.split(',')]).distinct()
-                if len(level_objs) == 0:
-                    raise (ValueError)
-                else:
-                    levels = level_objs
-            except Exception as e:
-                error_message = f"'{levels}' is/are not a valid level(s)! Check the value in the 'LEVEL(S)' column in row {index + 2 + skipped_rows}."
-                raise ErrorMessageException(error_message)
-                
-            if subjects:
-                try:
-                    subjects_objs = Subject.objects.filter(level=current_level, name__in=[x.strip().upper() for x in subjects.split(',')]).distinct()
-                    if len(subjects_objs) == 0:
-                        raise (ValueError)
-                    else:
-                        subjects = subjects_objs
-                except Exception as e:
-                    error_message = f"'{subjects}' is/are not a valid subject(s)! Check the value in the 'SUBJECT(S)' column in row {index + 2 + skipped_rows}."
-                    raise ErrorMessageException(error_message)
-
-            if current_level.has_departments:
-                try:
-                    department = Department.objects.get(school=school, level=current_level, name=department.strip().upper())
-                except Exception as e:
-                    error_message = f"'{department}' is not a valid department! Check the value in the 'DEPARTMENT' column in row {index + 2 + skipped_rows}."
-                    raise ErrorMessageException(error_message)
-
             user_no = random.randint(100, 999)
             username = f"{first_name.replace(' ', '')[0].upper()}{last_name.replace(' ', '').lower()}{user_no}"
 
-            if current_level.staff_id:
+            if school.staff_id:
                 if staff_id in staff_to_create_ids:
-                    error_message = f"Two staff cannot have the same staff ID. The staff ID in row {index + 2 + skipped_rows} conflicts with another staff ID on the sheet"
+                    error_message = f"Two staff cannot have the same staff ID. The staff ID in row {row_index} conflicts with another staff ID on the sheet"
                     raise ErrorMessageException(error_message)
                 elif staff_id in existing_staff_ids:
-                    error_message = f"Staff with ID '{staff_id}' already exists. Check the staff ID in row {index + 2 + skipped_rows}"
+                    error_message = f"Staff with ID '{staff_id}' already exists. Check the staff ID in row {row_index}"
                     raise ErrorMessageException(error_message)
             else:
                 staff_id = username
@@ -982,10 +970,7 @@ def superuser_staff(request):
                 'username': username,
                 'staff_id': staff_id,
                 'title': title,
-                'department': department,
-                'levels': levels,
                 'gender': gender,
-                'subjects': subjects,
                 'dob': dob,
                 'date_enrolled': date_enrolled,
                 'religion': religion,
@@ -1001,7 +986,7 @@ def superuser_staff(request):
         with transaction.atomic():
             try:
                 for index, row in df.iterrows():
-                    staff_data = get_data(row)
+                    staff_data = get_data(row, index)
                     user = User(
                         username=staff_data['username'],
                         first_name=staff_data['first_name'].title(),
@@ -1011,12 +996,10 @@ def superuser_staff(request):
                     users_to_create.append(user)
                     staff_to_create.append((staff_data['username'], staff_data))
                     staff_to_create_ids.add(staff_data['staff_id'])
-                    staff_to_create_roles.add(staff_data['role'])
 
                 User.objects.bulk_create(users_to_create)
                 created_users = User.objects.filter(username__in=[user.username for user in users_to_create])
                 user_mapping = {user.username: user for user in created_users}
-                teachers_role = StaffRole.object.get(name='teacher')
                 for username, staff_data in staff_to_create:
                     user = user_mapping[username]
                     staff = Staff(
@@ -1024,8 +1007,6 @@ def superuser_staff(request):
                         school=school,
                         staff_id=staff_data['staff_id'],
                         title=staff_data['title'],
-                        department=staff_data['department'],
-                        role=teachers_role,
                         gender=staff_data['gender'],
                         dob=staff_data['dob'],
                         date_enrolled=staff_data['date_enrolled'],
@@ -1039,30 +1020,16 @@ def superuser_staff(request):
                         address=staff_data['address'].lower(),
                         is_active=True,
                     )
-                    staff_subjects_mappings[staff_data['staff_id']] = staff_data['subjects']
-                    staff_levels_mappings[staff_data['staff_id']] = staff_data['levels']
                     staff_instances.append(staff)
-                    if school.has_departments and staff_data['department']:
-                        staff_departments.append(staff_data['department'])
 
                 Staff.objects.bulk_create(staff_instances)
-                created_staff = Staff.objects.select_related('department').prefetch_related('subjects', 'levels').filter(school=school, staff_id__in=staff_to_create_ids)
-                for _staff in created_staff:
-                    staff_subjects = staff_subjects_mappings[_staff.staff_id]
-                    staff_levels = staff_levels_mappings[_staff.staff_id]
-                    _staff.subjects.set(staff_subjects)
-                    _staff.levels.set(staff_levels)
-                    if _staff.department and _staff.department in staff_departments:
-                        department_index = staff_departments.index(_staff.department)
-                        staff_departments[department_index].teachers.add(_staff)
-
             except ErrorMessageException as e:
                 return Response({'message': str(e)}, status=400)
             except Exception as e:
                 transaction.set_rollback(True)
-                print(e)
                 return Response(status=400)
 
+        created_staff = Staff.objects.select_related('user').prefetch_related('subjects', 'departments', 'roles').filter(school=school, staff_id__in=staff_to_create_ids)
         staff_data = StaffSerializerOne(created_staff, many=True).data
         return Response(staff_data, status=200)
 
@@ -1095,39 +1062,20 @@ def superuser_staff(request):
                             staff.staff_id = new_username
                             staff.save()
                         return Response(
-                            StaffSerializerOne(Staff.objects.get(school=school, staff_id=staff_id)).data['user'],
-                            status=200)
+                            StaffSerializerOne(Staff.objects.get(school=school, staff_id=staff_id)).data['user'], 
+                            status=200
+                        )
                 elif edit_type == 'title':
                     staff = Staff.objects.get(school=school, staff_id=staff_id)
                     staff.title = new_value.title()
                     staff.save()
-                    return Response(
-                        StaffSerializerOne(Staff.objects.get(school=school, staff_id=staff_id)).data['user'],
-                        status=200)
+                    return Response(StaffSerializerOne(Staff.objects.get(school=school, staff_id=staff_id)).data['user'], status=200)
                 elif edit_type == 'gender':
-                    staff = Staff.objects.select_related('role').get(school=school, staff_id=staff_id)
-                    role = staff.role.name
-                    if role.lower() in ['headmaster', 'headmistress', 'assistant headmaster', 'assistant headmistress']:
-                        if new_value == 'male' and role in ['headmaster', 'headmistress']:
-                            role = 'headmaster'
-                        elif new_value == 'female' and role in ['headmaster', 'headmistress']:
-                            role = 'headmistress'
-                        elif new_value == 'male' and role in ['assistant headmaster', 'assistant headmistress']:
-                            role = 'assistant headmaster'
-                        elif new_value == 'female' and role in ['assistant headmaster', 'assistant headmistress']:
-                            role = 'assistant headmistress'
-
-                        # existing_staff = Staff.objects.filter(school=school, role=role).first()
-                        # if existing_staff and existing_staff.staff_id != staff_id:
-                        #     old_staff_name = f"{existing_staff.title} {existing_staff.user.get_full_name()}"
-                        #     new_staff_name = f"{staff.title} {staff.user.get_full_name()}"
-                        #     transaction.set_rollback(True)
-                        #     return Response({'message': f"{old_staff_name} is currently the {existing_staff.role}. Changing {new_staff_name}'s gender to {new_value} will also update their role to '{role}', which conflicts with {old_staff_name}'s role. Only one staff member can hold the position of {role}."}, status=400)
-                    staff.gender = new_value.lower()
-                    new_role = StaffRole.objects.get(name=role)
-                    staff.role = new_role
+                    staff = Staff.objects.get(school=school, staff_id=staff_id)
+                    gender = new_value.lower()
+                    staff.gender = gender
                     staff.save()
-                    return Response({'gender': new_value, 'role': role}, status=200)
+                    return Response(gender, status=200)
                 elif edit_type == 'dob':
                     staff = Staff.objects.get(school=school, staff_id=staff_id)
                     staff.dob = new_value
@@ -1148,113 +1096,51 @@ def superuser_staff(request):
                     staff.staff_id = new_value
                     staff.save()
                     return Response(new_value, status=200)
-                elif edit_type == 'role':
-                    staff = Staff.objects.select_related('department').prefetch_related('subjects').get(school=school, staff_id=staff_id)
-                    new_role = new_value.lower()
-                    staff_gender = staff.gender.lower()
-                    previous_role = staff.role
-                    staff_department = staff.department.name if staff.department else None
-                    staff_subjects = [x.name for x in staff.subjects.all()]
-                    if previous_role == 'teacher':
-                        old_department = staff.department
-                        old_department.teachers.remove(staff)
-                        staff.department = None
-                        staff_department = None
-                        staff_subjects = []
-                        staff.subjects.set([])
-                    if new_role == 'head' and staff_gender == 'male':
-                        new_role = 'headmaster'
-                    if new_role == 'head' and staff_gender == 'female':
-                        new_role = 'headmistress'
-                    if new_role == 'assistant head' and staff_gender == 'male':
-                        new_role = 'assistant headmaster'
-                    if new_role == 'assistant head' and staff_gender == 'female':
-                        new_role = 'assistant headmistress'
-
-                    if new_role == 'teacher':
-                        if current_level.has_departments:
-                            new_department = Department.objects.prefetch_related('teachers').get(school=school, level=current_level, name=data['department'])
-                            new_department.teachers.add(staff)
-                            staff.department = new_department
-                            staff_department = new_department.name
-                        new_subjects = json.loads(data['subjects'])
-                        subject_objs = Subject.objects.filter(level=current_level, name__in=new_subjects)
-                        staff.subjects.set(subject_objs)
-                        staff_subjects = new_subjects
-
-                    staff_role = StaffRole.objects.get(name=new_role)
-                    staff.role = staff_role
-                    staff.save()
-                    
-                    return Response({
-                        'role': new_role,
-                        'department': staff_department,
-                        'subjects': staff_subjects,
-                    }, status=200)
-
                 elif edit_type == 'subjects':
                     staff = Staff.objects.prefetch_related('subjects').get(school=school, staff_id=staff_id)
-                    subjects = json.loads(new_value)
-                    subject_objs = Subject.objects.filter(level=current_level, name__in=subjects)
+                    subjectIdentifiers = json.loads(new_value)
+                    subject_objs = Subject.objects.filter(identifier__in=subjectIdentifiers)
                     staff.subjects.set(subject_objs)
-                    staff.save()
-                    return Response(subjects, status=200)
-
-                elif edit_type == 'department' and school.has_departments:
-                    staff = Staff.objects.get(school=school, staff_id=staff_id)
-                    old_department = staff.department
-                    old_department.teachers.remove(staff)
-                    new_department = Department.objects.get(school=school, level=current_level, name=new_value)
-                    staff.department = new_department
-                    new_department.teachers.add(staff)
-                    staff.save()
-                    return Response(new_value, status=200)
-
+                    return Response(status=200)
                 elif edit_type == 'region':
                     staff = Staff.objects.get(school=school, staff_id=staff_id)
                     staff_nationality = staff.nationality
                     countryinfo = PyCountryInfo()
                     staff_country = countryinfo.get_country_from_nationality(staff_nationality)
-                    if staff_country.lower() == 'ghana' and not countryinfo.is_valid_country_province('Ghana', new_value):
+                    if staff_country.lower() == 'ghana' and not countryinfo.is_valid_country_province('Ghana', new_value.title()):
                         return Response({'message': f"'{new_value}' is not a valid region in 'Ghana'!"}, status=400)
                     staff.region = new_value.lower()
                     staff.save()
                     return Response(new_value, status=200)
-
                 elif edit_type == 'nationality':
                     staff = Staff.objects.get(school=school, staff_id=staff_id)
                     staff.nationality = new_value.lower()
                     staff.save()
                     return Response(new_value, status=200)
-
                 elif edit_type == 'religion':
                     staff = Staff.objects.get(school=school, staff_id=staff_id)
                     staff.religion = new_value.lower()
                     staff.save()
                     return Response(new_value, status=200)
-
                 elif edit_type == 'address':
                     staff = Staff.objects.get(school=school, staff_id=staff_id)
                     staff.address = new_value.lower()
                     staff.save()
                     return Response(new_value, status=200)
-
                 elif edit_type == 'contact':
                     if not valid_phone_number(new_value):
-                        return Response({'message': f"'{new_value}' is not a valid phone number"}, status=400)
+                        return Response({'message': f"'{new_value}' is not a valid phone number. Make sure you start with a '+' followed by the country code. Eg. +233596021383"}, status=400)
                     staff = Staff.objects.get(school=school, staff_id=staff_id)
                     staff.contact = new_value
                     staff.save()
                     return Response(new_value, status=200)
-
                 elif edit_type == 'alt_contact':
                     if not valid_phone_number(new_value):
-                        return Response({'message': f"'{new_value}' is not a valid phone number"}, status=400)
+                        return Response({'message': f"'{new_value}' is not a valid phone number. Make sure you start with a '+' followed by the country code. Eg. +233596021383"}, status=400)
                     staff = Staff.objects.get(school=school, staff_id=staff_id)
                     staff.alt_contact = new_value
                     staff.save()
                     return Response(new_value, status=200)
-
                 elif edit_type == 'email':
                     if not valid_email(new_value):
                         return Response({'message': f"'{new_value}' is not a valid email address"}, status=400)
@@ -1262,35 +1148,76 @@ def superuser_staff(request):
                     staff.email = new_value.lower()
                     staff.save()
                     return Response(new_value, status=200)
-
                 elif edit_type == 'img':
                     if not imghdr.what(new_value):
                         return Response({'message': f"Invalid image"}, status=400)
                     staff = Staff.objects.get(school=school, staff_id=staff_id)
                     staff.img = new_value
                     staff.save()
-                    return Response(StaffSerializerOne(Staff.objects.get(school=school, staff_id=staff_id)).data['img'],
-                                    status=200)
+                    return Response(StaffSerializerOne(Staff.objects.get(school=school, staff_id=staff_id)).data['img'], status=200)
+                
             except:
                 transaction.set_rollback(True)
                 return Response(status=400)
 
         return Response(status=400)
 
+    elif data['type'] == 'addRole':
+        staff = Staff.objects.prefetch_related('departments', 'roles').get(school=school, staff_id=data['staffId'])
+        role = StaffRole.objects.get(schools=school, identifier=data['roleIdentifier'])
+        if role in staff.roles.all():
+            return Response({'message': "The staff you selected already has this role"}, status=400)
+        department = Department.objects.prefetch_related('teachers').get(school=school, level=level, identifier=data['departmentIdentifier']) if data['departmentIdentifier'] else None
+        
+        with transaction.atomic():
+            try:
+                staff.roles.add(role)
+                if department:
+                    staff.departments.add(department)
+                    department.teachers.add(staff)
+            
+            except Exception as e:
+                transaction.set_rollback(True)
+                return Response(status=400)
+        
+        return Response({
+            'role': role.identifier,
+            'department': department.identifier if department else '',
+        }, status=200) 
+    
+    elif data['type'] == 'removeRole':
+        staff = Staff.objects.prefetch_related('departments').get(school=school, staff_id=data['staffId'])
+        role = StaffRole.objects.select_related('level').get(schools=school, identifier=data['roleIdentifier'])
+        level = role.level
+        department = staff.departments.prefetch_related('teachers').filter(level=level).first()
+        with transaction.atomic():
+            try:
+                staff.roles.remove(role)
+                if department:
+                    staff.departments.remove(department)
+                    department.teachers.remove(staff)
+                    
+            except Exception as e:
+                transaction.set_rollback(True)
+                return Response(status=400)
+        
+        return Response({
+            'department': department.identifier if department else '',
+        }, status=200)
+        
     elif data['type'] == 'delete':
         staff_to_delete = Staff.objects.get(school=school, staff_id=data['staffId'])
         user = staff_to_delete.user
-        if SubjectAssignment.objects.filter(school=school, level=current_level, teacher=staff_to_delete).exists():
+        if SubjectAssignment.objects.filter(school=school, teacher=staff_to_delete).exists():
             return Response({'message': "You don't have permission to delete this staff"}, status=400)
 
-        students_classes = Classe.objects.filter(school=school, level=current_level)
-        for _class in students_classes:
-            if _class.head_teacher == staff_to_delete:
-                return Response({'message': "You don't have permission to delete this staff"}, status=400)
+        students_classes = Classe.objects.filter(school=school, head_teacher=staff_to_delete).exists()
+        if students_classes:
+            return Response({'message': "You don't have permission to delete this staff"}, status=400)
 
         with transaction.atomic():
             try:
-                staff_to_delete.delete()
+                user.delete()
             except Exception as e:
                 transaction.set_rollback(True)
                 return Response(status=400)

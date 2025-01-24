@@ -1,12 +1,11 @@
 import io
-import os
 from datetime import datetime, timedelta
 from api.models import *
 from api.serializer import *
 from django.conf import settings
 from rest_framework.response import Response
 from django.core.files.storage import default_storage
-import re
+from django.core.validators import EmailValidator
 
 # Document Manipulation
 from openpyxl import Workbook, load_workbook, styles
@@ -20,8 +19,7 @@ from docx.oxml.shared import OxmlElement
 
 import phonenumbers
 from phonenumbers import NumberParseException
-from staticfiles.files import country_info
-from countryinfo import CountryInfo
+
 
 # Base url
 def base_url(value):
@@ -29,12 +27,23 @@ def base_url(value):
     host = value.get_host()
     return f"{scheme}://{host}"
 
+staff_title_options = ['Mr', 'Miss', 'Mrs', 'Dr', 'Prof', 'Rev', 'Sir', 'Hon', 'Madam', 'Pastor', 'Imam', 'Bishop', 'Archbishop']
+religion_options = ['Christianity', 'Islam', 'Traditional African Religions', 'Buddhism', 'Hinduism', 'Sikhism', 'Judaism', 'Other', 'None']
+        
 def valid_phone_number(number:str):
     try:
         phone_number = phonenumbers.parse(number, None)
         if not phonenumbers.is_valid_number(phone_number):
             return False
     except NumberParseException:
+        return False
+    return True
+
+def valid_email(email:str):
+    email_validator = EmailValidator()
+    try:
+        email_validator(email)
+    except Exception:
         return False
     return True
 
@@ -45,76 +54,67 @@ class ErrorMessageException(Exception):
         super().__init__(self.message)
     def __str__(self) -> str:
         return self.message
-        
-        
-def get_country_from_nationality(nationality:str):
-    try:
-        country = country_info.nationality_to_country[nationality.title()]
-        return country
-    except Exception:
-        return None
-    
-    
-def validate_nationality(nationality:str):
-    try:
-        country = country_info.nationality_to_country[nationality.title()]
-    except Exception:
-        return False
-    return True
-
-
-def get_country_regions(country:str):
-    try:
-        regions = CountryInfo(country.title()).provinces()
-        return regions
-    except Exception:
-        return None
     
 
-def validate_country_region(country:str, region:str):
-    try:
-        regions = CountryInfo(country.title()).provinces()
-        if region.title() not in regions:
-            return False
-    except Exception:
-        return False
-    return True
+# Get the current academic year
+def get_current_academic_year(school, level, user_data):
+    academic_years = AcademicYear.objects.filter(school=school, level=level).order_by('-start_date')
+    current_date = timezone.now().date()
+    if academic_years.exists():
+        current_year = academic_years[0]
+        if current_year.start_date <= current_date:
+            if not current_date > current_year.term_1_end_date:
+                user_data['current_term'] = 1
+
+            elif not current_date > current_year.term_2_end_date:
+                user_data['current_term'] = 2
+
+            elif not current_year.term_3_start_date:
+                user_data['current_term'] = 2
+
+            elif current_year.term_3_start_date:
+                user_data['current_term'] = 3
+
+            user_data['academic_year'] = AcademicYearSerializer(current_year).data
+            return user_data
+
+        elif academic_years.count() > 1:
+            previous_year = academic_years[1]
+            if not current_date > previous_year.term_1_end_date:
+                user_data['current_term'] = 1
+
+            elif not current_date > previous_year.term_2_end_date:
+                user_data['current_term'] = 2
+
+            elif not previous_year.term_3_start_date:
+                user_data['current_term'] = 2
+
+            elif previous_year.term_3_start_date:
+                user_data['current_term'] = 3
+
+            user_data['academic_year'] = AcademicYearSerializer(previous_year).data
+            return user_data
+
+        else:
+            return 'There is not current academic year for you, contact you school administrator'
+
+    else:
+        return 'There is not current academic year for you, contact you school administrator'
     
         
-def format_staff_creation_file(staff):
+def get_staff_creation_file(school):
     excel_file = None
-    department_options = None
     unlocked_cell_range = None
-    subjects = Subject.objects.filter(schools=staff.school)
-    subject_options = ""
-    for _subj in subjects:
-        subject_options += f"{_subj.name.capitalize()}, "
     
-    if staff.school.staff_id and staff.school.has_departments:
-        excel_file = f"staticfiles/files/staff-creation-file-with-staff_id-with-department.xlsx"
-        unlocked_cell_range = 'A11:R111'
-        departments = Department.objects.filter(school=staff.school)
-        department_options = ""
-        for _dept in departments:
-            department_options += f"{_dept.name.capitalize()}, "
-        
-    elif staff.school.staff_id and not staff.school.has_departments:
-        excel_file = f"staticfiles/files/staff-creation-file-with-staff_id-without-department.xlsx"
-        unlocked_cell_range = 'A10:Q110'
-        
-    elif not staff.school.staff_id and staff.school.has_departments:
-        excel_file = f"staticfiles/files/staff-creation-file-without-staff_id-with-department.xlsx"
-        unlocked_cell_range= 'A11:Q111'
-    
-    elif not staff.school.staff_id and not staff.school.has_departments:
-        excel_file = f"staticfiles/files/staff-creation-file-without-staff_id-without-department.xlsx"
-        unlocked_cell_range = 'A10:P110'
+    if school.staff_id:
+        excel_file = f"staticfiles/files/staff-creation-file-with-staff_id.xlsx"
+        unlocked_cell_range = 'A7:O107'
+    else:
+        excel_file = f"staticfiles/files/staff-creation-file-without-staff_id.xlsx"
+        unlocked_cell_range= 'A7:N107'
     
     wb = load_workbook(excel_file)
     ws = wb.worksheets[0]
-    ws['B4'] = subject_options
-    if department_options:
-        ws['B5'] = department_options
     for row in ws[unlocked_cell_range]:
         for cell in row:
             cell.protection = styles.Protection(locked=False)
@@ -125,7 +125,35 @@ def format_staff_creation_file(staff):
     byte_file.seek(0)
     
     return byte_file
+
+
+def get_students_creation_file(level, students_classname:str):
+    excel_file = None
+    unlocked_cell_range = None
     
+    if level.students_id:
+        excel_file = f"staticfiles/files/students-creation-file-with-st_id.xlsx"
+        unlocked_cell_range = 'A6:T106'
+        
+    else:
+        excel_file = f"staticfiles/files/students-creation-file-without-st_id.xlsx"
+        unlocked_cell_range = 'A6:S106'
+    
+    wb = load_workbook(excel_file)
+    ws = wb.worksheets[0]
+    for row in ws[unlocked_cell_range]:
+        for cell in row:
+            cell.protection = styles.Protection(locked=False)
+            
+    ws.protection.sheet = True
+    ws.title = students_classname
+    byte_file = io.BytesIO()
+    wb.save(byte_file)
+    byte_file.seek(0)
+    
+    return byte_file
+
+
 def get_school_folder(school_name: str):
     name = school_name.replace(".", "_").replace(" ", "_").replace("'", "").lower()
     return name
@@ -864,49 +892,6 @@ def check_assessment_percentage(teacher, school, subject_obj, students_class, ac
             assesment_titles.add(_assessment['title'])
     
     return sum(assessments_percentages) <= 100
-
-# Get the current academic year
-def get_current_academic_year(school_user, user_data):
-    academic_years = AcademicYear.objects.filter(school=school_user.school).order_by('-start_date')
-    current_date = timezone.now().date()
-    if academic_years.exists():
-        current_year = academic_years[0]
-        if current_year.start_date <= current_date:
-            if not current_date > current_year.term_1_end_date:
-                user_data['current_term'] = 1
-
-            elif not current_date > current_year.term_2_end_date:
-                user_data['current_term'] = 2
-
-            elif not current_year.term_3_start_date:
-                user_data['current_term'] = 2
-
-            elif current_year.term_3_start_date:
-                user_data['current_term'] = 3
-
-            user_data['academic_year'] = AcademicYearSerializer(current_year).data
-
-        elif academic_years.count() > 1:
-            previous_year = academic_years[1]
-            if not current_date > previous_year.term_1_end_date:
-                user_data['current_term'] = 1
-
-            elif not current_date > previous_year.term_2_end_date:
-                user_data['current_term'] = 2
-
-            elif not previous_year.term_3_start_date:
-                user_data['current_term'] = 2
-
-            elif previous_year.term_3_start_date:
-                user_data['current_term'] = 3
-
-            user_data['academic_year'] = AcademicYearSerializer(previous_year).data
-
-        else:
-            return Response({'ms': 'No current academic year, contact you school administrator'}, status=201)
-
-    else:
-        return Response({'ms': 'No current academic year, contact you school administrator'}, status=201)
 
 
 # Hod subject Assignments Data

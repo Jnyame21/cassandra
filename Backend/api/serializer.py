@@ -40,14 +40,9 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = ['username', 'first_name', 'last_name', 'last_login', 'email']
 
-class EducationalLevelSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = EducationalLevel
-        fields = '__all__'
-        
 
+# School Serializers
 class SchoolSerializer(serializers.ModelSerializer):
-    level = EducationalLevelSerializer()
     class Meta:
         model = School
         fields = "__all__"
@@ -57,41 +52,157 @@ class SchoolSerializer(serializers.ModelSerializer):
         data['logo'] = get_image(data, 'school_logo')
 
         return data
+        
 
-
-class SpecificSchoolSerializer(serializers.ModelSerializer):
+# Educational Level Serializers
+class SuperuserEducationalLevelSerializer(serializers.ModelSerializer):
+    schools = serializers.SerializerMethodField()
     class Meta:
-        model = School
-        fields = ('name')
+        model = EducationalLevel
+        fields = '__all__'
+        
+    def get_schools(self, obj):
+        return [x.identifier for x in obj.schools.all()]
+    
+     
+class EducationalLevelSerializer(serializers.ModelSerializer):
+    schools = serializers.SerializerMethodField()
+    class Meta:
+        model = EducationalLevel
+        fields = '__all__'
+        
+    def get_schools(self, obj):
+        return [x.name for x in obj.schools.all()]
 
 
-class GradingSystemSerializer(serializers.ModelSerializer):
-    school = SpecificSchoolSerializer()
+class EducationalLevelWithoutSchoolSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EducationalLevel
+        fields = ('name', 'identifier', 'has_programs', 'has_departments', 'students_id', 'students_index_no', 'years_to_complete')
+        
+        
+class EducationalLevelNameSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EducationalLevel
+        fields = ('name',)
+        
+        
+# Grading System Range Serializers
+class SuperuserGradingSystemRangeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = GradingSystemRange
+        fields = '__all__'
+        
+        
+# Grading System Serializers
+class SuperuserGradingSystemSerializer(serializers.ModelSerializer):
+    level = serializers.SerializerMethodField()
+    schools = serializers.SerializerMethodField()
+    ranges = serializers.SerializerMethodField()
     class Meta:
         model = GradingSystem
         fields = '__all__'
-
         
+    def get_level(self, obj):
+        return obj.level.identifier if obj.level else None
+    
+    def get_schools(self, obj):
+        return [x.identifier for x in obj.schools.all()]
+    
+    def get_ranges(self, obj):
+        return [x.identifier for x in obj.ranges.all()]
+    
+
+class GradingSystemSerializer(serializers.ModelSerializer):
+    level = EducationalLevelSerializer()
+    class Meta:
+        model = GradingSystem
+        fields = '__all__'
+        
+        
+# Academic year serializers
 class AcademicYearSerializer(serializers.ModelSerializer):
     class Meta:
         model = AcademicYear
         fields = '__all__'
 
-        
-# Subject Serializers
-class SubjectsSerializer(serializers.ModelSerializer):
 
+# Subject Serializers
+class SuperuserSubjectsSerializer(serializers.ModelSerializer):
+    level = serializers.SerializerMethodField()
+    schools = serializers.SerializerMethodField()
+    
     class Meta:
         model = Subject
         fields = '__all__'
+        
+    def get_level(self, obj):
+        return obj.level.identifier if obj.level else None
+    
+    def get_schools(self, obj):
+        return [x.identifier for x in obj.schools.all()]
+    
+
+class SubjectIdentiferSerializer(serializers.ModelSerializer):
+    
+    class Meta:
+        model = Subject
+        fields = ('identifier',)
+    
+    
+class SubjectsSerializer(serializers.ModelSerializer):
+    level = serializers.SerializerMethodField()
+    schools = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Subject
+        fields = '__all__'
+        
+    def get_level(self, obj):
+        return obj.level.name if obj.level else None
+    
+    def get_school(self, obj):
+        return [x.name for x in obj.school.all()]
 
 
-class ProgramSerializer(serializers.ModelSerializer):
-    subjects = SubjectsSerializer(many=True)
+# Program Serializer
+class SuperuserProgramSerializer(serializers.ModelSerializer):
+    subjects = serializers.SerializerMethodField()
+    level = serializers.SerializerMethodField()
+    schools = serializers.SerializerMethodField()
     
     class Meta:
         model = Program
         fields = '__all__'
+        
+    def get_subjects(self, obj):
+        return [x.identifier for x in obj.subjects.all()]
+    
+    def get_schools(self, obj):
+        return [x.identifier for x in obj.schools.all()]
+    
+    def get_level(self, obj):
+        return obj.level.identifier if obj.level else None
+    
+    
+class ProgramSerializer(serializers.ModelSerializer):
+    subjects = serializers.SerializerMethodField()
+    level = serializers.SerializerMethodField()
+    schools = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Program
+        fields = '__all__'
+        
+    def get_subjects(self, obj):
+        return [x.name for x in obj.subjects.all()]
+    
+    def get_school(self, obj):
+        return [x.name for x in obj.school.all()]
+    
+    def get_level(self, obj):
+        return obj.level.name if obj.level else None
+
 
 class ProgramNameSerializer(serializers.ModelSerializer):
     class Meta:
@@ -102,8 +213,10 @@ class ProgramNameSerializer(serializers.ModelSerializer):
 #  Student Serializers
 class StudentSerializer(serializers.ModelSerializer):
     school = SchoolSerializer()
+    current_level = EducationalLevelWithoutSchoolSerializer()
+    current_program = serializers.SerializerMethodField()
     st_class = serializers.SerializerMethodField()
-    program = serializers.SerializerMethodField()
+    levels = serializers.SerializerMethodField()
 
     class Meta:
         model = Student
@@ -116,47 +229,51 @@ class StudentSerializer(serializers.ModelSerializer):
         return data
 
     def get_st_class(self, obj):
-        return obj.st_class.name
-    
-    def get_program(self, obj):
-        if obj.program:
-            return obj.program.name
+        if obj.st_class:
+            return obj.st_class.name
         return None
+    
+    def get_current_level(self, obj):
+        return obj.current_level.identifier if obj.current_level else None
+    
+    def get_levels(self, obj):
+        return [x.identifier for x in obj.levels.all()] 
+    
+    def get_current_program(self, obj):
+        return obj.current_program.identifier if obj.current_program else None
 
 
-class SpecificStudentSerializer(serializers.ModelSerializer):
-    user = UserSerializer()
-    level = EducationalLevelSerializer()
-    program = ProgramNameSerializer()
+# class SpecificStudentSerializer(serializers.ModelSerializer):
+#     user = UserSerializer()
+#     program = ProgramNameSerializer()
 
-    class Meta:
-        model = Student
-        fields = ('user', 'img', 'st_id', 'gender', 'has_completed', 'current_year', 'program', 'dob', 'level', 'date_created')
+#     class Meta:
+#         model = Student
+#         fields = ('user', 'img', 'st_id', 'gender', 'has_completed', 'current_year', 'program', 'dob', 'date_created')
 
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        if settings.DEBUG:
-            if data['img'] and data['img'] != 'null':
-                data['img'] = f"http://localhost:8000{data['img']}"
-            else:
-                data['img'] = f"http://localhost:8000/static/images/students_img.jpg"
-        else:
-            if data['img'] and data['img'] != 'null':
-                pass
-            else:
-                data['img'] = f"https://{production_domain}/static/images/students_img.jpg"
+    # def to_representation(self, instance):
+    #     data = super().to_representation(instance)
+    #     if settings.DEBUG:
+    #         if data['img'] and data['img'] != 'null':
+    #             data['img'] = f"http://localhost:8000{data['img']}"
+    #         else:
+    #             data['img'] = f"http://localhost:8000/static/images/students_img.jpg"
+    #     else:
+    #         if data['img'] and data['img'] != 'null':
+    #             pass
+    #         else:
+    #             data['img'] = f"https://{production_domain}/static/images/students_img.jpg"
 
-        return data
+    #     return data
 
 
-class SpecificStudentWithoutImageSerializer(serializers.ModelSerializer):
-    user = UserSerializer()
-    level = EducationalLevelSerializer()
-    program = ProgramNameSerializer()
+# class SpecificStudentWithoutImageSerializer(serializers.ModelSerializer):
+#     user = UserSerializer()
+#     program = ProgramNameSerializer()
 
-    class Meta:
-        model = Student
-        fields = ('user', 'st_id', 'gender', 'has_completed', 'current_year', 'program', 'level', 'date_created')
+#     class Meta:
+#         model = Student
+#         fields = ('user', 'st_id', 'gender', 'current_year', 'program', 'date_created')
 
 class StudentSerializerOne(serializers.ModelSerializer):
     user = serializers.SerializerMethodField()
@@ -178,19 +295,93 @@ class StudentSerializerOne(serializers.ModelSerializer):
         return data
 
 
-class StudentNameAndIdSerializer(serializers.ModelSerializer):
-    user = UserSerializer()
+class StudentSerializerTwo(serializers.ModelSerializer):
+    user = serializers.SerializerMethodField()
 
     class Meta:
         model = Student
-        fields = ('user', 'st_id')    
+        fields = ('user', 'st_id', 'gender', 'contact', 'guardian_contact', 'img')    
+
+    def get_user(self, obj):
+        return obj.user.get_full_name()
+    
+    def to_representation(self, instance):  
+        data = super().to_representation(instance)
+        data['img'] = get_image(data, 'student')
+        
+        return data
 
 
-# Staff Serializers
+class StudentSerializerThree(serializers.ModelSerializer):
+    user = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Student
+        fields = ('user', 'st_id')
+    
+    def get_user(self, obj):
+        return obj.user.get_full_name()
+    
+  
+class StudentSerializerFour(serializers.ModelSerializer):
+    user = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Student
+        fields = ('user', 'gender', 'contact', 'img')    
+
+    def get_user(self, obj):
+        return obj.user.get_full_name()
+    
+    def to_representation(self, instance):  
+        data = super().to_representation(instance)
+        data['img'] = get_image(data, 'student')
+        
+        return data
+
+
+class StudentUserIdSerializer(serializers.ModelSerializer):
+    user = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Student
+        fields = ('user', 'st_id')
+    
+    def get_user(self, obj):
+        return obj.user.get_full_name()
+    
+
+# Staff Role Serializers
+class StaffRoleSerializer(serializers.ModelSerializer):
+    level = serializers.SerializerMethodField()
+    schools = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = StaffRole
+        fields = "__all__"
+        
+    def get_schools(self, obj):
+        return [x.identifier for x in obj.schools.all()]
+    
+    def get_level(self, obj):
+        return obj.level.identifier if obj.level else None
+
+
+class StaffRoleSerializerOne(serializers.ModelSerializer):
+    level = EducationalLevelWithoutSchoolSerializer()
+    
+    class Meta:
+        model = StaffRole
+        fields = ('name', 'level', 'identifier')
+    
+    
+# Staff Serializers 
 class StaffSerializer(serializers.ModelSerializer):
     school = SchoolSerializer()
     subjects = serializers.SerializerMethodField()
-    department = serializers.SerializerMethodField()
+    departments = serializers.SerializerMethodField()
+    roles = serializers.SerializerMethodField()
+    current_role = StaffRoleSerializerOne()
 
     class Meta:
         model = Staff
@@ -202,25 +393,28 @@ class StaffSerializer(serializers.ModelSerializer):
 
         return data
 
-    def get_department(self, obj):
-        if obj.department:
-            return obj.department.name
-        return None
+    def get_roles(self, obj):
+        return [x.identifier for x in obj.roles.all()]
+    
+    def get_departments(self, obj):
+        return [x.identifier for x in obj.departments.all()]
     
     def get_subjects(self, obj):
-        return [_subject.name for _subject in obj.subjects.all()]
+        return [_subject.identifier for _subject in obj.subjects.all()]
     
 
 class SpecificStaffSerializer(serializers.ModelSerializer):
-    school = SchoolSerializer
     user = UserSerializer()
     subjects = SubjectsSerializer(many=True)
-    department = 'DepartmentNameSerializer'
+    roles = serializers.SerializerMethodField()
 
     class Meta:
         model = Staff
-        fields = ('staff_id', 'contact', 'img', 'gender', 'user', 'subjects', 'department', 'role', 'dob', 'date_created')
+        fields = ('staff_id', 'contact', 'img', 'gender', 'user', 'subjects', 'department', 'roles', 'dob', 'date_created')
 
+    def get_roles(self, obj):
+        return [x.name for x in obj.roles.all()]
+    
     def to_representation(self, instance):
         data = super().to_representation(instance)
         if settings.DEBUG:
@@ -236,25 +430,28 @@ class SpecificStaffSerializer(serializers.ModelSerializer):
 
         return data
 
+
 class StaffSerializerOne(serializers.ModelSerializer):
     user = serializers.SerializerMethodField()
     subjects = serializers.SerializerMethodField()
-    department = serializers.SerializerMethodField()
+    departments = serializers.SerializerMethodField()
+    roles = serializers.SerializerMethodField()
 
     class Meta:
         model = Staff
-        fields = ('staff_id', 'contact', 'alt_contact', 'img', 'gender', 'user', 'subjects', 'department', 'role', 'dob', 'nationality', 'pob', 'region', 'religion', 'email', 'address', 'date_enrolled')
+        fields = ('staff_id', 'contact', 'alt_contact', 'img', 'gender', 'user', 'subjects', 'departments', 'roles', 'dob', 'nationality', 'pob', 'region', 'religion', 'email', 'address', 'date_enrolled', 'is_active')
 
     def get_user(self, obj):
-        return f"{obj.title} {obj.user.get_full_name()}"
+        return f"{obj.title}. {obj.user.get_full_name()}"
     
-    def get_department(self, obj):
-        if obj.department:
-            return obj.department.name
-        return None
+    def get_roles(self, obj):
+        return [x.identifier for x in obj.roles.all()]
+    
+    def get_departments(self, obj):
+        return [x.identifier for x in obj.departments.all()]
     
     def get_subjects(self, obj):
-        return [_subject.name for _subject in obj.subjects.all()]
+        return [_subject.identifier for _subject in obj.subjects.all()]
     
     def to_representation(self, instance):
         data = super().to_representation(instance)
@@ -266,16 +463,24 @@ class StaffSerializerOne(serializers.ModelSerializer):
 class StaffSerializerTwo(serializers.ModelSerializer):
     user = serializers.SerializerMethodField()
     subjects = serializers.SerializerMethodField()
+    departments = serializers.SerializerMethodField()
+    roles = serializers.SerializerMethodField()
 
     class Meta:
         model = Staff
-        fields = ('staff_id', 'contact', 'img', 'gender', 'user', 'subjects', 'role', 'email', 'alt_contact')
+        fields = ('staff_id', 'contact', 'img', 'gender', 'nationality', 'user', 'subjects', 'roles', 'departments', 'email', 'alt_contact', 'address')
 
     def get_subjects(self, obj):
-        return [_subject.name for _subject in obj.subjects.all()]
+        return [_subject.identifier for _subject in obj.subjects.all()]
+    
+    def get_roles(self, obj):
+        return [x.identifier for x in obj.roles.all()]
         
     def get_user(self, obj):
-        return f"{obj.title} {obj.user.get_full_name()}"
+        return f"{obj.title}. {obj.user.get_full_name()}"
+    
+    def get_departments(self, obj):
+        return [x.identifier for x in obj.departments.all()]
     
     def to_representation(self, instance):
         data = super().to_representation(instance)
@@ -284,7 +489,7 @@ class StaffSerializerTwo(serializers.ModelSerializer):
         return data
     
     
-class StaffSerializerThree(serializers.ModelSerializer):
+class StaffUserIdImgSerializer(serializers.ModelSerializer):
     user = serializers.SerializerMethodField()
 
     class Meta:
@@ -292,7 +497,24 @@ class StaffSerializerThree(serializers.ModelSerializer):
         fields = ('staff_id', 'img', 'user')
 
     def get_user(self, obj):
-        return f"{obj.title} {obj.user.get_full_name()}"
+        return f"{obj.title}. {obj.user.get_full_name()}"
+    
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data['img'] = get_image(data, 'staff')
+       
+        return data
+
+
+class StaffSerializerFour(serializers.ModelSerializer):
+    user = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Staff
+        fields = ('img', 'user', 'contact', 'gender', 'email')
+
+    def get_user(self, obj):
+        return f"{obj.title}. {obj.user.get_full_name()}"
     
     def to_representation(self, instance):
         data = super().to_representation(instance)
@@ -300,18 +522,52 @@ class StaffSerializerThree(serializers.ModelSerializer):
        
         return data
     
+
+class StaffUserIdSerializer(serializers.ModelSerializer):
+    user = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Staff
+        fields = ('staff_id', 'user')
+
+    def get_user(self, obj):
+        return f"{obj.title}. {obj.user.get_full_name()}"
+    
     
 class SpecificStaffWithoutImageSerializer(serializers.ModelSerializer):
     user = UserSerializer()
     subjects = SubjectsSerializer(many=True)
-    department = 'DepartmentNameSerializer'
+    departments = 'DepartmentNameSerializer'
+    roles = serializers.SerializerMethodField()
 
     class Meta:
         model = Staff
-        fields = ('staff_id', 'contact', 'gender', 'user', 'subjects', 'department', 'role', 'date_created')
+        fields = ('staff_id', 'contact', 'gender', 'user', 'subjects', 'departments', 'roles', 'date_created')
         
-
+    def get_role(self, obj):
+        return obj.role.name
+    
+    
 # Department Serializers
+class SuperuserDepartmentSerializer(serializers.ModelSerializer):
+    subjects = serializers.SerializerMethodField()
+    level = serializers.SerializerMethodField()
+    hod = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Department
+        fields = "__all__"
+    
+    def get_subjects(self, obj):
+        return [subject.identifier for subject in obj.subjects.all()]
+    
+    def get_level(self, obj):
+        return obj.level.identifier if obj.level else None
+    
+    def get_hod(self, obj):
+      return f"{obj.hod.title}. {obj.hod.user.get_full_name()}" if obj.hod else None 
+        
+        
 class DepartmentSerializer(serializers.ModelSerializer):
     teachers = SpecificStaffSerializer(many=True)
     hod = SpecificStaffSerializer()
@@ -329,90 +585,84 @@ class DepartmentNameSerializer(serializers.ModelSerializer):
         
         
 class DepartmentNameSubjectsSerializer(serializers.ModelSerializer):
-    subjects = SubjectsSerializer(many=True)
+    subjects = serializers.SerializerMethodField()
 
     class Meta:
         model = Department
         fields = ('name', 'subjects')
-        
-        
+    
+    def get_subjects(self, obj):
+        return [subject.name for subject in obj.subjects.all()]
+    
+    
+class DepartmentNameHODSubjectsSerializer(serializers.ModelSerializer):
+    subjects = serializers.SerializerMethodField()
+    hod = StaffUserIdSerializer()
+    teachers = StaffUserIdSerializer(many=True)
+    class Meta:
+        model = Department
+        fields = ('name', 'subjects', 'hod', 'identifier', 'id', 'teachers')
+    
+    def get_subjects(self, obj):
+        return [subject.name for subject in obj.subjects.all()]
+       
+       
 class DepartmentNameSubjectsTeachersDataSerializer(serializers.ModelSerializer):
-    subjects = SubjectsSerializer(many=True)
+    subjects = serializers.SerializerMethodField()
     teachers = StaffSerializerTwo(many=True)
 
     class Meta:
         model = Department
         fields = ('subjects', 'teachers', 'name')
     
-    
-# Head Serializers
-class HeadSerializer(serializers.ModelSerializer):
-    user = UserSerializer()
-    school = SchoolSerializer()
-
-    class Meta:
-        model = Head
-        fields = "__all__"
-
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        if settings.DEBUG:
-            if data['img'] and data['img'] != 'null':
-                data['img'] = f"http://localhost:8000{data['img']}"
-            else:
-                data['img'] = f"http://localhost:8000/static/images/staff_img.jpg"
-        else:
-            if data['img'] and data['img'] != 'null':
-                pass
-            else:
-                data['img'] = f"https://{production_domain}/static/images/staff_img.jpg"
-
-        return data
-
-
-class SpecificHeadSerializer(serializers.ModelSerializer):
-    user = UserSerializer()
-    level = EducationalLevelSerializer()
-
-    class Meta:
-        model = Head
-        fields = ('head_id', 'contact', 'img', 'gender', 'user', 'role', 'dob', 'level', 'date_created')
-
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        if settings.DEBUG:
-            if data['img'] and data['img'] != 'null':
-                data['img'] = f"http://localhost:8000{data['img']}"
-            else:
-                data['img'] = f"http://localhost:8000/static/images/staff_img.jpg"
-        else:
-            if data['img'] and data['img'] != 'null':
-                pass
-            else:
-                data['img'] = f"https://{production_domain}/static/images/staff_img.jpg"
-
-        return data
+    def get_subjects(self, obj):
+        return [subject.name for subject in obj.subjects.all()]
 
 
 # Classe Serializers
+class SuperuserClasseSerializer(serializers.ModelSerializer):
+    program = serializers.SerializerMethodField()
+    level = serializers.SerializerMethodField()
+    head_teacher = StaffUserIdSerializer()
+    subjects = serializers.SerializerMethodField()
+    school = serializers.SerializerMethodField()
+    linked_class = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Classe
+        fields = ('name', 'id', 'level', 'students_year', 'head_teacher', 'program', 'identifier', 'school', 'subjects', 'linked_class')
+    
+    def get_program(self, obj):
+        return obj.program.identifier if obj.program else None
+    
+    def get_subjects(self, obj):
+        return [subject.identifier for subject in obj.subjects.all()]
+    
+    def get_school(self, obj):
+        return obj.school.identifier if obj.school else None
+    
+    def get_level(self, obj):
+        return obj.level.identifier if obj.level else None
+    
+    def get_linked_class(self, obj):
+        return obj.linked_class.identifier if obj.linked_class else None
+        
+        
 class ClasseSerializer(serializers.ModelSerializer):
-    students = SpecificStudentSerializer(many=True)
+    students = StudentSerializerTwo(many=True)
     program = ProgramNameSerializer()
     head_teacher = SpecificStaffWithoutImageSerializer()
-    academic_years = AcademicYearSerializer(many=True)
-    students_level = EducationalLevelSerializer()
 
     class Meta:
         model = Classe
         fields = "__all__"
-
-
+        
+        
 class ClasseWithSubjectsSerializer(serializers.ModelSerializer):
-    students = SpecificStudentSerializer(many=True)
+    students = StudentSerializerTwo(many=True)
     subjects = SubjectsSerializer(many=True)
     program = ProgramNameSerializer()
     head_teacher = SpecificStaffSerializer()
-    academic_years = AcademicYearSerializer(many=True)
 
     class Meta:
         model = Classe
@@ -422,7 +672,7 @@ class ClassesSerializerOne(serializers.ModelSerializer):
     students = StudentSerializerOne(many=True)
     subjects = serializers.SerializerMethodField()
     program = serializers.SerializerMethodField()
-    head_teacher = StaffSerializerThree()
+    head_teacher = StaffUserIdImgSerializer()
 
     class Meta:
         model = Classe
@@ -434,6 +684,23 @@ class ClassesSerializerOne(serializers.ModelSerializer):
     def get_program(self, obj):
         return obj.program.name
 
+
+class ClassesSerializerTwo(serializers.ModelSerializer):
+    students = StudentSerializerTwo(many=True)
+
+    class Meta:
+        model = Classe
+        fields = ('name', 'students')
+    
+    
+class ClasseWithoutStudentsSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Classe
+        fields = ('name', 'students_year')
+
+
+# Linked class serializers
 class AdminLinkedClassSerializer(serializers.ModelSerializer):
     from_class = serializers.SerializerMethodField()
     to_class = serializers.SerializerMethodField()
@@ -447,15 +714,8 @@ class AdminLinkedClassSerializer(serializers.ModelSerializer):
     
     def get_to_class(self, obj):
         return obj.to_class.name
-        
-        
-class ClasseWithoutStudentsSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = Classe
-        fields = ('name', 'students_year')
-
-
+    
+    
 # Subject Assignment Serializers
 class SubjectAssignmentSerializer(serializers.ModelSerializer):
     students_class = ClasseSerializer()
@@ -468,6 +728,28 @@ class SubjectAssignmentSerializer(serializers.ModelSerializer):
         fields = ('students_class', 'subjects', 'teacher', 'academic_term', 'date_created', 'assigned_by')
 
 
+class SubjectAssignmentSerializerOne(serializers.ModelSerializer):
+    students_class = serializers.SerializerMethodField()
+    subjects = serializers.SerializerMethodField()
+    teacher = serializers.SerializerMethodField()
+
+    class Meta:
+        model = SubjectAssignment
+        fields = ('students_class', 'subjects', 'teacher', 'id')
+        
+    def get_students_class(self, obj):
+        return obj.students_class.name
+    
+    def get_teacher(self, obj):
+        return {
+            'user': f"{obj.teacher.title} {obj.teacher.user.get_full_name()}",
+            'staff_id': obj.teacher.staff_id
+        }
+    
+    def get_subjects(self, obj):
+        return [subject.name for subject in obj.subjects.all()]
+     
+    
 class SubjectAssignmentWithoutStudentsSerializer(serializers.ModelSerializer):
     students_class = ClasseWithoutStudentsSerializer()
     subjects = SubjectsSerializer(many=True)
@@ -477,10 +759,10 @@ class SubjectAssignmentWithoutStudentsSerializer(serializers.ModelSerializer):
     class Meta:
         model = SubjectAssignment
         fields = ('students_class', 'subjects', 'teacher', 'academic_term', 'date_created', 'assigned_by')
-    
-    
-class TeacherSubjectAssignmentSerializer(serializers.ModelSerializer):
-    students_class = serializers.SerializerMethodField()
+
+ 
+class SubjectAssignmentSerializerTwo(serializers.ModelSerializer):
+    students_class = ClassesSerializerTwo()
     subjects = serializers.SerializerMethodField()
 
     class Meta:
@@ -489,29 +771,23 @@ class TeacherSubjectAssignmentSerializer(serializers.ModelSerializer):
 
     def get_subjects(self, obj):
         return [subject.name for subject in obj.subjects.all()]
+
+
+class SubjectAssignmentSerializerThree(serializers.ModelSerializer):
+    subjects = serializers.SerializerMethodField()
+    teacher = StaffUserIdImgSerializer()
+
+    class Meta:
+        model = SubjectAssignment
+        fields = ('subjects', 'teacher')
     
-    def get_students_class(self, obj):
-        st_class = {
-            'name': obj.students_class.name,
-        }
-        class_students = []
-        students = obj.students_class.students.all()
-        for _student in students:
-            student_data = {
-                'name': _student.user.get_full_name(),
-                'st_id': _student.st_id,
-                'gender': _student.gender,
-                'img': _student.img,
-            }
-            student_data['img'] = get_image(student_data, 'student')
-            class_students.append(student_data)
-        st_class['students'] = class_students
-        
-        return st_class
+    def get_subjects(self, obj):
+        return [subject.name for subject in obj.subjects.all()]
+    
     
 # Exams Serializers
 class ExamsSerializer(serializers.ModelSerializer):
-    student = SpecificStudentWithoutImageSerializer()
+    student = serializers.SerializerMethodField()
     subject = SubjectsSerializer()
     academic_year = AcademicYearSerializer()
     teacher = SpecificStaffWithoutImageSerializer()
@@ -519,6 +795,13 @@ class ExamsSerializer(serializers.ModelSerializer):
     class Meta:
         model = Exam
         fields = "__all__"
+    
+    def get_student(self, obj):
+        return {
+            'name': obj.student.user.get_full_name(),
+            'st_id': obj.student.st_id,
+        }
+        
         
 class ExamsSerializerWithoutStudentTeacher(serializers.ModelSerializer):
     subject = SubjectsSerializer()
@@ -535,10 +818,18 @@ class StudentExamsSerializer(serializers.ModelSerializer):
         model = Exam
         fields = ('subject', 'score', 'date_created')
 
+    
+class ExamSerializerOne(serializers.ModelSerializer):
+    subject = SubjectsSerializer()
+
+    class Meta:
+        model = Exam
+        fields = ('subject', 'score', 'total_score')
+        
 
 # Assessment Serializers
 class AssessmentSerializer(serializers.ModelSerializer):
-    student = SpecificStudentWithoutImageSerializer()
+    student = serializers.SerializerMethodField()
     subject = SubjectsSerializer()
     academic_year = AcademicYearSerializer()
     teacher = SpecificStaffWithoutImageSerializer()
@@ -546,6 +837,13 @@ class AssessmentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Assessment
         fields = "__all__"
+    
+    def get_student(self, obj):
+        return {
+            'name': obj.student.user.get_full_name(),
+            'st_id': obj.student.st_id,
+        }
+        
         
 class AssessmentSerializerWithoutStudentTeacher(serializers.ModelSerializer):
     subject = SubjectsSerializer()
@@ -555,7 +853,18 @@ class AssessmentSerializerWithoutStudentTeacher(serializers.ModelSerializer):
         fields = ('subject', 'academic_term', 'score', 'assessment_date', 'percentage', 'title', 'total_score', 'description', 'comment')
 
 
-# Teacher 
+class AssessmentSerializerOne(serializers.ModelSerializer):
+    subject = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Assessment
+        fields = ('subject', 'score', 'assessment_date', 'title', 'total_score', 'description', 'comment')
+    
+    def get_subject(self, obj):
+        return obj.subject.name
+        
+        
+# Result Serializer 
 class TeacherGetStudentResultSerializer(serializers.ModelSerializer):
     student = serializers.SerializerMethodField()
 
@@ -570,128 +879,42 @@ class TeacherGetStudentResultSerializer(serializers.ModelSerializer):
         }
 
 
-# HOD
-class HodSubjectAssignmentSerializer(serializers.ModelSerializer):
-    subjects = serializers.SerializerMethodField()
-    teacher = serializers.SerializerMethodField()
-    students_class = serializers.SerializerMethodField()
-
+class ResultSerializerOne(serializers.ModelSerializer):
+    subject = serializers.SerializerMethodField()
+    
     class Meta:
-        model = SubjectAssignment
-        fields = ('subjects', 'teacher', 'students_class')
-        
-    def get_subjects(self, obj):
-        return [subject.name for subject in obj.subjects.all()]
+        model = StudentResult
+        fields = ('result', 'subject', 'total_assessment_score', 'exam_score', 'total_assessment_percentage', 'exam_percentage', 'remark', 'grade', 'position')
     
-    def get_teacher(self, obj):
-        return {
-            'name': f"{obj.teacher.user.first_name} {obj.teacher.user.last_name}",
-            'staff_id': obj.teacher.staff_id,
-        }
-    
-    def get_students_class(self, obj):
-        return obj.students_class.name
-
+    def get_subject(self, obj):
+        return obj.subject.name
+ 
 
 # Students Attendance
-class StudentAttendanceStudentSerializer(serializers.ModelSerializer):
-    user = UserSerializer()
-
-    class Meta:
-        model = Student
-        fields = ('user', 'st_id')
-
 class StudentsAttendanceSerializer(serializers.ModelSerializer):
-    students_class = ClasseWithoutStudentsSerializer()
-    students_present = StudentAttendanceStudentSerializer(many=True)
-    students_absent = StudentAttendanceStudentSerializer(many=True)
+    # students_class = serializers.SerializerMethodField()
+    students_present = StudentSerializerThree(many=True)
+    students_absent = StudentSerializerThree(many=True)
 
     class Meta:
         model = StudentAttendance
-        fields = ('date', 'students_class', 'students_present', 'students_absent')
+        fields = ('date', 'students_present', 'students_absent')
 
-# Student Notification Serializer
-class StudentNotificationSerializer(serializers.ModelSerializer):
-    user = UserSerializer()
-
-    class Meta:
-        model = Student
-        fields = ('st_id', 'img', 'user')
-
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        if settings.DEBUG:
-            if data['img'] and data['img'] != 'null':
-                data['img'] = f"http://localhost:8000{data['img']}"
-            else:
-                data['img'] = f"http://localhost:8000/static/images/staff_img.jpg"
-        else:
-            if data['img'] and data['img'] != 'null':
-                pass
-            else:
-                data['img'] = f"https://cassandra-o5ft.onrender.com/static/images/staff_img.jpg"
-
-        return data
-    
-    
-# Staff Notification Serializer
-class StaffNotificationSerializer(serializers.ModelSerializer):
-    user = UserSerializer()
-
-    class Meta:
-        model = Staff
-        fields = ('staff_id', 'img', 'user', 'role')
-
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        if settings.DEBUG:
-            if data['img'] and data['img'] != 'null':
-                data['img'] = f"http://localhost:8000{data['img']}"
-            else:
-                data['img'] = f"http://localhost:8000/static/images/staff_img.jpg"
-        else:
-            if data['img'] and data['img'] != 'null':
-                pass
-            else:
-                data['img'] = f"https://cassandra-o5ft.onrender.com/static/images/staff_img.jpg"
-
-        return data
+    # def get_students_class(self, obj):
+    #     return obj.students_class.name
 
 
-# Head Notification Serializer
-class HeadNotificationSerializer(serializers.ModelSerializer):
-    user = UserSerializer()
 
-    class Meta:
-        model = Head
-        fields = ('head_id', 'img', 'user', 'role')
+# class NotificationSerializer(serializers.ModelSerializer):
+#     from_head = HeadNotificationSerializer()
+#     from_staff = StaffNotificationSerializer()
+#     from_student = StudentNotificationSerializer()
+#     to_staff = StaffNotificationSerializer(many=True)
+#     to_student = StudentNotificationSerializer(many=True)
 
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        if settings.DEBUG:
-            if data['img'] and data['img'] != 'null':
-                data['img'] = f"http://localhost:8000{data['img']}"
-            else:
-                data['img'] = f"http://localhost:8000/static/images/staff_img.jpg"
-        else:
-            if data['img'] and data['img'] != 'null':
-                pass
-            else:
-                data['img'] = f"https://cassandra-o5ft.onrender.com/static/images/staff_img.jpg"
-
-        return data
-
-
-class NotificationSerializer(serializers.ModelSerializer):
-    from_head = HeadNotificationSerializer()
-    from_staff = StaffNotificationSerializer()
-    from_student = StudentNotificationSerializer()
-    to_staff = StaffNotificationSerializer(many=True)
-    to_student = StudentNotificationSerializer(many=True)
-
-    class Meta:
-        model = Notification
-        fields = "__all__"
+#     class Meta:
+#         model = Notification
+#         fields = "__all__"
         
         
 class FileSerializer(serializers.ModelSerializer):
@@ -709,25 +932,25 @@ class FileSerializer(serializers.ModelSerializer):
 
 
 # Universities serializer
-class UniversitySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = University
-        fields = '__all__'
+# class UniversitySerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = University
+#         fields = '__all__'
         
-class KnustProgramSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = KnustProgram
-        fields = '__all__'
+# class KnustProgramSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = KnustProgram
+#         fields = '__all__'
         
-class UGProgramSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = UGProgram
-        fields = '__all__'
+# class UGProgramSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = UGProgram
+#         fields = '__all__'
         
-class UCCProgramSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = UCCProgram
-        fields = '__all__'
+# class UCCProgramSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = UCCProgram
+#         fields = '__all__'
         
         
         
