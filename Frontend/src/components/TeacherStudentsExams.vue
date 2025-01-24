@@ -6,6 +6,7 @@ import { useUserAuthStore } from '@/stores/userAuthStore'
 import { useElementsStore } from '@/stores/elementsStore'
 import { defineProps } from 'vue'
 import { computed } from 'vue'
+import NoData from './NoData.vue';
 
 const userAuthStore = useUserAuthStore()
 const elementsStore = useElementsStore()
@@ -22,35 +23,24 @@ const editType = ref('')
 
 interface Props {
   className: string;
-  classIndex: number;
   subjectName: string;
-  subjectIndex: number;
-  examsData: {
-    'subject': string;
-    'total_score': number;
-    'percentage': number;
-    'students_with_exams': {
-      'name': string;
-      'st_id': any;
-      'score': any;
-    }[];
-    'students_without_exams': {
-      'name': string;
-      'st_id': any;
-    }[];
-  }
 }
 const props = defineProps<Props>()
 const className = props.className
-const classIndex = props.classIndex || 0
 const subjectName = props.subjectName
-const subjectIndex = props.subjectIndex || 0
-const examsData = props.examsData
 
 const uploadOptions = [
   { 'option': 'INPUT DATA HERE', 'value': 'noFile' },
   { 'option': 'USE AN EXCEL FILE', 'value': 'file' },
 ]
+
+const examsData = computed(()=>{
+  return userAuthStore.teacherData.studentsExams[className][subjectName]
+})
+
+const storeExamsData = computed(()=>{
+  return userAuthStore.teacherData.studentsExams[className][subjectName]
+})
 
 const showErrorMessage = (message: string) => {
   formErrorMessage.value = message
@@ -71,10 +61,10 @@ const generateFile = async () => {
   const formData = new FormData()
   formData.append('studentsClassName', className)
   formData.append('subject', subjectName)
-  formData.append('selectedStudents', JSON.stringify(examsData['students_without_exams']))
+  formData.append('selectedStudents', JSON.stringify(examsData.value.students_without_exams))
   formData.append('type', 'getFile')
   formData.append('year', userAuthStore.activeAcademicYear)
-  formData.append('term', userAuthStore.activeTerm)
+  formData.append('term', userAuthStore.activeTerm.toString())
 
   try {
     const response = await axiosInstance.post('teacher/exams', formData)
@@ -111,7 +101,7 @@ const upload = async () => {
   formErrorMessage.value = ''
   const formData = new FormData()
   formData.append('year', userAuthStore.activeAcademicYear)
-  formData.append('term', userAuthStore.activeTerm)
+  formData.append('term', userAuthStore.activeTerm.toString())
   formData.append('studentsClassName', className)
   formData.append('subject', subjectName)
   if (uploadTypeSelected.value === 'file') {
@@ -133,28 +123,13 @@ const upload = async () => {
   elementsStore.ShowLoadingOverlay()
   try {
     const response = await axiosInstance.post('teacher/exams', formData)
-    if (uploadTypeSelected.value === 'file') {
-      const students_data = response.data['data']
-      students_data.forEach((st: any) => {
-        userAuthStore.staffData.studentsExams[classIndex]['exams'][subjectIndex]['students_with_exams'].push(st)
-        const _student = userAuthStore.staffData.studentsExams[classIndex]['exams'][subjectIndex]['students_without_exams'].find((item: any) => item['st_id'] === st['st_id'])
-        if (_student) {
-          const _studentIndex = userAuthStore.staffData.studentsExams[classIndex]['exams'][subjectIndex]['students_without_exams'].indexOf(_student)
-          userAuthStore.staffData.studentsExams[classIndex]['exams'][subjectIndex]['students_without_exams'].splice(_studentIndex, 1)
-        }
-      })
-    }
-    else if (uploadTypeSelected.value === 'noFile') {
-      selectedStudents.value.forEach((st_id: any) => {
-        const _student = userAuthStore.staffData.studentsExams[classIndex]['exams'][subjectIndex]['students_without_exams'].find((item: any) => item['st_id'] === st_id)
-        if (_student) {
-          const _studentIndex = userAuthStore.staffData.studentsExams[classIndex]['exams'][subjectIndex]['students_without_exams'].indexOf(_student)
-          userAuthStore.staffData.studentsExams[classIndex]['exams'][subjectIndex]['students_with_exams'].push({ 'name': _student['name'], 'st_id': _student['st_id'], 'score': Number(studentScore.value.toFixed(2)) })
-          userAuthStore.staffData.studentsExams[classIndex]['exams'][subjectIndex]['students_without_exams'].splice(_studentIndex, 1)
-        }
-      })
-    }
-    userAuthStore.staffData.studentsExams[classIndex]['exams'][subjectIndex]['students_with_exams'].sort((a: any, b: any) => b.score - a.score)
+    const students_data = response.data['data']
+    students_data.forEach((st: any) => {
+      const student_id = st['st_id']
+      storeExamsData.value.students_with_exams[student_id] = st
+      delete storeExamsData.value.students_without_exams[student_id]
+    })
+
     selectedStudents.value = []
     studentScore.value = null
     fileToUpload.value = null
@@ -197,9 +172,9 @@ const deleteExam = async () => {
 
   try {
     await axiosInstance.post('teacher/exams', formData)
-    userAuthStore.staffData.studentsExams[classIndex]['exams'][subjectIndex]['total_score'] = 0
-    userAuthStore.staffData.studentsExams[classIndex]['exams'][subjectIndex]['percentage'] = 0
-    userAuthStore.staffData.studentsExams[classIndex]['exams'][subjectIndex]['students_with_exams'] = []
+    storeExamsData.value.total_score = 0
+    storeExamsData.value.percentage = 0
+    storeExamsData.value.students_with_exams = {}
     elementsStore.HideLoadingOverlay()
   }
   catch (error) {
@@ -234,7 +209,7 @@ const editExam = async () => {
       showErrorMessage("Exam scores cannot be negative")
       return;
     }
-    else if (studentScore.value > Number(examsData['total_score'])) {
+    else if (studentScore.value > Number(examsData.value.total_score)) {
       showErrorMessage("Exam scores must not exceed the total exams score")
       return;
     }
@@ -247,9 +222,10 @@ const editExam = async () => {
       showErrorMessage('The total score of the exams cannot be negative or zero(0)')
       return;
     }
-    for (let i = 0; i < examsData['students_with_exams'].length; i++) {
-      if (Number(examsData['students_with_exams'][i]['score']) > Number(newTotalScore.value)) {
-        showErrorMessage(`The score of student ${examsData['students_with_exams'][i]['name']} is greater than the new total score of the exams`)
+    for (let i = 0; i < Object.values(examsData.value.students_with_exams).length; i++) {
+      const st_data = Object.values(examsData.value.students_with_exams)[i]
+      if (Number(st_data.score) > Number(newTotalScore.value)) {
+        showErrorMessage(`The score of student ${st_data.name} is greater than the new total score of the exams`)
         return;
       }
     }
@@ -261,29 +237,23 @@ const editExam = async () => {
   try {
     const response = await axiosInstance.post('teacher/exams', formData)
     const data = response.data
+    const studentResult = userAuthStore.teacherData.studentsResults?.[className]?.[subjectName]
     if (editType.value === 'studentScore') {
-      const _student = userAuthStore.staffData.studentsExams[classIndex]['exams'][subjectIndex]['students_with_exams'].find((item: any) => item['st_id'] === studentId.value)
-      if (_student) {
-        const _studentIndex = userAuthStore.staffData.studentsExams[classIndex]['exams'][subjectIndex]['students_with_exams'].indexOf(_student)
-        userAuthStore.staffData.studentsExams[classIndex]['exams'][subjectIndex]['students_with_exams'][_studentIndex]['score'] = Number(studentScore.value.toFixed(2))
-        userAuthStore.staffData.studentsExams[classIndex]['exams'][subjectIndex]['students_with_exams'].sort((a: any, b: any) => b.score - a.score)
-      }
-      const resultStudent = userAuthStore.staffData.studentsResults[classIndex]['results'][subjectIndex]['student_results'].find((item: any) => item['student']['st_id'] === studentId.value)
-      if (resultStudent) {
-        const resultStudentIndex = userAuthStore.staffData.studentsResults[classIndex]['results'][subjectIndex]['student_results'].indexOf(resultStudent)
-        userAuthStore.staffData.studentsResults[classIndex]['results'][subjectIndex]['student_results'][resultStudentIndex]['result'] = data['new_result']
-        userAuthStore.staffData.studentsResults[classIndex]['results'][subjectIndex]['student_results'][resultStudentIndex]['remark'] = data['new_remark']
-        userAuthStore.staffData.studentsResults[classIndex]['results'][subjectIndex]['student_results'][resultStudentIndex]['grade'] = data['new_grade']
-        userAuthStore.staffData.studentsResults[classIndex]['results'][subjectIndex]['student_results'][resultStudentIndex]['exam_score'] = data['new_exam_score']
-        userAuthStore.staffData.studentsResults[classIndex]['results'][subjectIndex]['student_results'].sort((a: any, b: any) => b.result - a.result)
+      storeExamsData.value.students_with_exams[studentId.value].score = Number(studentScore.value.toFixed(2))
+      if (studentResult) {
+        studentResult.student_results[studentId.value].result = data['new_result']
+        studentResult.student_results[studentId.value].remark = data['new_remark']
+        studentResult.student_results[studentId.value].grade = data['new_grade']
+        studentResult.student_results[studentId.value].exam_score = data['new_exam_score']
       }
     }
     else if (editType.value === 'totalScore') {
-      userAuthStore.staffData.studentsExams[classIndex]['exams'][subjectIndex]['total_score'] = Number(newTotalScore.value.toFixed(2))
-      if (userAuthStore.staffData.studentsResults[classIndex]['results'][subjectIndex]['student_results']?.length > 0) {
-        userAuthStore.staffData.studentsResults[classIndex]['results'][subjectIndex]['student_results'] = data
+      storeExamsData.value.total_score = Number(newTotalScore.value.toFixed(2))
+      if (studentResult) {
+        studentResult.student_results = data
       }
     }
+    
     closeOverlay(`TeacherStudentsExamsEditOverlay${className}${subjectName}`)
     elementsStore.HideLoadingOverlay()
   }
@@ -345,15 +315,15 @@ const showOverlay = (element: string, type: string, stName: string = '', stId: a
 
 <template>
   <div class="content-wrapper"
-    v-show="elementsStore.activePage === `TeacherStudentsExams,${className},${subjectName},${subjectIndex}`"
-    :class="{ 'is-active-page': elementsStore.activePage === `TeacherStudentsExams,${className},${subjectName},${subjectIndex}` }">
+    v-show="elementsStore.activePage === `TeacherStudentsExams,${className},${subjectName}`"
+    :class="{ 'is-active-page': elementsStore.activePage === `TeacherStudentsExams,${className},${subjectName}` }">
     <!-- upload overlay -->
     <div :id="`teacherStudentsExamsUploadOverlay${className}${subjectName}`" class="overlay upload-overlay"
-      v-if="Number(examsData['total_score']) > 0 && examsData['students_without_exams'].length > 0">
+      v-if="Number(examsData.total_score) > 0 && examsData.students_without_exams">
       <form class="overlay-card">
         <v-btn @click.prevent="closeOverlay(`teacherStudentsExamsUploadOverlay${className}${subjectName}`)" color="red"
           variant="flat" size="small" class="close-btn flex-all">X</v-btn>
-        <h2 v-if="formErrorMessage" class="form-message" style="color: red">{{ formErrorMessage }}</h2>
+        <h2 v-if="formErrorMessage" class="form-error-message" style="color: red">{{ formErrorMessage }}</h2>
         <div class="overlay-card-info-container">
           <h2 class="info-text">CLASS: <span class="info-text-value"> {{ className }}</span></h2>
           <h2 class="info-text">SUBJECT: <span class="info-text-value"> {{ subjectName }}</span></h2>
@@ -366,7 +336,7 @@ const showOverlay = (element: string, type: string, stName: string = '', stId: a
 
           <!-- no file -->
           <v-select v-if="uploadTypeSelected === 'noFile'" multiple clearable v-model="selectedStudents" chips
-            class="select" label="STUDENT(S)" variant="solo-filled" :items="examsData['students_without_exams']"
+            class="select" label="STUDENT(S)" variant="solo-filled" :items="Object.values(examsData.students_without_exams)"
             item-title="name" item-value="st_id" density="comfortable" persistent-hint
             hint="Select the student(s) you want to upload exam for">
             <template v-slot:item="{ props, item }">
@@ -398,11 +368,11 @@ const showOverlay = (element: string, type: string, stName: string = '', stId: a
 
     <!-- edit student score overlay -->
     <div :id="`TeacherStudentsExamsEditOverlay${className}${subjectName}`" class="overlay edit-overlay"
-      v-if="Number(examsData['total_score']) > 0">
+      v-if="Number(examsData.total_score) > 0">
       <form class="overlay-card">
         <v-btn @click.prevent="closeOverlay(`TeacherStudentsExamsEditOverlay${className}${subjectName}`)"
           class="close-btn" size="small" variant="flat" color="red">X</v-btn>
-        <h2 v-if="formErrorMessage" class="form-message" style="color: red">{{ formErrorMessage }}</h2>
+        <h2 v-if="formErrorMessage" class="form-error-message" style="color: red">{{ formErrorMessage }}</h2>
         <div class="overlay-card-info-container">
           <h2 class="info-text">CLASS:<span class="info-text-value"> {{ className }}</span></h2>
           <h2 class="info-text">SUBJECT:<span class="info-text-value"> {{ subjectName }}</span></h2>
@@ -411,8 +381,8 @@ const showOverlay = (element: string, type: string, stName: string = '', stId: a
               [{{ studentId }}]</span></h2>
           <h2 class="info-text" v-if="editType === 'studentScore'">PREVIOUS SCORE:<span class="info-text-value">
               {{ previousScore }}</span></h2>
-          <h2 class="info-text" v-if="editType === 'totalScore'">PREVIOUS TOTAL SCORE:<span
-              class="info-text-value">{{ examsData['total_score'] }}</span></h2>
+          <h2 class="info-text" v-if="editType === 'totalScore'">PREVIOUS TOTAL SCORE:<span class="info-text-value">{{
+            examsData.total_score }}</span></h2>
         </div>
         <div class="overlay-card-content-container" v-if="editType === 'studentScore'">
           <v-text-field v-model.number="studentScore" type="number" class="input-field" density="comfortable"
@@ -429,22 +399,22 @@ const showOverlay = (element: string, type: string, stName: string = '', stId: a
         </div>
       </form>
     </div>
-    <div class="content-header" v-if="Number(examsData['total_score']) > 0">
+    <div class="content-header" v-if="Number(examsData.total_score) > 0">
       <h4 class="content-header-title">{{ className }} {{ subjectName }} EXAMS</h4>
     </div>
-    <div class="content-header" v-if="Number(examsData['total_score']) > 0">
+    <div class="content-header" v-if="Number(examsData.total_score) > 0">
       <h4 class="content-header-text">
         TOTAL SCORE:
-        <span class="content-header-text-value">{{ examsData['total_score'] }}</span>
+        <span class="content-header-text-value">{{ examsData.total_score }}</span>
         <v-icon class="ml-1"
           @click="showOverlay(`TeacherStudentsExamsEditOverlay${className}${subjectName}`, 'totalScore')"
           icon="mdi-pencil" variant="flat" color="blue" />
       </h4>
-      <h4 class="content-header-text" v-if="Number(examsData['percentage']) > 0">PERCENTAGE: <span
-          class="content-header-text-value">{{ examsData['percentage'] }}</span></h4>
+      <h4 class="content-header-text" v-if="Number(examsData.percentage) > 0">PERCENTAGE: <span
+          class="content-header-text-value">{{ examsData.percentage }}</span></h4>
     </div>
-    <div class="content-header btn-container" v-if="Number(examsData['total_score']) > 0">
-      <v-btn v-if="examsData['students_without_exams'].length > 0"
+    <div class="content-header btn-container" v-if="Number(examsData.total_score) > 0">
+      <v-btn v-if="examsData.students_without_exams"
         @click="showOverlay(`teacherStudentsExamsUploadOverlay${className}${subjectName}`, 'upload')"
         :size="elementsStore.btnSize1" color="blue" varaint="flat">
         ADD STUDENT(S) EXAMS
@@ -455,27 +425,25 @@ const showOverlay = (element: string, type: string, stName: string = '', stId: a
         DELETE
       </v-btn>
     </div>
-    <h4 class="no-data" v-if="examsData['students_with_exams']?.length === 0">
-      <p>NO DATA</p>
-    </h4>
-    <v-table fixed-header class="table" v-if="examsData['students_with_exams']?.length > 0">
+    <NoData v-if="Object.keys(examsData.students_with_exams).length === 0" />
+    <v-table fixed-header class="table" v-if="Object.keys(examsData.students_with_exams).length > 0">
       <thead>
         <tr>
-          <th class="table-head">NAME</th>
+          <th class="table-head">NAME\</th>
           <th class="table-head">SCORE</th>
         </tr>
       </thead>
       <tbody>
-        <tr v-for="(st, index) in examsData['students_with_exams']" :key="index">
+        <tr v-for="(st, index) in Object.values(examsData.students_with_exams).sort((a, b)=> b.score - a.score)" :key="index">
           <td class="table-data">
-            {{ st['name'] }}
-            <v-list-item-subtitle>{{ st['st_id'] }}</v-list-item-subtitle>
+            {{ st.name }}
+            <v-list-item-subtitle>{{ st.st_id }}</v-list-item-subtitle>
           </td>
           <td class="table-data">
             <v-btn
-              @click="showOverlay(`TeacherStudentsExamsEditOverlay${className}${subjectName}`, 'studentScore', st['name'], st['st_id'], st['score'])"
+              @click="showOverlay(`TeacherStudentsExamsEditOverlay${className}${subjectName}`, 'studentScore', st.name, st.st_id, st.score)"
               size="small" variant="flat" color="black">
-              {{ st['score'] }}
+              {{ st.score }}
             </v-btn>
           </td>
         </tr>
@@ -537,4 +505,7 @@ const showOverlay = (element: string, type: string, stName: string = '', stId: a
     width: 95% !important;
   }
 }
+
+
+
 </style>

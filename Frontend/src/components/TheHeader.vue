@@ -39,10 +39,10 @@ window.addEventListener('resize', ()=>{
   <StudentsDrawer v-if="userAuthStore.userData['role']==='student' " />
     
   <header class="header">
-    <div class="profile-container">
+    <div class="profile-container" v-if="['staff', 'student'].includes(userAuthStore.userData['role'])">
       <img @click.stop="elementsStore.drawer =!elementsStore.drawer" class="user-img" :src="userAuthStore.userData['img']">
     </div>
-    <div class="flex-all" style="text-align: center;" >
+    <div class="flex-all" style="text-align: center;" v-if="['staff', 'student'].includes(userAuthStore.userData['role'])" >
       <p v-if="userAuthStore.userData" class="year-info">ACADEMIC CALENDAR: {{userAuthStore.activeAcademicYear}} {{userAuthStore.userData['academic_year']['period_division']}} {{userAuthStore.activeTerm}}</p>
     </div>
     <div class="flex-all">
@@ -53,7 +53,7 @@ window.addEventListener('resize', ()=>{
       <v-icon v-if="!onDesk" @click.stop="elementsStore.navDrawer = !elementsStore.navDrawer" class="menu-icon" icon="mdi-menu" size="x-large" color="yellow" />
       <v-btn v-if="onDesk" @click="showOverlay()" class="logout-btn" prepend-icon="mdi-logout">LOGOUT</v-btn>
     </div>
-    </header>
+  </header>
 </template>
 
 <style scoped>

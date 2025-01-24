@@ -1,32 +1,32 @@
 @charset "UTF-8";
 
-.flex-all{
+.flex-all {
   display: flex;
   align-items: center !important;
   justify-content: center !important;
   flex-direction: row !important;
 }
-.flex-all-c{
+.flex-all-c {
   display: flex;
   align-items: center !important;
   justify-content: center !important  ;
   flex-direction: column !important;
 }
-.flex-r{
+.flex-r {
   display: flex !important;
   flex-direction: row !important;
 }
-.flex-c{
+.flex-c {
   display: flex !important;
   flex-direction: column !important;
 }
-wd-5{
+wd-5 {
   width: 5% !important;
 }
 .wd-10 {
   width: 10% !important;
 }
-.wd-15{
+.wd-15 {
   width: 15% !important;
 }
 .wd-20 {
@@ -35,49 +35,49 @@ wd-5{
 .wd-30 {
   width: 30% !important;
 }
-.wd-35{
+.wd-35 {
   width: 35% !important;
 }
 .wd-40 {
   width: 40% !important;
 }
-.wd-45{
+.wd-45 {
   width: 45% !important;
 }
-.wd-55{
+.wd-55 {
   width: 55% !important;
 }
 .wd-60 {
   width: 60% !important;
 }
-.wd-65{
+.wd-65 {
   width: 65% !important;
 }
 .wd-70 {
   width: 70% !important;
 }
-.wd-75{
+.wd-75 {
   width: 75% !important;
 }
 .wd-80 {
   width: 80% !important;
 }
-.wd-85{
+.wd-85 {
   width: 85% !important;
 }
 .wd-90 {
   width: 90% !important;
 }
-.wd-95{
+.wd-95 {
   width: 95% !important;
 }
-.h-5{
+.h-5 {
   height: 5% !important;
 }
 .h-10 {
   height: 10% !important;
 }
-.h-15{
+.h-15 {
   height: 15% !important;
 }
 .h-20 {
@@ -86,51 +86,51 @@ wd-5{
 .h-30 {
   height: 30% !important;
 }
-.h-35{
+.h-35 {
   height: 35% !important;
 }
 .h-40 {
   height: 40% !important;
 }
-.h-45{
+.h-45 {
   height: 45% !important;
 }
-.h-55{
+.h-55 {
   height: 55% !important;
 }
 .h-60 {
   height: 60% !important;
 }
-.h-65{
+.h-65 {
   height: 65% !important;
 }
 .h-70 {
   height: 70% !important;
 }
-.h-75{
+.h-75 {
   height: 75% !important;
 }
 .h-80 {
   height: 80% !important;
 }
-.h-85{
+.h-85 {
   height: 85% !important;
 }
 .h-90 {
   height: 90% !important;
 }
-.h-95{
+.h-95 {
   height: 95% !important;
 }
-.h-100{
+.h-100 {
   min-height: 100% !important;
 }
 
-.mag-0{
+.mag-0 {
   margin: 0;
 }
 
-.mag-auto{
+.mag-auto {
   margin: auto;
 }
 
@@ -138,17 +138,16 @@ wd-5{
   background-color: seagreen !important;
 }
 
-.page-btn:hover{
+.page-btn:hover {
   background-color: mediumseagreen;
   color: yellow;
-
 }
 
-.empty-row{
+.empty-row {
   color: white !important;
 }
 
-.no-data{
+.no-data {
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -156,60 +155,61 @@ wd-5{
   width: 100% !important;
   height: 100% !important;
 }
-.no-data p{
+.no-data p {
   text-align: center;
   width: 100% !important;
-  font-size: .9rem !important;
+  font-size: 0.9rem !important;
   color: red !important;
-  font-family:Verdana, Geneva, Tahoma, sans-serif
+  font-family: Verdana, Geneva, Tahoma, sans-serif;
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  :root{
+  :root {
     scroll-behavior: smooth;
   }
 }
 /* For the entire scrollbar */
 
-html, body{
+html,
+body {
   overflow: hidden !important;
   padding: 0;
   margin: 0;
 }
-.container{
-  width: 100%!important;
+.container {
+  width: 100% !important;
   padding: 0 !important;
-  height: 100%!important;
-  margin: auto!important;
-  position: relative!important;
+  height: 100% !important;
+  margin: auto !important;
+  position: relative !important;
 }
 
 /* Other */
-.form-message{
-  font-size: .8rem !important;
+.form-error-message {
+  font-size: 0.8rem !important;
   text-align: center !important;
   border: 1px solid !important;
-  padding: .1em 1em !important;
+  padding: 0.1em 1em !important;
   font-weight: bold !important;
-  margin: 1em .5em !important;
+  margin: 1em 0.5em !important;
   margin-top: 4em !important;
 }
-.overlay{
+.overlay {
   display: none;
   width: 100% !important;
   height: 100% !important;
   position: fixed !important;
   top: 0 !important;
   left: 0 !important;
-  background-color: rgba(0,0,0,0.7) !important;
+  background-color: rgba(0, 0, 0, 0.7) !important;
   align-items: center !important;
   justify-content: center !important;
   z-index: 20 !important;
 }
-.overlay-card{
+.overlay-card {
   position: relative !important;
   background-color: white !important;
-  border-radius: .3em !important;
+  border-radius: 0.3em !important;
   display: flex !important;
   flex-direction: column !important;
   justify-content: flex-end !important;
@@ -220,7 +220,7 @@ html, body{
   max-height: 95% !important;
   overflow: auto !important;
 }
-.overlay-card-action-btn-container{
+.overlay-card-action-btn-container {
   display: flex !important;
   justify-content: center !important;
   align-items: center !important;
@@ -229,53 +229,56 @@ html, body{
   min-height: 60px !important;
   max-height: 60px !important;
 }
-.overlay-card-info-container{
+.overlay-card-info-container {
   min-height: max-content !important;
   text-align: center;
   overflow: auto !important;
-  margin-bottom: .5em !important;
-  padding: 0 .5em !important;
+  margin-bottom: 0.5em !important;
+  padding: 0 0.5em !important;
 }
-.overlay-card-content-container{
+.overlay-card-content-container {
   overflow: auto !important;
   flex: 1 !important;
   width: 100% !important;
   text-align: center;
 }
-.overlay-card .input-field, .overlay-card .select{
+.overlay-card .input-field,
+.overlay-card .select {
   margin: 0 auto !important;
   margin-bottom: 2em !important;
 }
-.info-text, .info-text-value{
-  font-size: .8rem !important;
+.info-text,
+.info-text-value {
+  font-size: 0.8rem !important;
   font-family: Verdana, Geneva, Tahoma, sans-serif !important;
   margin-bottom: 1em !important;
   text-align: center !important;
 }
-.info-text{
-  color: black !important
+.info-text {
+  color: black !important;
 }
-.info-text-value{
-  color: green !important
+.info-text-value {
+  color: green !important;
 }
-.info{
+.info {
   font-size: 1rem !important;
   text-align: center !important;
   font-family: Verdana, Geneva, Tahoma, sans-serif !important;
 }
-.info strong{
+.info strong {
   font-size: 1rem !important;
   color: seagreen !important;
 }
-.form-message{
-  font-size: .7rem !important;
+.form-error-message {
+  font-size: 0.7rem !important;
   text-align: center !important;
   border: 1px solid !important;
   text-transform: none !important;
   font-family: Verdana, Geneva, Tahoma, sans-serif !important;
-  padding: .1em 1em !important;
+  padding: 0.1em 1em !important;
+  color: red !important;
 }
-.select{
+.select {
   font-weight: bold !important;
   color: black !important;
   min-width: 300px !important;
@@ -283,60 +286,77 @@ html, body{
   max-height: 100px !important;
   overflow-y: auto !important;
 }
-.input-field{
+.input-field {
   color: black !important;
   font-weight: bold !important;
   min-width: 300px !important;
   max-width: 400px !important;
   max-height: 100px !important;
-  font-size: .7rem !important;
-  font-family:monospace !important;
+  font-size: 0.7rem !important;
+  font-family: monospace !important;
 }
-.score-btn{
+.score-btn {
   font-family: Verdana, Geneva, Tahoma, sans-serif !important;
 }
-.subject-card{
+.subject-card {
   color: white !important;
-  margin: .3em !important;
+  margin: 0.3em !important;
   font-family: Verdana, Geneva, Tahoma, sans-serif !important;
-  padding: .5em !important;
+  padding: 0.5em !important;
   background-color: #333333 !important;
   font-weight: bold !important;
-  border-radius: .2em !important;
-  font-size: .8rem !important;
+  border-radius: 0.2em !important;
+  font-size: 0.8rem !important;
 }
-.pointer:hover{
+.text-card{
+  color: white !important;
+  margin: 0.3em !important;
+  font-family: Verdana, Geneva, Tahoma, sans-serif !important;
+  padding: 0.5em !important;
+  background-color: #333333 !important;
+  font-weight: bold !important;
+  border-radius: 0.2em !important;
+  font-size: 0.6rem !important;
+}
+.pointer:hover {
+  cursor: pointer !important;
+}
+.profile-img2 {
+  width: 60px !important;
+  height: 60px !important;
+  border-radius: 50% !important;
+}
+.chip-link:hover .v-chip__content:hover{
   cursor: pointer !important;
 }
 
-
 /* main */
 
-.main{
+.main {
   display: flex;
-  height: 85vh !important; 
-  height: 85dvh !important; 
+  height: 85vh !important;
+  height: 85dvh !important;
   padding: 0 !important;
   margin: 0 !important;
   width: 100% !important;
 }
-.pages-container{
+.pages-container {
   background-color: #f2f2f2;
   width: 100%;
   height: 100% !important;
   position: relative !important;
-  
 }
-.component-wrapper{
+.component-wrapper {
   position: absolute;
   display: flex;
   width: 100% !important;
   height: 100% !important;
 }
-.is-active-component, .is-active-page{
+.is-active-component,
+.is-active-page {
   z-index: 10 !important;
 }
-.content-wrapper{
+.content-wrapper {
   display: flex;
   flex-direction: column !important;
   align-items: center !important;
@@ -344,9 +364,9 @@ html, body{
   height: 100% !important;
   justify-content: center !important;
   overflow: auto !important;
-  padding: .25em !important;
+  padding: 0.25em !important;
 }
-.content-header{
+.content-header {
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -358,11 +378,11 @@ html, body{
   overflow: auto !important;
   text-align: center !important;
   background-color: #333333 !important;
-  font-size: .9em !important;
+  font-size: 0.9em !important;
   color: white !important;
   scrollbar-width: thin !important;
 }
-.content-header-title{
+.content-header-title {
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -370,44 +390,45 @@ html, body{
   background-color: white;
   width: 100% !important;
   height: 70% !important;
-  margin: 0 .3em !important;
-  font-size: .8rem !important;
+  margin: 0 0.3em !important;
+  font-size: 0.8rem !important;
   text-align: center !important;
   font-weight: bold !important;
-  font-family:Verdana, Geneva, Tahoma, sans-serif !important;
+  font-family: Verdana, Geneva, Tahoma, sans-serif !important;
 }
-.content-header-text{
+.content-header-text {
   background-color: white;
   width: max-content !important;
-  padding: 0 .5em !important;
-  margin: .3em !important;
-  font-family:Verdana, Geneva, Tahoma, sans-serif !important;
-  border-radius: .5em !important;
+  padding: 0 0.5em !important;
+  margin: 0.3em !important;
+  font-family: Verdana, Geneva, Tahoma, sans-serif !important;
+  border-radius: 0.5em !important;
   color: black !important;
-  font-size: .7rem !important;
+  font-size: 0.7rem !important;
 }
-.content-header-text-value{
-  font-family:Verdana, Geneva, Tahoma, sans-serif !important;
+.content-header-text-value {
+  font-family: Verdana, Geneva, Tahoma, sans-serif !important;
   width: max-content !important;
   color: green !important;
 }
-.table{
+.table {
   height: 90% !important;
   min-height: 40% !important;
   width: 100% !important;
   max-width: 1400px !important;
 }
 
-
 /* nav sidebar  */
-.nav-container{
+.nav-container {
   z-index: 1 !important;
 }
-.nav-container, .nav-container-drawer, .nav-list-container{
+.nav-container,
+.nav-container-drawer,
+.nav-list-container {
   height: 100% !important;
   min-width: fit-content !important;
 }
-.nav-container-drawer{
+.nav-container-drawer {
   z-index: 15 !important;
   position: absolute !important;
   left: 0 !important;
@@ -416,273 +437,289 @@ html, body{
   height: 85dvh !important;
   background-color: rgba(0, 0, 0, 0.5) !important;
 }
-.nav-list-container{
+.nav-list-container {
   display: flex;
   flex-direction: column !important;
   background-color: #333333 !important;
   border: 3px solid white !important;
   min-width: 250px !important;
-  max-width: 250px !important;
+  max-width: 320px !important;
 }
-.nav-title, .nav-item{
+.nav-title,
+.nav-item {
   font-family: Verdana, Geneva, Tahoma, sans-serif !important;
   font-weight: bold !important;
   color: white !important;
-  font-size: .7rem !important;
+  font-size: 0.7rem !important;
 }
-.nav-title:hover, .nav-item:hover{
+.nav-title:hover,
+.nav-item:hover {
   background-color: #ff4d4d !important;
   color: white !important;
 }
-.nav-title{
+.nav-title {
   color: yellow !important;
   font-weight: normal !important;
-  padding: .5em !important;
-  font-size: .8rem !important;
+  padding: 0.5em !important;
+  font-size: 0.8rem !important;
 }
-.v-list-item__content{
+.v-list-item__content {
   width: 100%;
 }
-.nav-link:hover, .nav-link div:hover{
+.nav-link:hover,
+.nav-link div:hover {
   cursor: pointer !important;
 }
 .logout-btn {
-  background-color: #ff4d4d !important; 
-  color: white !important; 
+  background-color: #ff4d4d !important;
+  color: white !important;
   font-weight: bold !important;
-  border: none !important; 
+  border: none !important;
   width: 120px !important;
-  border-radius: .3em !important; 
-  cursor: pointer !important; 
+  border-radius: 0.3em !important;
+  cursor: pointer !important;
 }
 .logout-btn:hover {
-  background-color: #e60000 !important; 
+  background-color: #e60000 !important;
 }
 
-
 /* info drawer */
-.drawer-container{
+.drawer-container {
   position: absolute !important;
   left: 0 !important;
   z-index: 20 !important;
-  width: max-content !important;
+  width: 310px !important;
 }
-.drawer-list{
-  height: 95dvh !important; 
+.drawer-list {
+  height: 95dvh !important;
   background-color: #333333 !important;
   border: 3px solid #f2f2f2 !important;
   padding-top: 0 !important;
 }
-.drawer-head{
-  font-size: .8rem !important;
+.drawer-head {
+  font-size: 0.8rem !important;
   background-color: #ff4d4d !important;
   color: white !important;
   font-weight: bold !important;
   text-align: center !important;
   font-family: Verdana, Geneva, Tahoma, sans-serif;
 }
-.drawer-item{
+.drawer-item {
   color: white !important;
 }
-.drawer-title{
-  font-size: .8rem !important;
+.drawer-title {
+  font-size: 0.8rem !important;
   font-family: Verdana, Geneva, Tahoma, sans-serif !important;
-  color: white!important;
+  color: white !important;
 }
-.drawer-subtitle{
-  font-size: .75rem !important;
+.drawer-subtitle {
+  font-size: 0.75rem !important;
   color: yellow !important;
 }
-.subjects{
-  font-size: .55rem !important;
+.subjects {
+  font-size: 0.55rem !important;
   text-transform: uppercase !important;
 }
 
-div:hover{
+div:hover {
   cursor: default !important;
 }
-.overlay-btn{
+.overlay-btn {
   background-color: mediumseagreen;
   color: yellow;
-  font-family: Verdana, "sans-serif";
+  font-family: Verdana, 'sans-serif';
   font-size: 1.5vw;
 }
-.overlay-btn:hover{
+.overlay-btn:hover {
   background-color: lightseagreen;
   color: white;
 }
-.close-btn{
+.close-btn {
   position: absolute !important;
   right: 0 !important;
   top: 0 !important;
 }
 
 @media screen and (min-width: 576px) {
-  .form-message{
-    font-size: .75rem !important;
+  .form-error-message {
+    font-size: 0.75rem !important;
   }
-  .content-header-title{
-    font-size: .9rem !important;
+  .content-header-title {
+    font-size: 0.9rem !important;
   }
-  .content-header-text{
-    font-size: .75rem !important;
+  .content-header-text {
+    font-size: 0.75rem !important;
+  }
+  .profile-img2 {
+    width: 70px !important;
+    height: 70px !important;
   }
 }
 @media screen and (min-width: 767px) {
-  .form-message{
-    font-size: .8rem !important;
+  .form-error-message {
+    font-size: 0.8rem !important;
   }
-  .content-header-title{
+  .content-header-title {
     font-size: 1rem !important;
   }
-  .content-header-text{
-    font-size: .8rem !important;
+  .content-header-text {
+    font-size: 0.8rem !important;
+  }
+  .profile-img2 {
+    width: 80px !important;
+    height: 80px !important;
   }
 }
 
 @media screen and (min-width: 1200px) {
-  .form-message{
-    font-size: .9rem !important;
+  .form-error-message {
+    font-size: 0.9rem !important;
   }
-  .content-header-title{
+  .content-header-title {
     font-size: 1.1rem !important;
   }
-  .content-wrapper{
-    padding: .75em !important;
+  .content-wrapper {
+    padding: 0.75em !important;
   }
-  .nav-btn{
-    font-size: .8rem !important;
+  .nav-btn {
+    font-size: 0.8rem !important;
     margin: 0em 3em !important;
   }
-  .nav-title{
-    font-size: .9rem !important;
+  .nav-title {
+    font-size: 0.9rem !important;
   }
-  .content-header-text{
-    font-size: .85rem !important;
+  .content-header-text {
+    font-size: 0.85rem !important;
   }
-  .overlay-card{
+  .overlay-card {
     max-height: 90% !important;
   }
+  .profile-img2 {
+    width: 90px !important;
+    height: 90px !important;
+  }
 }
-@media screen and (min-width:2000px) {
-  .form-message{
+@media screen and (min-width: 2000px) {
+  .form-error-message {
     font-size: 1rem !important;
   }
-  .content-wrapper{
+  .content-wrapper {
     padding: 1em !important;
   }
-  .nav-btn{
-    font-size: .8rem !important;
+  .nav-btn {
+    font-size: 0.8rem !important;
     margin: 0em 4em !important;
   }
-  .content-header-text{
-    font-size: .9rem !important;
+  .content-header-text {
+    font-size: 0.9rem !important;
+  }
+  .profile-img2 {
+    width: 100px !important;
+    height: 100px !important;
   }
 }
-
 
 /* Table */
 
-.table-head{
-  font-size: .65rem !important;
+.table-head {
+  font-size: 0.65rem !important;
   font-weight: bold !important;
   color: seagreen !important;
   text-align: center !important;
   font-family: Verdana, Geneva, Tahoma, sans-serif !important;
-  }
-  .table-data{
-  font-size: .65rem !important;
+}
+.table-data {
+  font-size: 0.6rem !important;
   font-weight: bold !important;
   text-align: center !important;
+  text-transform: uppercase !important;
   font-family: Verdana, Geneva, Tahoma, sans-serif !important;
-  }
-  .profile-img{
-    width: 30px !important;
-    height: 30px !important;
-    border-radius: 50% !important;
-  }
-  .user-name {
-    font-size: .7rem !important;
-    font-family: Verdana, Geneva, Tahoma, sans-serif !important;
-    text-transform: capitalize !important;
-  }
-  div:hover{
-    cursor: default !important;
-  }
-  .v-scroll{
-    min-width: 225px !important;
-    display: flex !important;
-    flex-direction: column !important;
-  }
-  .student-info-container{
-    display: flex !important;
-    justify-content: center !important;
-    align-items: center !important;
-    width: max-content !important;
-    max-width: max-content !important;
-    position: absolute !important;
-    top: 0 !important;
-    left: 0 !important;
-  }
+}
+.profile-img {
+  width: 30px !important;
+  height: 30px !important;
+  border-radius: 50% !important;
+}
+.user-name {
+  font-size: 0.7rem !important;
+  font-family: Verdana, Geneva, Tahoma, sans-serif !important;
+  text-transform: capitalize !important;
+}
+div:hover {
+  cursor: default !important;
+}
+.v-scroll {
+  min-width: 225px !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+.student-info-container {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  width: max-content !important;
+  max-width: max-content !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+}
 
 @media screen and (min-width: 576px) {
-  .table-head{
-    font-size: .7rem !important;
+  .table-head {
+    font-size: 0.7rem !important;
   }
-  .no-data{
-    font-size: .8rem !important;
+  .no-data {
+    font-size: 0.8rem !important;
   }
-  .table-data{
-    font-size: .7em !important;
+  .table-data {
+    font-size: 0.65rem !important;
   }
 }
 @media screen and (min-width: 767px) {
-  .table-head{
-    font-size: .75rem !important;
+  .table-head {
+    font-size: 0.75rem !important;
   }
-  .table-data{
-    font-size: .75em !important;
+  .table-data {
+    font-size: 0.7rem !important;
   }
-  .no-data{
-    font-size: .9rem !important;
+  .no-data {
+    font-size: 0.9rem !important;
   }
   .user-name {
-    font-size: .8rem !important;
+    font-size: 0.8rem !important;
   }
-  .profile-img{
+  .profile-img {
     width: 40px !important;
     height: 40px !important;
   }
 }
 @media screen and (min-width: 1200px) {
-  .table-head{
-    font-size: .8rem !important;
+  .table-head {
+    font-size: 0.8rem !important;
   }
-  .table-data{
-    font-size: .8em !important;
+  .table-data {
+    font-size: 0.75rem !important;
   }
-  .no-data{
+  .no-data {
     font-size: 1rem !important;
   }
   .user-name {
-    font-size: .9rem !important;
+    font-size: 0.9rem !important;
   }
 }
 @media screen and (min-width: 2000px) {
-  .table-head{
-    font-size: .9rem !important;
+  .table-head {
+    font-size: 0.9rem !important;
   }
-  .table-data{
-    font-size: .9em !important;
+  .table-data {
+    font-size: 0.8rem !important;
   }
 }
 @media screen and (min-width: 3000px) {
-  .table-head{
+  .table-head {
     font-size: 1rem !important;
   }
-  .table-data{
-    font-size: 1em !important;
+  .table-data {
+    font-size: .9rem !important;
   }
 }
-
-

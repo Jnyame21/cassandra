@@ -8,7 +8,9 @@ import axiosInstance from '@/utils/axiosInstance';
 
 const userAuthStore = useUserAuthStore()
 const elementsStore = useElementsStore()
-const startDate = ref('')
+const now = new Date();
+const utcDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
+const startDate = ref(utcDate.toISOString().split('T')[0]); 
 const endDate = ref('')
 const term1EndDate = ref('')
 const term2StartDate = ref('')
@@ -33,7 +35,7 @@ const term3DivisionOptions = [
   { 'label': 'TRIMESTER', 'value': 'trimester' },
 ]
 const academicYearOptions = [
-  '2020/2021', '2021/2022', '2022/2023', '2023/2024', '2024/2025', '2025/2026', '2027/2028', '2028/2029', '2029/2030'
+  '2020/2021', '2021/2022', '2022/2023', '2023/2024', '2024/2025', '2025/2026', '2027/2028', '2028/2029', '2029/2030', '2030/2031', '2031/2032', '2032/2033', '2033/2034'
 ]
 
 const showErrorMessage = (message: string) => {
@@ -128,37 +130,6 @@ const createAcademicYear = async () => {
   }
 }
 
-const deleteAcademicYear = async () => {
-  const formData = new FormData
-  formData.append('year', userAuthStore.activeAcademicYear)
-  formData.append('type', 'delete')
-  elementsStore.ShowLoadingOverlay()
-
-  try {
-    await axiosInstance.post("school-admin/academic_years", formData)
-    await userAuthStore.getUserData()
-    await userAuthStore.getAdminData()
-  }
-  catch (error) {
-    elementsStore.HideLoadingOverlay()
-    if (error instanceof AxiosError) {
-      if (error.response) {
-        if (error.response.status === 400 && error.response.data.message) {
-          elementsStore.ShowOverlay(error.response.data.message, 'red', null, null)
-        } else {
-          elementsStore.ShowOverlay('Oops! something went wrong. Try again later', 'red', null, null)
-        }
-      }
-      else if (!error.response && (error.code === 'ECONNABORTED' || !navigator.onLine)) {
-        elementsStore.ShowOverlay('A network error occurred! Please check you internet connection', 'red', null, null)
-      }
-      else {
-        elementsStore.ShowOverlay('An unexpected error occurred!', 'red', null, null)
-      }
-    }
-  }
-}
-
 const checkInput = computed(() => {
   if (academicYearPeriodDivisionSelected.value === 2) {
     return !(academicYearSelected.value && startDate.value && endDate.value && term1EndDate.value && term2StartDate.value && term2EndDate.value)
@@ -196,13 +167,13 @@ const closeOverlay = (element: string) => {
       <div class="overlay-card">
         <v-btn @click="closeOverlay('AdminAddAcademicYearOverlay')" color="red" size="small" variant="flat"
           class="close-btn">X</v-btn>
-        <p class="form-message" v-if="formErrorMessage" style="color: red">{{ formErrorMessage }}</p>
+        <p class="form-error-message" v-if="formErrorMessage" style="color: red">{{ formErrorMessage }}</p>
         <div class="overlay-card-info-container">
           <v-select class="select" :items="userAuthStore.adminData.classes?.map((_class: any) => _class['name'])"
-            label="CLASS" v-model="selectedClass" variant="solo-filled" density="comfortable" clearable />
+            label="REPEATED STUDENTS CLASS" v-model="selectedClass" variant="solo-filled" density="comfortable" clearable />
           <div v-for="(_class, index) in userAuthStore.adminData.classes" :key="index">
             <v-select class="select" v-if="selectedClass === _class['name']"
-              :items="_class['students'].map((_student: any) => ({ name: _student['name'], st_id: _student['st_id'] }))"
+              :items="_class['students'].map((_student: any) => ({ name: _student['user'], st_id: _student['st_id'] }))"
               label="REPEATED STUDENTS" v-model="selectedStudents" multiple chips item-title="name" item-value="st_id"
               variant="solo-filled" density="comfortable" clearable persistent-hint
               hint="Select the students who should be repeated">
@@ -214,17 +185,20 @@ const closeOverlay = (element: string) => {
         </div>
         <div class="overlay-card-content-container">
           <v-select class="select" :items="academicYearOptions" label="ACADEMIC YEAR" v-model="academicYearSelected"
-            variant="solo-filled" density="comfortable" persistent-hint hint="Select the new academic year" />
+            variant="solo-filled" density="comfortable" persistent-hint hint="Select the new academic year" 
+          />
           <v-select class="select" :items="academicYearPeriodDivisionOptions" label="NUMBER OF DIVISIONS"
             v-model.number="academicYearPeriodDivisionSelected" item-title="label" item-value="value"
             variant="solo-filled" density="comfortable" persistent-hint
-            hint="How many division is in the academic year" />
+            hint="How many division is in the academic year" 
+          />
           <v-select class="select" v-if="academicYearPeriodDivisionSelected === 3" :items="term3DivisionOptions"
             label="DIVISION NAME" v-model="term3DivisionSelected" variant="solo-filled" item-title="label"
-            item-value="value" density="comfortable" persistent-hint hint="Select the name given to each period" />
-          <v-text-field class="input-field" v-if="academicYearSelected" v-model="startDate"
-            label="ACADEMIC YEAR START DATE" type="date" variant="solo-filled" density="comfortable" persistent-hint
-            hint="Select the date the academic year starts" />
+            item-value="value" density="comfortable" persistent-hint hint="Select the name given to each period" 
+          />
+          <v-text-field class="input-field" v-if="academicYearSelected" v-model="startDate" label="ACADEMIC YEAR START DATE" type="date" variant="solo-filled" density="comfortable" persistent-hint
+            disabled
+          />
           <v-text-field class="input-field" v-if="academicYearSelected" v-model="endDate" label="ACADEMIC YEAR END DATE"
             type="date" variant="solo-filled" density="comfortable" persistent-hint
             hint="Select the date the academic year ends" />
@@ -286,11 +260,8 @@ const closeOverlay = (element: string) => {
           <th class="table-head">{{ userAuthStore.userData['academic_year']['period_division'] }} 1 END DATE</th>
           <th class="table-head">{{ userAuthStore.userData['academic_year']['period_division'] }} 2 START DATE</th>
           <th class="table-head">{{ userAuthStore.userData['academic_year']['period_division'] }} 2 END DATE</th>
-          <th class="table-head" v-if="!userAuthStore.userData['school']?.['semesters']">{{
-            userAuthStore.userData['academic_year']['period_division'] }} 3 START DATE</th>
-          <th class="table-head" v-if="!userAuthStore.userData['school']?.['semesters']">{{
-            userAuthStore.userData['academic_year']['period_division'] }} 3 END DATE</th>
-          <th class="table-head">ACTION</th>
+          <th class="table-head" v-if="userAuthStore.userData['academic_year']['no_divisions'] === 3">{{userAuthStore.userData['academic_year']['period_division'] }} 3 START DATE</th>
+          <th class="table-head" v-if="userAuthStore.userData['academic_year']['no_divisions'] === 3">{{userAuthStore.userData['academic_year']['period_division'] }} 3 END DATE</th>
         </tr>
       </thead>
       <tbody>
@@ -301,15 +272,10 @@ const closeOverlay = (element: string) => {
           <td class="table-data">{{ _year['term_1_end_date'] }}</td>
           <td class="table-data">{{ _year['term_2_start_date'] }}</td>
           <td class="table-data">{{ _year['term_2_end_date'] }}</td>
-          <td class="table-data" v-if="!userAuthStore.userData['school']?.['semesters']">{{ _year['term_3_start_date'] }}
+          <td class="table-data" v-if="userAuthStore.userData['academic_year']['no_divisions'] === 3">{{ _year['term_3_start_date']
+            }}
           </td>
-          <td class="table-data" v-if="!userAuthStore.userData['school']?.['semesters']">{{ _year['term_3_end_date'] }}
-          </td>
-          <td class="table-data">
-            <v-btn color="red" size="x-small" variant="flat" v-if="index === 0"
-              @click="elementsStore.ShowDeletionOverlay(() => deleteAcademicYear(), 'Are you sure you want to delete this academic year?')">
-              DELETE
-            </v-btn>
+          <td class="table-data" v-if="userAuthStore.userData['academic_year']['no_divisions'] === 3">{{ _year['term_3_end_date'] }}
           </td>
         </tr>
       </tbody>

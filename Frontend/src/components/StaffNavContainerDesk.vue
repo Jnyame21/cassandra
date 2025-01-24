@@ -32,11 +32,11 @@ const showOverlay = () => {
                     </v-list-item>
                 </template>
                 <v-list-item class="nav-title nav-link"
-                    v-if="!userAuthStore.staffData.courseWork || userAuthStore.staffData.courseWork?.length === 0"
+                    v-if="!userAuthStore.teacherData.courseWork || userAuthStore.teacherData.courseWork?.length === 0"
                     @click="changePage('TeacherCoursework,Class,0')">
                     NO CLASS
                 </v-list-item>
-                <v-list-item class="nav-title nav-link" v-for="(_course, index) in userAuthStore.staffData.courseWork"
+                <v-list-item class="nav-title nav-link" v-for="(_course, index) in userAuthStore.teacherData.courseWork"
                     :key="`${_course['students_class']['name']}${index}`"
                     @click="changePage(`TeacherCoursework,${_course['students_class']['name']},${index}`)">
                     {{ _course['students_class']['name'] }}
@@ -47,14 +47,14 @@ const showOverlay = () => {
                 MY DEPARTMENT
             </v-list-item>
 
-            <v-list-group v-if="userAuthStore.staffData.studentsattendance?.length > 0">
+            <v-list-group v-if="userAuthStore.teacherData.studentsattendance?.length > 0">
                 <template v-slot:activator="{ props }">
                     <v-list-item v-bind="props" prepend-icon="mdi-clipboard-text-outline" class="nav-item">
                         STUDENT ATTENDANCE
                     </v-list-item>
                 </template>
                 <v-list-item class="nav-title nav-link"
-                    v-for="(class_name, index) in userAuthStore.staffData.studentsattendance" :key="index"
+                    v-for="(class_name, index) in userAuthStore.teacherData.studentsattendance" :key="index"
                     @click="changePage(`TeacherStudentsAttendance,${class_name['class_name']},${index}`)">
                     {{ class_name['class_name'] }}
                 </v-list-item>
@@ -66,7 +66,7 @@ const showOverlay = () => {
                         STUDENT ASSESSMENTS
                     </v-list-item>
                 </template>
-                <v-list-group v-for="(_class, index) in userAuthStore.staffData.studentsAssessments"
+                <v-list-group v-for="(_class, index) in userAuthStore.teacherData.studentsAssessments"
                     :key="`${_class['class_name']}${index}`">
                     <template v-slot:activator="{ props }">
                         <v-list-item v-bind="props" class="nav-item">
@@ -95,7 +95,7 @@ const showOverlay = () => {
                         STUDENT EXAMS
                     </v-list-item>
                 </template>
-                <v-list-group v-for="(_class, index) in userAuthStore.staffData.studentsExams" :key="index">
+                <v-list-group v-for="(_class, index) in userAuthStore.teacherData.studentsExams" :key="index">
                     <template v-slot:activator="{ props }">
                         <v-list-item v-bind="props" class="nav-item">
                             {{ _class['class_name'] }}
@@ -114,7 +114,7 @@ const showOverlay = () => {
                         STUDENT RESULTS
                     </v-list-item>
                 </template>
-                <v-list-group v-for="(_class, index) in userAuthStore.staffData.studentsResults" :key="index">
+                <v-list-group v-for="(_class, index) in userAuthStore.teacherData.studentsResults" :key="index">
                     <template v-slot:activator="{ props }">
                         <v-list-item v-bind="props" class="nav-item">
                             {{ _class['class_name'] }}

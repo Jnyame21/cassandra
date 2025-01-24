@@ -7,6 +7,8 @@ import StaffView from '@/views/StaffView.vue'
 import StudentView from '@/views/StudentView.vue'
 import LoginView from '@/views/LoginView.vue'
 import { useUserAuthStore } from '@/stores/userAuthStore'
+import { headRoles } from '@/utils/util'
+import SuperUserView from '@/views/SuperUserView.vue'
 
 const checkAuth = async () => {
   let isAuthenticated = false
@@ -52,6 +54,50 @@ const checkAuth = async () => {
   return isAuthenticated
 }
 
+const checkSuperuser = async (to: any, from: any, next: NavigationGuardNext) => {
+  const userAuthStore = useUserAuthStore()
+  const isAuthenticated = await checkAuth()
+  if (!isAuthenticated) {
+    userAuthStore.logoutUser()
+    if (to.path !== '/') {
+      return next('/')
+    }
+  } 
+  else if (!userAuthStore.superUserData.schools && userAuthStore.userData?.['role'].toLowerCase() === 'superuser') {
+    userAuthStore.getSuperUserData()
+  } 
+  else if (userAuthStore.userData?.['role'].toLowerCase() === 'student') {
+    if (!userAuthStore.studentData.students){
+      userAuthStore.getStudentData()
+    }
+    next('/student')
+  } 
+  else if (userAuthStore.userData?.['role']?.toLowerCase() === 'staff') {
+    if (!userAuthStore.teacherData.staff &&  ['teacher', 'hod'].includes(userAuthStore.userData['staff_role'].toLowerCase())) {
+      userAuthStore.getTeacherData()
+      userAuthStore.getTeacherStudentsAssessments()
+      userAuthStore.getTeacherStudentsExams()
+      userAuthStore.getTeacherStudentResults()
+      if (userAuthStore.userData?.['staff_role'].toLowerCase() === 'hod') {
+        userAuthStore.getHodData()
+      }
+    } 
+    else if (!userAuthStore.adminData.staff && userAuthStore.userData?.['staff_role'].toLowerCase() === 'administrator') {
+      userAuthStore.getAdminData()
+    }
+    else if (!userAuthStore.headData.staff && headRoles.includes(userAuthStore.userData?.['staff_role'].toLowerCase())) {
+      userAuthStore.getHeadData()
+    }
+    next('/staff')
+  } 
+  else {
+    if (to.path !== '/') {
+      return next('/')
+    }
+  }
+  next()
+}
+
 const checkStudent = async (to: any, from: any, next: NavigationGuardNext) => {
   const userAuthStore = useUserAuthStore()
   const isAuthenticated = await checkAuth()
@@ -60,31 +106,35 @@ const checkStudent = async (to: any, from: any, next: NavigationGuardNext) => {
     if (to.path !== '/') {
       return next('/')
     }
-  } else if (userAuthStore.userData?.['role'] === 'student') {
-    if (!userAuthStore.studentData.subjects) {
-      userAuthStore.getStudentData()
-    }
-  } else if (userAuthStore.userData?.['role']?.toLowerCase() === 'staff') {
-    if (
-      !userAuthStore.staffData.courseWork &&
-      ['teacher', 'hod'].includes(
-        userAuthStore.userData['staff_role'].toLowerCase(),
-      )
-    ) {
-      userAuthStore.getstaffData()
+  } 
+  else if (!userAuthStore.studentData.students && userAuthStore.userData?.['role'].toLowerCase() === 'student') {
+    userAuthStore.getStudentData()
+  } 
+  else if (userAuthStore.userData?.['role']?.toLowerCase() === 'staff') {
+    if (!userAuthStore.teacherData.staff && ['teacher', 'hod'].includes(userAuthStore.userData['staff_role'].toLowerCase())) {
+      userAuthStore.getTeacherData()
       userAuthStore.getTeacherStudentsAssessments()
       userAuthStore.getTeacherStudentsExams()
       userAuthStore.getTeacherStudentResults()
       if (userAuthStore.userData?.['staff_role'].toLowerCase() === 'hod') {
         userAuthStore.getHodData()
       }
-    } else if (
-      userAuthStore.userData?.['staff_role'].toLowerCase() === 'administrator'
-    ) {
+    } 
+    else if (!userAuthStore.adminData.staff && userAuthStore.userData?.['staff_role'].toLowerCase() === 'administrator') {
       userAuthStore.getAdminData()
     }
+    else if (!userAuthStore.headData.staff && headRoles.includes(userAuthStore.userData?.['staff_role'].toLowerCase())) {
+      userAuthStore.getHeadData()
+    }
     next('/staff')
-  } else {
+  } 
+  else if (userAuthStore.userData?.['role'].toLowerCase() === 'superuser') {
+    if (!userAuthStore.superUserData.schools){
+      userAuthStore.getSuperUserData()
+    }
+    return next('/superuser')
+  } 
+  else {
     if (to.path !== '/') {
       return next('/')
     }
@@ -101,29 +151,34 @@ const checkStaff = async (to: any, from: any, next: NavigationGuardNext) => {
       return next('/')
     }
   }
-  if (
-    !userAuthStore.staffData.courseWork &&
-    ['teacher', 'hod'].includes(
-      userAuthStore.userData['staff_role'].toLowerCase(),
-    )
-  ) {
-    userAuthStore.getstaffData()
+  if (!userAuthStore.teacherData.staff && ['teacher', 'hod'].includes(userAuthStore.userData['staff_role'].toLowerCase())) {
+    userAuthStore.getTeacherData()
     userAuthStore.getTeacherStudentsAssessments()
     userAuthStore.getTeacherStudentsExams()
     userAuthStore.getTeacherStudentResults()
     if (userAuthStore.userData?.['staff_role'].toLowerCase() === 'hod') {
       userAuthStore.getHodData()
     }
-  } else if (
-    userAuthStore.userData?.['staff_role'].toLowerCase() === 'administrator'
-  ) {
+  } 
+  else if (!userAuthStore.adminData.staff && userAuthStore.userData?.['staff_role'].toLowerCase() === 'administrator') {
     userAuthStore.getAdminData()
-  } else if (userAuthStore.userData?.['role'] === 'student') {
-    if (!userAuthStore.studentData.subjects) {
+  } 
+  else if (!userAuthStore.headData.staff && headRoles.includes(userAuthStore.userData?.['staff_role'].toLowerCase())) {
+    userAuthStore.getHeadData()
+  }
+  else if (userAuthStore.userData?.['role'] === 'student') {
+    if (!userAuthStore.studentData.students) {
       userAuthStore.getStudentData()
     }
     return next('/student')
-  } else {
+  } 
+  else if (userAuthStore.userData?.['role'].toLowerCase() === 'superuser') {
+    if (!userAuthStore.superUserData.schools){
+      userAuthStore.getSuperUserData()
+    }
+    return next('/superuser')
+  } 
+  else {
     if (to.path !== '/') {
       return next('/')
     }
@@ -134,14 +189,15 @@ const checkStaff = async (to: any, from: any, next: NavigationGuardNext) => {
 const checkLogin = async (to: any, from: any, next: NavigationGuardNext) => {
   const userAuthStore = useUserAuthStore()
   const isAuthenticated = await checkAuth()
-  if (isAuthenticated && userAuthStore.userData?.['role'] === 'staff') {
+  if (isAuthenticated && userAuthStore.userData?.['role'].toLowerCase() === 'staff') {
     return next('/staff')
-  } else if (
-    isAuthenticated &&
-    userAuthStore.userData?.['role'] === 'student'
-  ) {
+  } 
+  else if (isAuthenticated && userAuthStore.userData?.['role'].toLowerCase() === 'student') {
     return next('/student')
   }
+  else if (isAuthenticated && userAuthStore.userData?.['role'].toLowerCase() === 'superuser') {
+    return next('/superuser')
+  } 
   next()
 }
 
@@ -170,6 +226,14 @@ const router = createRouter({
       component: StaffView,
       beforeEnter: async (to, from, next) => {
         await checkStaff(to, from, next)
+      },
+    },
+    {
+      path: '/superuser',
+      name: 'superuser',
+      component: SuperUserView,
+      beforeEnter: async (to, from, next) => {
+        await checkSuperuser(to, from, next)
       },
     },
   ],

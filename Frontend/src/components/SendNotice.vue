@@ -56,7 +56,7 @@ const getClassStudents = async () => {
         })
 }
 
-const initGetClassStudents = ()=>{
+const initGetClassStudents = () => {
     if (!selectedClass.value) {
         return;
     }
@@ -64,7 +64,7 @@ const initGetClassStudents = ()=>{
     overlay ? overlay.style.display = 'flex' : null
     formErrorMessage.value = ''
     formSuccessMessage.value = ''
-    setTimeout(()=>{
+    setTimeout(() => {
         getClassStudents()
     }, 1000)
 }
@@ -103,8 +103,8 @@ const toggle = (value: boolean) => {
     multiple.value = value
     if (typeSelected.value === 'student') {
         if (multiple.value) {
-            userAuthStore.notificationStudents.forEach(item =>{
-                if (!selectedStudents.value.includes(item['st_id'])){
+            userAuthStore.notificationStudents.forEach(item => {
+                if (!selectedStudents.value.includes(item['st_id'])) {
                     selectedStudents.value.push(item['st_id'])
                 }
             })
@@ -113,8 +113,8 @@ const toggle = (value: boolean) => {
         }
     } else if (typeSelected.value === 'staff') {
         if (multiple.value) {
-            userAuthStore.notificationStaff.forEach(item =>{
-                if (!selectedStaff.value.includes(item['staff_id'])){
+            userAuthStore.notificationStaff.forEach(item => {
+                if (!selectedStaff.value.includes(item['staff_id'])) {
                     selectedStaff.value.push(item['staff_id'])
                 }
             })
@@ -147,12 +147,12 @@ const closeOverlay = (element: string) => {
     </div>
     <v-btn @click.prevent="closeOverlay('Notification')" size="small" color="red" class="close-btn">X</v-btn>
     <div class="no-data flex-all-c" v-if="!userAuthStore.notifications">
-        <TheLoader/>
+        <TheLoader />
     </div>
     <div class="flex-all-c w-100 form-container" v-if="userAuthStore.notifications">
         <div class="message-container">
-            <h2 v-if="formSuccessMessage" class="form-message" style="color: green">{{ formSuccessMessage }}</h2>
-            <h2 v-if="formErrorMessage" class="form-message" style="color: red">{{ formErrorMessage }}</h2>
+            <h2 v-if="formSuccessMessage" class="form-error-message" style="color: green">{{ formSuccessMessage }}</h2>
+            <h2 v-if="formErrorMessage" class="form-error-message" style="color: red">{{ formErrorMessage }}</h2>
         </div>
         <form class="form">
             <v-select :disabled="loading" v-model="typeSelected" density="compact" class="select" label="SEND TO"
@@ -191,13 +191,19 @@ const closeOverlay = (element: string) => {
                 </template>
             </v-select>
 
-            <v-btn size="small" color="blue" :disabled="loading" @click="toggle(true)" v-if="!multiple && typeSelected === 'student' && selectedClass && userAuthStore.notificationStudents && userAuthStore.notificationStudents.length > 0 || !multiple && typeSelected === 'staff' && userAuthStore.notificationStaff && userAuthStore.notificationStaff.length > 0 " class="mb-10 mt-3">Select
+            <v-btn size="small" color="blue" :disabled="loading" @click="toggle(true)"
+                v-if="!multiple && typeSelected === 'student' && selectedClass && userAuthStore.notificationStudents && userAuthStore.notificationStudents.length > 0 || !multiple && typeSelected === 'staff' && userAuthStore.notificationStaff && userAuthStore.notificationStaff.length > 0"
+                class="mb-10 mt-3">Select
                 All</v-btn>
-            <v-btn size="small" color="blue" :disabled="loading" @click="toggle(false)" v-if="multiple && typeSelected === 'student' && selectedClass && userAuthStore.notificationStudents && userAuthStore.notificationStudents.length > 0 || multiple && typeSelected === 'staff' && userAuthStore.notificationStaff && userAuthStore.notificationStaff.length > 0 " class="mb-10 mt-3">Deselect
+            <v-btn size="small" color="blue" :disabled="loading" @click="toggle(false)"
+                v-if="multiple && typeSelected === 'student' && selectedClass && userAuthStore.notificationStudents && userAuthStore.notificationStudents.length > 0 || multiple && typeSelected === 'staff' && userAuthStore.notificationStaff && userAuthStore.notificationStaff.length > 0"
+                class="mb-10 mt-3">Deselect
                 All</v-btn>
 
-            <v-textarea :disabled="loading" v-model="message" clearable class="input-field" label="Enter your message" variant="outlined" />
-            <v-btn density="compact" :disabled="checkInput" @click.prevent="sendNotice()" :loading="loading" type="submit" color="green" class="send-btn mb-10">SEND</v-btn>
+            <v-textarea :disabled="loading" v-model="message" clearable class="input-field" label="Enter your message"
+                variant="outlined" />
+            <v-btn density="compact" :disabled="checkInput" @click.prevent="sendNotice()" :loading="loading"
+                type="submit" color="green" class="send-btn mb-10">SEND</v-btn>
         </form>
     </div>
 </template>
@@ -212,7 +218,7 @@ const closeOverlay = (element: string) => {
     overflow: hidden !important;
 }
 
-.message-container{
+.message-container {
     height: 5%;
 }
 
@@ -238,7 +244,7 @@ const closeOverlay = (element: string) => {
     top: 0;
 }
 
-.form-message {
+.form-error-message {
     font-size: .7rem;
     margin-top: .5em;
     text-align: center;
@@ -261,7 +267,4 @@ const closeOverlay = (element: string) => {
     font-family: monospace;
     width: 80%;
 }
-
-
-
 </style>

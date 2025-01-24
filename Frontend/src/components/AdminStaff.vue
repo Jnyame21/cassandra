@@ -4,7 +4,7 @@ import { computed, ref } from 'vue';
 import axiosInstance from '@/utils/axiosInstance';
 import { useUserAuthStore } from '@/stores/userAuthStore';
 import { useElementsStore } from '@/stores/elementsStore';
-import { downloadFile } from '@/utils/util';
+import { downloadFile, countriesData, ghanaRegions, religionOptions, titleOptions, genderOptions, uploadTypeOptions } from '@/utils/util';
 import TheLoader from './TheLoader.vue';
 
 const userAuthStore = useUserAuthStore()
@@ -12,110 +12,79 @@ const elementsStore = useElementsStore()
 const firstName = ref('')
 const lastName = ref('')
 const staffId = ref('')
+const title = ref('')
 const gender = ref('')
 const dateOfBirth = ref('')
-const department = ref('')
-const selectedSubjects = ref([])
-const staffRole = ref('')
+const selectedSubjects = ref<string[]>([])
 const contact = ref('')
 const address = ref('')
-const img = ref('')
+const img: any = ref('')
 const nationality = ref('')
-const departmentSelected = ref('')
-const departmentHod = ref('')
 const typeSelected = ref('')
 const region = ref('')
 const religion = ref('')
-const nationalitySelected = ref('')
 const formErrorMessage = ref('')
 const email = ref('')
 const dateEnrolled = ref('')
 const pob = ref('')
-const staffFile:any = ref(null)
+const staffFile: any = ref('')
 const altContact = ref('')
-
+const previousValue: any = ref('')
+const newValue: any = ref('')
+const editType = ref('')
+const editStaffId = ref('')
+const editStaffIndex: any = ref('')
+const nameTypeSelected = ref('')
+const staffRoleSelected = ref('')
+const editSubjectSelected = ref<string[]>([])
+const staffDepartmentSelected = ref('')
+const staffIndex = ref<number | null>(null)
+const staffRoleEditType = ref('')
+const staffRoleOptions = ref<string[]>([])
+const subjectOptions = ref<string[]>([])
 
 const staff = computed(() => {
   return userAuthStore.adminData.staff
 })
 
 const maleStaff = computed(() => {
-  if (userAuthStore.adminData.staff) {
-    return userAuthStore.adminData.staff.filter((item: any) => item['gender'].toLowerCase() === 'male').length
-  }
-  return 0;
+  return staff.value?.filter(item => item['gender'].toLowerCase() === 'male').length || 0
 })
 
 const femaleStaff = computed(() => {
-  if (userAuthStore.adminData.staff) {
-    return userAuthStore.adminData.staff.filter((item: any) => item['gender'].toLowerCase() === 'female').length
-  }
-  return 0;
+  return staff.value?.filter(item => item['gender'].toLowerCase() === 'female').length || 0
 })
 
-const genderOptions = [
-  { 'label': 'MALE', 'value': 'male' },
-  { 'label': 'FEMALE', 'value': 'female' },
-]
+let timeout: any;
+const showErrorMessage = (message: string) => {
+  formErrorMessage.value = message
+  if (timeout) {
+    clearTimeout(timeout)
+  }
+  timeout = setTimeout(() => {
+    formErrorMessage.value = ''
+  }, 10 * 1000)
+}
 
-const typeOptions = [
-  { 'label': 'USE AN EXCEL FILE', 'value': 'file' },
-  { 'label': 'INPUT DATA HERE', 'value': 'noFile' },
+const nameTypeOptions = [
+  { 'label': 'TITLE', 'value': 'title' },
+  { 'label': 'FIRST NAME', 'value': 'first_name' },
+  { 'label': 'LAST NAME', 'value': 'last_name' },
 ]
-
-const roleOptions = [
-  { 'label': 'TEACHER', 'value': 'teacher' },
-  { 'label': 'HEADMASTER/HEADMISTRESS', 'value': 'head' },
-  { 'label': 'ASSISTANT HEADMASTER/HEADMISTRESS', 'value': 'assistant_head' },
-  { 'label': 'HEAD OF ACADEMICS', 'value': 'head_of_academic' },
-  { 'label': 'ASSISTANT HEAD OF ACADEMICS', 'value': 'assistant_head_of_academics' },
-  { 'label': 'ADMINISTRATOR', 'value': 'administrator' },
-]
-
-const nationalityOptions = [
-  { 'label': 'GHANAIAN', 'value': 'Ghanaian' },
-  { 'label': 'OTHER', 'value': 'other' },
-]
-
-const regionOptions = [
-  { 'label': 'GREATER ACCRA', 'value': 'Greater Accra' },
-  { 'label': 'ASHANTI', 'value': 'Ashanti' },
-  { 'label': 'WESTERN', 'value': 'Western' },
-  { 'label': 'WESTERN NORTH', 'value': 'Western North' },
-  { 'label': 'CENTRAL', 'value': 'Central' },
-  { 'label': 'EASTERN', 'value': 'Eastern' },
-  { 'label': 'VOLTA', 'value': 'Volta' },
-  { 'label': 'OTI', 'value': 'Oti' },
-  { 'label': 'NORTHERN', 'value': 'Northern' },
-  { 'label': 'NORTH EAST', 'value': 'North East' },
-  { 'label': 'SAVANNAH', 'value': 'Savannah' },
-  { 'label': 'UPPER EAST', 'value': 'Upper East' },
-  { 'label': 'UPPER WEST', 'value': 'Upper West' },
-  { 'label': 'BONO', 'value': 'Bono' },
-  { 'label': 'BONO EAST', 'value': 'Bono East' },
-  { 'label': 'AHAFO', 'value': 'Ahafo' }
-]
-
-const religionOptions = [
-  { 'label': 'CHRISTIANITY', 'value': 'Christianity' },
-  { 'label': 'ISLAM', 'value': 'Islam' },
-  { 'label': 'TRADITIONAL AFRICAN RELIGION', 'value': 'Traditional African Religion' },
-  { 'label': 'HINDUISM', 'value': 'Hinduism' },
-  { 'label': 'BUDDHISM', 'value': 'Buddhism' },
-  { 'label': 'NONE', 'value': 'None' },
-  { 'label': 'OTHER', 'value': 'Other' }
-];
 
 const addStaff = async () => {
-  elementsStore.ShowLoadingOverlay()
   const formData = new FormData()
-  if (typeSelected.value === 'noFile'){
+  if (typeSelected.value === 'noFile') {
+    if (img.value?.size > 1024 * 1024) {
+      showErrorMessage("The size of the image must not exceed 1MB")
+      return;
+    }
     formData.append('type', 'createWithoutFile')
     formData.append('firstName', firstName.value)
     formData.append('lastName', lastName.value)
     formData.append('dateOfBirth', dateOfBirth.value)
     formData.append('gender', gender.value)
-    formData.append('role', staffRole.value)
+    formData.append('title', title.value)
     formData.append('dateEnrolled', dateEnrolled.value)
     formData.append('contact', contact.value)
     formData.append('pob', pob.value)
@@ -127,25 +96,37 @@ const addStaff = async () => {
     formData.append('img', img.value)
     formData.append('nationality', nationality.value)
     formData.append('subjects', JSON.stringify(selectedSubjects.value))
-    if (userAuthStore.userData['school']['staff_id']) {
-      formData.append('staff_id', staffId.value)
-    }
-    if (userAuthStore.userData['school']['has_departments']) {
-      formData.append('department', department.value)
-    }
+    formData.append('staff_id', staffId.value)
   }
-  else if (typeSelected.value === 'file'){
+  else if (typeSelected.value === 'file') {
     formData.append('type', 'createWithFile')
     formData.append('file', staffFile.value)
   }
 
+  elementsStore.ShowLoadingOverlay()
   try {
     const response = await axiosInstance.post('school-admin/staff', formData)
     const data = response.data
-    data.forEach((item:any)=>{
-      userAuthStore.adminData.staff?.unshift(item)
-    })
-    staffFile.value = null
+    if (typeSelected.value === 'file') {
+      data.forEach((item: any) => {
+        userAuthStore.adminData.staff?.unshift(item)
+      })
+      staffFile.value = ''
+    }
+    else if (typeSelected.value === 'noFile') {
+      userAuthStore.adminData.staff?.unshift(data)
+      firstName.value = ''
+      lastName.value = ''
+      dateOfBirth.value = ''
+      contact.value = ''
+      pob.value = ''
+      altContact.value = ''
+      email.value = ''
+      address.value = ''
+      staffId.value = ''
+      img.value = ''
+      selectedSubjects.value = []
+    }
     elementsStore.HideLoadingOverlay()
     elementsStore.ShowOverlay('Success', 'green', null, null)
   }
@@ -169,30 +150,94 @@ const addStaff = async () => {
   }
 }
 
-const setDepartmentHOD = async () => {
-  elementsStore.ShowLoadingOverlay()
+const editStaff = async () => {
   const formData = new FormData()
-  formData.append('type', 'setDepartmentHOD')
-  formData.append('department', departmentSelected.value)
-  formData.append('staffId', departmentHod.value)
+  formData.append('staffId', editStaffId.value)
+  formData.append('type', 'edit')
+  formData.append('editType', editType.value)
+  formData.append('term', userAuthStore.activeTerm.toString())
+  formData.append('year', userAuthStore.activeAcademicYear)
+  if (editType.value === 'img' && newValue.value?.size > 1024 * 1024) {
+    showErrorMessage("The size of the image must not exceed 1MB")
+    return;
+  }
+  if (editType.value === 'addSubjects' || editType.value === 'removeSubjects') {
+    formData.append('newValue', JSON.stringify(editSubjectSelected.value))
+  }
+  else if (editType.value === 'user') {
+    formData.append('editType', nameTypeSelected.value)
+    formData.append('newValue', newValue.value)
+  }
+  else {
+    formData.append('newValue', newValue.value)
+  }
 
+  elementsStore.ShowLoadingOverlay()
   try {
     const response = await axiosInstance.post('school-admin/staff', formData)
     const data = response.data
-    const staffHod = userAuthStore.adminData.staff?.find((item: any) => item['staff_id'] === departmentHod.value)
-    if (staffHod && userAuthStore.adminData.staff) {
-      const staffHodIndex = userAuthStore.adminData.staff.indexOf(staffHod)
-      userAuthStore.adminData.staff[staffHodIndex]['role'] = 'hod'
+    if (userAuthStore.adminData.staff) {
+      if (editType.value === 'user') {
+        userAuthStore.adminData.staff[editStaffIndex.value]['user'] = data
+      }
+      else if (editType.value === 'staff_id') {
+        userAuthStore.adminData.staff[editStaffIndex.value].staff_id = data
+      }
+      else if (editType.value === 'gender') {
+        userAuthStore.adminData.staff[editStaffIndex.value].gender = data
+      }
+      else if (editType.value === 'dob') {
+        userAuthStore.adminData.staff[editStaffIndex.value]['dob'] = data
+      }
+      else if (editType.value === 'pob') {
+        userAuthStore.adminData.staff[editStaffIndex.value]['pob'] = data
+      }
+      else if (editType.value === 'addSubjects') {
+        response.data.forEach((item: any) => {
+          userAuthStore.adminData.staff?.[editStaffIndex.value]['subjects'].unshift(item)
+        })
+      }
+      else if (editType.value === 'removeSubjects') {
+        editSubjectSelected.value.forEach(item => {
+          userAuthStore.adminData.staff?.[editStaffIndex.value]['subjects'].splice(userAuthStore.adminData.staff[editStaffIndex.value]['subjects'].indexOf(item), 1)
+        })
+      }
+      else if (editType.value === 'date_enrolled') {
+        userAuthStore.adminData.staff[editStaffIndex.value]['date_enrolled'] = data
+      }
+      else if (editType.value === 'region') {
+        userAuthStore.adminData.staff[editStaffIndex.value]['region'] = data
+      }
+      else if (editType.value === 'religion') {
+        userAuthStore.adminData.staff[editStaffIndex.value]['religion'] = data
+      }
+      else if (editType.value === 'nationality') {
+        userAuthStore.adminData.staff[editStaffIndex.value]['nationality'] = data
+      }
+      else if (editType.value === 'contact') {
+        userAuthStore.adminData.staff[editStaffIndex.value]['contact'] = data
+      }
+      else if (editType.value === 'alt_contact') {
+        userAuthStore.adminData.staff[editStaffIndex.value]['alt_contact'] = data
+      }
+      else if (editType.value === 'address') {
+        userAuthStore.adminData.staff[editStaffIndex.value]['address'] = data
+      }
+      else if (editType.value === 'email') {
+        userAuthStore.adminData.staff[editStaffIndex.value]['email'] = data
+      }
+      else if (editType.value === 'img') {
+        userAuthStore.adminData.staff[editStaffIndex.value]['img'] = data
+      }
     }
-    const previousHod = userAuthStore.adminData.staff?.find((item: any) => item['staff_id'] === data['previous_hod_id'])
-    if (previousHod && userAuthStore.adminData.staff) {
-      const previousHodIndex = userAuthStore.adminData.staff.indexOf(previousHod)
-      userAuthStore.adminData.staff[previousHodIndex]['role'] = 'teacher'
-    }
-    departmentSelected.value = ''
-    departmentHod.value = ''
+
+    newValue.value = null
+    editType.value = ''
+    editSubjectSelected.value = []
+    nameTypeSelected.value = ''
+    previousValue.value = ''
+    closeOverlay('AdminEditStaffOverlay')
     elementsStore.HideLoadingOverlay()
-    closeOverlay('AdminSetDepartmentHODOverlay')
   }
   catch (error) {
     elementsStore.HideLoadingOverlay()
@@ -222,11 +267,74 @@ const deleteStaff = async (staffToDeleteId: string) => {
 
   try {
     await axiosInstance.post('school-admin/staff', formData)
-    const staffToDelet = userAuthStore.adminData.staff?.find((item: any) => item['staff_id'] === staffToDeleteId)
-    if (staffToDelet && userAuthStore.adminData.staff) {
-      const staffToDeletIndex = userAuthStore.adminData.staff.indexOf(staffToDelet)
+    const staffToDelete = userAuthStore.adminData.staff?.find(item => item.staff_id === staffToDeleteId)
+    if (staffToDelete && userAuthStore.adminData.staff) {
+      const staffToDeletIndex = userAuthStore.adminData.staff.indexOf(staffToDelete)
       userAuthStore.adminData.staff.splice(staffToDeletIndex, 1)
     }
+    elementsStore.HideLoadingOverlay()
+  }
+  catch (error) {
+    elementsStore.HideLoadingOverlay()
+    if (error instanceof AxiosError) {
+      if (error.response) {
+        if (error.response.status === 400 && error.response.data.message) {
+          elementsStore.ShowOverlay(error.response.data.message, 'red', null, null)
+        } else {
+          elementsStore.ShowOverlay('Oops! something went wrong. Try again later', 'red', null, null)
+        }
+      }
+      else if (!error.response && (error.code === 'ECONNABORTED' || !navigator.onLine)) {
+        elementsStore.ShowOverlay('A network error occurred! Please check you internet connection', 'red', null, null)
+      }
+      else {
+        elementsStore.ShowOverlay('An unexpected error occurred!', 'red', null, null)
+      }
+    }
+  }
+}
+
+const addRemoveStaffRole = async () => {
+  elementsStore.ShowLoadingOverlay()
+  const formData = new FormData()
+  formData.append('type', staffRoleEditType.value)
+  formData.append('staffId', staffId.value)
+  formData.append('term', userAuthStore.activeTerm.toString())
+  formData.append('year', userAuthStore.activeAcademicYear)
+  if (staffRoleEditType.value === 'addRole') {
+    formData.append('roleIdentifier', staffRoleSelected.value)
+    formData.append('departmentIdentifier', staffDepartmentSelected.value)
+  }
+  else if (staffRoleEditType.value === 'removeRole') {
+    formData.append('roleIdentifier', staffRoleSelected.value)
+  }
+
+  try {
+    const response = await axiosInstance.post('school-admin/staff', formData)
+    const responseDepartment = response.data.department
+    if (userAuthStore.adminData.staff) {
+      if (staffRoleEditType.value === 'addRole') {
+        userAuthStore.adminData.staff[staffIndex.value as number].roles.unshift(response.data.role)
+        if (responseDepartment) {
+          userAuthStore.adminData.staff[staffIndex.value as number].departments.unshift(responseDepartment)
+        }
+      }
+      else if (staffRoleEditType.value === 'removeRole') {
+        const staffRoleIndex = userAuthStore.adminData.staff[staffIndex.value as number].roles.indexOf(staffRoleSelected.value)
+        userAuthStore.adminData.staff[staffIndex.value as number].roles.splice(staffRoleIndex, 1)
+        if (responseDepartment) {
+          const staffDepartmentItemIndex = userAuthStore.adminData.staff[staffIndex.value as number].departments.indexOf(responseDepartment)
+          userAuthStore.adminData.staff[staffIndex.value as number].departments.splice(staffDepartmentItemIndex, 1)
+        }
+      }
+    }
+
+    staffId.value = ''
+    staffIndex.value = null
+    staffRoleEditType.value = ''
+    staffRoleSelected.value = ''
+    staffDepartmentSelected.value = ''
+    closeOverlay(`AdminAddRemoveStaffRoleOverlay`)
     elementsStore.HideLoadingOverlay()
   }
   catch (error) {
@@ -279,53 +387,86 @@ const getStaffFile = async () => {
   }
 }
 
-const imgChange = (event: any) => {
-  const file = event.target.files[0]
-  img.value = file
-}
-
-const staffFileChanged = (event: any) => {
-  const file = event.target.files[0]
-  staffFile.value = file
-}
-
 const requiredFields = computed(() => {
-  return !(firstName.value && lastName.value && contact.value && address.value && nationality.value && dateOfBirth.value && gender.value && staffRole.value && selectedSubjects.value.length > 0 && region.value && religion.value && pob.value)
+  return !(firstName.value && lastName.value && contact.value && address.value && nationality.value && title.value && dateOfBirth.value && gender.value && region.value && religion.value && pob.value)
 })
 
 const isStaffFormValid = computed(() => {
-  if (typeSelected.value === 'noFile'){
-    if (userAuthStore.userData['school']['has_departments']) {
-      if (userAuthStore.userData['school']['staff_id']) {
-        return !(department.value && staffId.value && !requiredFields.value)
-      }
-      else {
-        return !(department.value && !requiredFields.value)
-      }
+  if (typeSelected.value === 'noFile') {
+    if (userAuthStore.userData['school']['staff_id']) {
+      return !(staffId.value && requiredFields.value)
     }
     else {
-      if (userAuthStore.userData['school']['staff_id']) {
-        return !(staffId.value && !requiredFields.value)
-      }
-      else {
-        return !requiredFields.value
-      }
+      return requiredFields.value
     }
   }
-  else if (typeSelected.value === 'file'){
+  else if (typeSelected.value === 'file') {
     return !(staffFile.value)
   }
   return true;
 })
 
-const nationalityChanged = (value: string) => {
-  if (value === 'Ghanaian') {
-    nationality.value = value
+const imgChange = (event: any) => {
+  const file = event.target.files[0]
+  img.value = file
+}
+
+const editImgChange = (event: any) => {
+  const file = event.target.files[0]
+  newValue.value = file
+}
+
+const showEditOverlay = (edit_type: string, previous_value: string, staff_id: string, staff_index: number, subject_options: string[] = []) => {
+  const overlay = document.getElementById(`AdminEditStaffOverlay`)
+  previousValue.value = previous_value
+  editType.value = edit_type
+  editStaffId.value = staff_id
+  editStaffIndex.value = staff_index
+  subjectOptions.value = subject_options
+  if (overlay) {
+    overlay.style.display = 'flex'
   }
-  else {
-    nationality.value = ''
+}
+
+const showStaffRoleEditOverlay = (edit_type: string, staff_index: number, staff_id: string, staff_role_options: string[]) => {
+  staffIndex.value = staff_index
+  staffId.value = staff_id
+  staffRoleEditType.value = edit_type
+  staffRoleOptions.value = staff_role_options
+  const overlay = document.getElementById(`AdminAddRemoveStaffRoleOverlay`)
+  if (overlay) {
+    overlay.style.display = 'flex'
   }
-  region.value = ''
+}
+
+const isAddRemoveStaffRoleFormValid = computed(() => {
+  if (staffRoleEditType.value === 'addRole') {
+    if (staffRoleSelected.value?.split('|')[0].trim().toLowerCase() === 'teacher' && userAuthStore.userData['current_role']['level']['has_departments']) {
+      return !(staffRoleSelected.value && staffDepartmentSelected.value)
+    }
+    else if (staffRoleSelected.value) {
+      return !(staffRoleSelected.value)
+    }
+  }
+  else if (staffRoleEditType.value === 'removeRole') {
+    return !(staffRoleSelected.value)
+  }
+  return true
+})
+
+const fileChanged = (file: any) => {
+  if (!file) {
+    staffFile.value = ''
+    img.value = ''
+    if (editType.value === 'img') {
+      newValue.value = ''
+    }
+  }
+}
+
+const staffFileChanged = (event: any) => {
+  const file = event.target.files[0]
+  staffFile.value = file
 }
 
 const showOverlay = (element: string) => {
@@ -335,10 +476,11 @@ const showOverlay = (element: string) => {
   }
 }
 
-const clearSelectedStaff = () => {
-  departmentHod.value = ''
-}
 const closeOverlay = (element: string) => {
+  staffDepartmentSelected.value = ''
+  staffRoleSelected.value = ''
+  newValue.value = ''
+  selectedSubjects.value = []
   const overlay = document.getElementById(element)
   if (overlay) {
     overlay.style.display = 'none'
@@ -346,92 +488,218 @@ const closeOverlay = (element: string) => {
 }
 
 
+
 </script>
 
 <template>
-  <div class="content-wrapper" v-show="elementsStore.activePage === 'AdminStaff'"
-    :class="{ 'is-active-page': elementsStore.activePage === 'AdminStaff' }">
-    <!-- add staff overlay -->
-    <div id="AdminAddStaffOverlay" class="overlay" v-if="staff">
-      <div class="overlay-card">
-        <v-btn @click="closeOverlay('AdminAddStaffOverlay')" color="red" size="small" variant="flat"
-          class="close-btn">X</v-btn>
-        <p class="form-message" v-if="formErrorMessage">{{ formErrorMessage }}</p>
-        <form class="overlay-card-content-container">
-          <v-select class="select" :items="typeOptions" label="UPLOAD TYPE" v-model="typeSelected" item-title="label"
-            item-value="value" variant="solo-filled" density="comfortable" persistent-hint
-            hint="Select whether you want to use an excel file or input the data here" />
-          <v-text-field class="input-field" v-if="typeSelected === 'noFile'" v-model="firstName" label="FIRST NAME"
-            clearable variant="solo-filled" density="comfortable" placeholder="Eg. Cassandra" persistent-hint
-            hint="Enter the first name of the staff" />
-          <v-text-field class="input-field" v-if="typeSelected === 'noFile'" v-model="lastName"
-            label="LAST NAME (MIDDLE NAME + SURNAME)" clearable variant="solo-filled" density="comfortable"
-            placeholder="Eg. Akua Afriyie" persistent-hint hint="Enter the last name of the staff" />
-          <v-select class="select" v-if="typeSelected === 'noFile'" :items="genderOptions" label="GENDER"
-            v-model="gender" item-title="label" item-value="value" variant="solo-filled" density="comfortable"
+  <div class="content-wrapper" v-show="elementsStore.activePage === `AdminStaff`" :class="{ 'is-active-page': elementsStore.activePage === `AdminStaff` }">
+
+    <!-- add/remove staff role overlay -->
+    <div id="AdminAddRemoveStaffRoleOverlay" class="overlay" v-if="staff">
+      <div class="overlay-card edit-overlay">
+        <v-btn @click="closeOverlay('AdminAddRemoveStaffRoleOverlay')" color="red" size="small" variant="flat"
+          class="close-btn">
+          X
+        </v-btn>
+        <p class="form-error-message" v-if="formErrorMessage">{{ formErrorMessage }}</p>
+        <div class="overlay-card-info-container mb-10">
+        </div>
+        <div class="overlay-card-content-container" v-if="staffRoleEditType === 'addRole'">
+          <v-select class="select"
+            :items="staffRoleOptions.map(item => ({ 'title': item.split('|')[0], 'value': item }))" label="ROLE"
+            v-model="staffRoleSelected" variant="solo-filled" @update:model-value="() => staffDepartmentSelected = ''"
+            density="comfortable" persistent-hint hint="Select the staff role" clearable />
+          <v-select class="select"
+            v-if="staffRoleSelected?.split('|')[0].trim().toLowerCase() === 'teacher' && userAuthStore.userData['current_role']['level']['has_departments']"
+            :items="userAuthStore.adminData.departments" label="DEPARTMENT" v-model="staffDepartmentSelected"
+            variant="solo-filled" density="comfortable" persistent-hint hint="Select the department the staff is in" clearable
+            />
+        </div>
+        <div class="overlay-card-content-container" v-if="staffRoleEditType === 'removeRole'">
+          <v-select class="select"
+            :items="staffRoleOptions.map(item => ({ 'title': `${item.split('|')[1]} ${item.split('|')[0]}`, 'value': item }))"
+            label="ROLE" v-model="staffRoleSelected" item-title="title" item-value="value" variant="solo-filled"
+            density="comfortable" persistent-hint hint="Select the staff role you want to remove" clearable />
+        </div>
+        <div class="overlay-card-action-btn-container">
+          <v-btn @click="addRemoveStaffRole()" :disabled="isAddRemoveStaffRoleFormValid" :ripple="false" variant="flat"
+            type="submit" color="black" size="small" append-icon="mdi-checkbox-marked-circle">
+            SUBMIT
+          </v-btn>
+        </div>
+      </div>
+    </div>
+
+    <!-- edit staff overlay -->
+    <div id="AdminEditStaffOverlay" class="overlay" v-if="staff">
+      <div class="overlay-card edit-overlay">
+        <v-btn @click="closeOverlay('AdminEditStaffOverlay')" color="red" size="small" variant="flat" class="close-btn">
+          X
+        </v-btn>
+        <p class="form-error-message" v-if="formErrorMessage">{{ formErrorMessage }}</p>
+        <div class="overlay-card-info-container mb-10">
+          <h4 class="previous-value" v-if="!['img', 'subjects'].includes(editType) && previousValue">
+            <span style="color: black">PREVIOUS VALUE:</span> {{ previousValue }}
+          </h4>
+          <img class="profile-img2" v-if="editType === 'img'" :src="previousValue" alt="staff profile image">
+        </div>
+        <div class="overlay-card-content-container">
+          <v-select class="select" v-if="editType === 'user'" :items="nameTypeOptions" label="NAME TYPE"
+            v-model="nameTypeSelected" item-title="label" density="comfortable" item-value="value" variant="solo-filled"
+            persistent-hint clearable
+            hint="Select whether you want to change the first name, last name or the title of the staff" />
+          <v-text-field class="input-field" v-if="editType === 'user' && nameTypeSelected === 'first_name'"
+            v-model="newValue" label="FIRST NAME" clearable variant="solo-filled" density="comfortable"
+            placeholder="Eg. Cassandra" persistent-hint hint="Enter the first name of the staff" />
+          <v-text-field class="input-field" v-if="editType === 'user' && nameTypeSelected === 'last_name'"
+            v-model="newValue" label="LAST NAME (MIDDLE NAME + SURNAME)" clearable variant="solo-filled"
+            density="comfortable" placeholder="Eg. Akua Afriyie" persistent-hint
+            hint="Enter the last name of the staff" />
+          <v-select class="select" v-if="editType === 'user' && nameTypeSelected === 'title'" :items="titleOptions"
+            label="TITLE" v-model="newValue" variant="solo-filled" density="comfortable" clearable persistent-hint
+            hint="Select the title of the staff" />
+          <v-select class="select" v-if="editType === 'gender'" :items="genderOptions" label="GENDER" v-model="newValue"
+            item-title="label" item-value="value" variant="solo-filled" density="comfortable" clearable />
+          <v-text-field class="input-field"
+            v-if="editType === 'staffId' && userAuthStore.userData['school']['staff_id']" v-model="newValue"
+            label="STAFF ID" variant="solo-filled" density="comfortable" clearable persistent-hint
+            hint="Enter the staff ID of the staff" />
+          <v-text-field class="input-field" v-if="editType === 'dob'" v-model="newValue" label="DATE OF BIRTH"
+            type="date" variant="solo-filled" density="comfortable" clearable persistent-hint
+            hint="Select the date of birth of the staff" />
+          <v-text-field class="input-field" v-if="editType === 'date_enrolled'" v-model="newValue"
+            label="DATE EMPLOYED(OPTIONAL)" type="date" variant="solo-filled" density="comfortable" clearable
+            persistent-hint hint="Select date the staff was employed" />
+          <v-select class="select" v-if="editType === 'religion'" :items="religionOptions" label="RELIGION"
+            v-model="newValue" item-title="label" item-value="value" variant="solo-filled" density="comfortable"
+            persistent-hint hint="Select the religion the staff belongs to" clearable />
+          <v-select class="select" v-if="editType === 'nationality'"
+            :items="countriesData.sort((a: any, b: any) => a.nationality.localeCompare(b.nationality))"
+            label="NATIONALITY" v-model="newValue" item-title="nationality" item-value="nationality"
+            variant="solo-filled" density="comfortable" persistent-hint hint="Select the nationality of the staff"
             clearable />
-          <v-text-field v-if="typeSelected === 'noFile' && userAuthStore.userData['school']['staff_id']"
-            class="input-field" v-model="staffId" label="STAFF ID" variant="solo-filled" density="comfortable" clearable
-            persistent-hint hint="Enter the staff ID of the staff" />
-          <v-text-field class="input-field" v-if="typeSelected === 'noFile'" v-model="dateOfBirth" label="DATE OF BIRTH"
-            type="date" variant="solo-filled" density="comfortable" clearable />
-          <v-text-field class="input-field" v-if="typeSelected === 'noFile'" v-model="dateEnrolled"
-            label="DATE EMPLOYED" type="date" variant="solo-filled" density="comfortable" clearable />
-          <v-select class="select" v-if="typeSelected === 'noFile'" @update:model-value="nationalityChanged"
-            :items="nationalityOptions" label="NATIONALITY" v-model="nationalitySelected" item-title="label"
-            item-value="value" variant="solo-filled" density="comfortable" persistent-hint
-            hint="Select the nationality of the staff" />
-          <v-text-field class="input-field" v-if="typeSelected === 'noFile' && nationalitySelected === 'other'"
-            v-model="nationality" label="SPECIFY THE NATIONALITY" variant="solo-filled" density="comfortable"
-            placeholder="Eg. Nigerian" clearable persistent-hint hint="Enter the nationality of the staff" />
-          <v-select class="select" v-if="typeSelected === 'noFile' && nationalitySelected === 'Ghanaian'"
-            :items="regionOptions" label="REGION" v-model="region" item-title="label" item-value="value"
-            variant="solo-filled" density="comfortable" persistent-hint hint="Select the region the staff is from" />
-          <v-text-field class="input-field" v-if="typeSelected === 'noFile' && nationalitySelected === 'other'"
-            v-model="region" label="REGION/STATE" variant="solo-filled" density="comfortable" placeholder="Eg. Asanti"
-            clearable persistent-hint hint="Enter the region/state the staff is from" />
-          <v-text-field class="input-field" v-if="typeSelected === 'noFile'" v-model="pob"
-            label="PLACE OF BIRTH(HOME CITY/TOWN)" variant="solo-filled" density="comfortable"
-            placeholder="Eg. Ayeduase" clearable persistent-hint hint="Enter the city/town the staff was born" />
-          <v-text-field class="input-field" v-if="typeSelected === 'noFile'" v-model="contact" label="PHONE NUMBER"
-            variant="solo-filled" density="comfortable" placeholder="Eg. 0596021383" clearable />
-          <v-text-field class="input-field" v-if="typeSelected === 'noFile'" v-model="altContact"
+          <v-text-field class="input-field" v-if="editType === 'region'" v-model="newValue" label="REGION/STATE"
+            variant="solo-filled" density="comfortable" placeholder="Eg. Ashanti" clearable persistent-hint
+            hint="Enter the region/state the staff is from" />
+          <v-text-field class="input-field" v-if="editType === 'pob'" v-model="newValue" label="HOME CITY/TOWN"
+            variant="solo-filled" density="comfortable" placeholder="Eg. Ayeduase" clearable persistent-hint
+            hint="Enter the home city/town the staff" />
+          <v-text-field class="input-field" v-if="editType === 'contact'" v-model="newValue" label="PHONE NUMBER"
+            variant="solo-filled" density="comfortable" placeholder="Eg. +233596021383" clearable />
+          <v-text-field class="input-field" v-if="editType === 'alt_contact'" v-model="newValue"
             label="ALTERNATE PHONE NUMBER(OPTIONAL)" variant="solo-filled" density="comfortable"
-            placeholder="Eg. 0596021383" clearable />
-          <v-select class="select" v-if="typeSelected === 'noFile'" :items="religionOptions" label="RELIGION"
-            v-model="religion" item-title="label" item-value="value" variant="solo-filled" density="comfortable"
-            persistent-hint hint="Select religion the staff belongs to" />
-          <v-text-field class="input-field" v-if="typeSelected === 'noFile'" v-model="address"
-            label="RESIDENTIAL ADDRESS" type="address" variant="solo-filled" density="comfortable"
-            placeholder="Eg. Ak-509-1066, Kotei, Kumasi" clearable />
-          <v-text-field class="input-field" v-if="typeSelected === 'noFile'" v-model="email" label="EMAIL(OPTIONAL)"
+            placeholder="Eg. +233596021383" clearable />
+          <v-text-field class="input-field" v-if="editType === 'address'" v-model="newValue" label="RESIDENTIAL ADDRESS"
+            type="address" variant="solo-filled" density="comfortable" placeholder="Eg. Ak-509-1066, Kotei, Kumasi"
+            clearable />
+          <v-text-field class="input-field" v-if="editType === 'email'" v-model="newValue" label="EMAIL(OPTIONAL)"
             type="email" variant="solo-filled" density="comfortable" placeholder="Eg. nyamejustice2000@gmail.com"
             clearable />
-          <v-file-input @change="imgChange" v-if="typeSelected === 'noFile'" clearable show-size class="select"
-            label="STAFF IMAGE" density="comfortable" variant="solo-filled" accept="image/*" prepend-icon="mdi-image"
-            persistent-hint hint="Upload a picture of the staff">
+          <v-file-input @change="editImgChange" @update:model-value="fileChanged" v-if="editType === 'img'" clearable
+            show-size class="select" label="STAFF IMAGE" density="comfortable" variant="solo-filled" chips
+            accept="image/*" prepend-icon="mdi-image" persistent-hint hint="Upload a picture of the staff">
           </v-file-input>
-          <v-select class="select" v-if="typeSelected === 'noFile'" :items="roleOptions" label="ROLE"
-            v-model="staffRole" item-title="label" item-value="value" variant="solo-filled" density="comfortable"
-            persistent-hint hint="Select the role of the staff" />
-          <v-select class="select"
-            v-if="typeSelected === 'noFile' && ['teacher', 'hod'].includes(staffRole) && userAuthStore.userData['school']['has_departments']"
-            :items="userAuthStore.adminData.departments" label="DEPARTMENT" v-model="department" variant="solo-filled"
-            density="comfortable" persistent-hint hint="Select the department the staff belongs to" clearable />
-          <v-select class="select" v-if="typeSelected === 'noFile' && ['teacher', 'hod'].includes(staffRole)"
-            :items="userAuthStore.adminData.subjects" label="SUJECTS" v-model="selectedSubjects" variant="solo-filled"
-            density="comfortable" persistent-hint hint="Select the subjects the staff teaches" multiple chips
+          <v-select class="select" v-if="editType === 'addSubjects'"
+            :items="subjectOptions.map(item => ({ 'title': `${item.split('|')[0]} (${item.split('|')[1]})`, 'value': item }))"
+            label="SUBJECT(S)" v-model="editSubjectSelected" item-title="title" item-value="value" variant="solo-filled"
+            density="comfortable" persistent-hint hint="Select the subjects(s) you want to add" multiple chips
             clearable />
+          <v-select class="select" v-if="editType === 'removeSubjects'"
+            :items="subjectOptions.map(item => ({ 'title': `${item.split('|')[0]} (${item.split('|')[1]})`, 'value': item }))"
+            label="SUBJECT(S)" v-model="editSubjectSelected" item-title="title" item-value="value" variant="solo-filled"
+            density="comfortable" persistent-hint hint="Select the subjects(s) you want to remove" multiple chips
+            clearable />
+        </div>
+        <div class="overlay-card-action-btn-container">
+          <v-btn @click="editStaff()"
+            :disabled="!(newValue || ['addSubjects', 'removeSubjects'].includes(editType) && editSubjectSelected.length > 0)"
+            :ripple="false" variant="flat" type="submit" color="black" size="small"
+            append-icon="mdi-checkbox-marked-circle">
+            SUBMIT
+          </v-btn>
+        </div>
+      </div>
+    </div>
 
-          <!-- file -->
+    <!-- add staff overlay -->
+    <div id="AdminAddStaffOverlay" class="overlay">
+      <div class="overlay-card">
+        <v-btn @click="closeOverlay('AdminAddStaffOverlay')" color="red" size="small" variant="flat" class="close-btn">
+          X
+        </v-btn>
+        <p class="form-error-message" v-if="formErrorMessage">{{ formErrorMessage }}</p>
+        <div class="overlay-card-info-container">
+          <v-select class="select" :items="uploadTypeOptions" label="UPLOAD TYPE" v-model="typeSelected"
+            item-title="label" density="comfortable" item-value="value" variant="solo-filled"
+            hint="Select whether you want to use an excel file or input the data here" persistent-hint clearable />
+        </div>
+        <div class="overlay-card-content-container" v-if="typeSelected === 'noFile'">
+          <v-text-field class="input-field" v-model="firstName" label="FIRST NAME" clearable variant="solo-filled"
+            density="comfortable" placeholder="Eg. Cassandra" hint="Enter the first name of the staff"
+            persistent-hint />
+          <v-text-field class="input-field" v-model="lastName" label="LAST NAME (MIDDLE NAME + SURNAME)" clearable
+            variant="solo-filled" density="comfortable" placeholder="Eg. Akua Afriyie" persistent-hint
+            hint="Enter the last name of the staff" />
+          <v-select class="select" :items="genderOptions" label="GENDER" v-model="gender" item-title="label"
+            item-value="value" variant="solo-filled" density="comfortable" clearable />
+          <v-select class="select" :items="titleOptions" label="TITLE" v-model="title" variant="solo-filled"
+            density="comfortable" clearable persistent-hint hint="Select the title of the staff" />
+          <v-text-field v-if="userAuthStore.userData['school']['staff_id']" class="input-field" v-model="staffId"
+            label="STAFF ID" variant="solo-filled" density="comfortable" clearable persistent-hint
+            hint="Enter the staff ID of the staff" />
+          <v-text-field class="input-field" v-model="dateOfBirth" label="DATE OF BIRTH" type="date"
+            variant="solo-filled" density="comfortable" clearable persistent-hint
+            hint="Select the date of birth of the staff" />
+          <v-text-field class="input-field" v-model="dateEnrolled" label="DATE EMPLOYED(OPTIONAL)" type="date"
+            variant="solo-filled" density="comfortable" clearable persistent-hint
+            hint="Select the date the staff was employed" />
+          <v-select class="select" :items="religionOptions" label="RELIGION" v-model="religion" item-title="label"
+            item-value="value" variant="solo-filled" density="comfortable" persistent-hint
+            hint="Select religion the staff belongs to" clearable />
+          <v-select class="select"
+            :items="countriesData.sort((a: any, b: any) => a.nationality.localeCompare(b.nationality))"
+            label="NATIONALITY" v-model="nationality" clearable item-title="nationality" item-value="nationality"
+            variant="solo-filled" density="comfortable" persistent-hint hint="Select the nationality of the staff" />
+          <v-text-field class="input-field" v-if="nationality && nationality?.toLowerCase() !== 'ghanaian'"
+            v-model="region" label="REGION/STATE" variant="solo-filled" density="comfortable" placeholder="Eg. Ashanti"
+            clearable persistent-hint hint="Enter the region/state the staff is from" />
+          <v-select class="select" v-if="nationality?.toLowerCase() === 'ghanaian'" :items="ghanaRegions" label="REGION"
+            v-model="region" variant="solo-filled" density="comfortable" persistent-hint
+            hint="Select the region the staff is from" clearable />
+          <v-text-field class="input-field" v-model="pob" label="HOME CITY/TOWN" variant="solo-filled"
+            density="comfortable" placeholder="Eg. Ayeduase" clearable persistent-hint
+            hint="Enter the home city/town of the staff" />
+          <v-text-field class="input-field" v-model="contact" label="PHONE NUMBER" variant="solo-filled"
+            density="comfortable" placeholder="Eg. +233596021383" clearable />
+          <v-text-field class="input-field" v-model="altContact" label="ALTERNATE PHONE NUMBER(OPTIONAL)"
+            variant="solo-filled" density="comfortable" placeholder="Eg. +233596021383" clearable />
+          <v-text-field class="input-field" v-model="address" label="RESIDENTIAL ADDRESS" type="address"
+            variant="solo-filled" density="comfortable" placeholder="Eg. Ak-509-1066, Kotei, Kumasi" clearable />
+          <v-text-field class="input-field" v-model="email" label="EMAIL(OPTIONAL)" type="email" variant="solo-filled"
+            density="comfortable" placeholder="Eg. nyamejustice2000@gmail.com" clearable />
+          <v-file-input @change="imgChange" @update:model-value="fileChanged" clearable show-size class="select"
+            label="STAFF IMAGE" density="comfortable" variant="solo-filled" chips accept="image/*"
+            prepend-icon="mdi-image" persistent-hint hint="Upload a picture of the staff">
+          </v-file-input>
+          <v-select class="select"
+            :items="userAuthStore.adminData.subjects.map(item => ({ 'title': `${item.split('|')[0]} (${item.split('|')[1]})`, 'value': item }))"
+            label="SUBJECT(S)(OPTIONAL)" v-model="selectedSubjects" variant="solo-filled" density="comfortable"
+            item-title="title" item-value="value" persistent-hint hint="Select the subjects the staff teaches if any"
+            multiple chips clearable />
+        </div>
+
+        <!-- file -->
+        <div class="overlay-card-content-container" v-if="typeSelected === 'file'">
           <v-btn class="mb-10" @click="getStaffFile()" v-if="typeSelected === 'file'" :ripple="false" color="blue"
-            size="small">GET FILE</v-btn>
+            variant="flat" size="small">
+            GET FILE
+          </v-btn>
           <v-file-input @change="staffFileChanged" v-if="typeSelected === 'file'" clearable show-size class="select"
-            label="UPLOAD FILE" density="comfortable" variant="solo-filled"
+            label="UPLOAD FILE" density="comfortable" variant="solo-filled" @update:model-value="fileChanged"
             accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             prepend-icon="mdi-microsoft-excel">
           </v-file-input>
-        </form>
+        </div>
         <div class="overlay-card-action-btn-container">
           <v-btn @click="addStaff()" :disabled="isStaffFormValid" :ripple="false" variant="flat" type="submit"
             color="black" size="small" append-icon="mdi-checkbox-marked-circle">
@@ -441,36 +709,6 @@ const closeOverlay = (element: string) => {
       </div>
     </div>
 
-    <!-- Set Department HOD overlay -->
-    <div id="AdminSetDepartmentHODOverlay" class="overlay"
-      v-if="staff && userAuthStore.userData['school']['has_departments']">
-      <div class="overlay-card">
-        <v-btn @click="closeOverlay('AdminSetDepartmentHODOverlay')" color="red" size="small" variant="flat"
-          class="close-btn">X</v-btn>
-        <div class="overlay-card-content-container">
-          <v-select class="select" :items="userAuthStore.adminData.departments" label="DEPARTMENT"
-            v-model="departmentSelected" @update:model-value="clearSelectedStaff" variant="solo-filled"
-            density="comfortable" persistent-hint hint="Select the department for which the staff is the HOD"
-            clearable />
-          <v-select class="select" v-if="departmentSelected"
-            :items="userAuthStore.adminData.staff.filter((item: any) => item['department'] === departmentSelected)"
-            label="STAFF" v-model="departmentHod" item-title="user" item-value="staff_id" variant="solo-filled"
-            density="comfortable" persistent-hint hint="Select the staff" clearable>
-            <template v-slot:item="{ props, item }">
-              <v-list-item v-bind="props" :subtitle="(item as any).raw.staff_id"></v-list-item>
-            </template>
-          </v-select>
-        </div>
-        <div class="overlay-card-action-btn-container">
-          <v-btn @click="setDepartmentHOD()" :disabled="!(departmentHod && departmentSelected)" :ripple="false"
-            variant="flat" type="submit" color="black" size="small" append-icon="mdi-checkbox-marked-circle">
-            SUBMIT
-          </v-btn>
-        </div>
-      </div>
-    </div>
-
-    <TheLoader :func="userAuthStore.getAdminData" v-if="!staff" />
     <div class="content-header" v-if="staff">
       <div class="content-header-text">
         TOTAL NUMBER OF STAFF:
@@ -481,13 +719,14 @@ const closeOverlay = (element: string) => {
       <div class="content-header-text">
         MALE STAFF:
         <span class="content-header-text-value">
-          {{ maleStaff }} [{{ ((maleStaff / staff.length) * 100).toFixed(1) }}%]
+          {{ maleStaff }} <span v-if="staff.length > 0">[{{ ((maleStaff / staff.length) * 100).toFixed(1) }}%]</span>
         </span>
       </div>
       <div class="content-header-text">
         FEMALE STAFF:
         <span class="content-header-text-value">
-          {{ femaleStaff }} [{{ ((femaleStaff / staff.length) * 100).toFixed(1) }}%]
+          {{ femaleStaff }} <span v-if="staff.length > 0">[{{ ((femaleStaff / staff.length) * 100).toFixed(1)
+            }}%]</span>
         </span>
       </div>
     </div>
@@ -495,23 +734,20 @@ const closeOverlay = (element: string) => {
       <v-btn @click="showOverlay('AdminAddStaffOverlay')" color="blue" :size="elementsStore.btnSize1">
         ADD STAFF
       </v-btn>
-      <v-btn v-if="userAuthStore.userData['school']['has_departments']"
-        @click="showOverlay('AdminSetDepartmentHODOverlay')" class="ml-5" color="blue" :size="elementsStore.btnSize1">
-        SET DEPARTMENT HOD
-      </v-btn>
     </div>
+    <TheLoader v-if="!staff" :func="userAuthStore.getAdminData" />
     <v-table fixed-header class="table" v-if="staff">
       <thead>
         <tr>
           <th class="table-head">NAME</th>
           <th class="table-head">GENDER</th>
-          <th class="table-head">ROLE</th>
-          <th class="table-head">DEPARTMENT</th>
+          <th class="table-head">ROLES</th>
+          <th class="table-head">DEPARTMENTS</th>
           <th class="table-head">SUBJECTS</th>
           <th class="table-head">DATE OF BIRTH</th>
           <th class="table-head">DATE EMPLOYED</th>
           <th class="table-head">RELIGION</th>
-          <th class="table-head">PLACE OF BIRTH</th>
+          <th class="table-head">HOME CITY/TOWN</th>
           <th class="table-head">REGION/STATE</th>
           <th class="table-head">NATIONALITY</th>
           <th class="table-head">CONTACT</th>
@@ -525,31 +761,94 @@ const closeOverlay = (element: string) => {
       <tbody>
         <tr v-for="(_staff, index) in staff" :key="index">
           <td class="table-data">
-            {{ _staff['user'] }}
-            <v-list-item-subtitle>{{ _staff['staff_id'] }}</v-list-item-subtitle>
+            {{ _staff['user'] }}<v-icon icon="mdi-pencil"
+              @click="showEditOverlay('user', _staff['user'], _staff['staff_id'], index)" color="black" />
+            <v-list-item-subtitle>
+              {{ _staff['staff_id'] }}<v-icon v-if="userAuthStore.userData['school']['staff_id']" icon="mdi-pencil"
+                size="medium" @click="showEditOverlay('staffId', _staff['staff_id'], _staff['staff_id'], index)"
+                color="black" />
+            </v-list-item-subtitle>
           </td>
-          <td class="table-data">{{ _staff['gender'].toUpperCase() }}</td>
-          <td class="table-data">{{ _staff['role'].toUpperCase() }}</td>
-          <td class="table-data">{{ _staff['department'] }}</td>
           <td class="table-data">
-            <span v-for="(_subj, ind) in _staff['subjects']" :key="ind">{{ _subj }}</span>
+            {{ _staff['gender'].toUpperCase() }}
+            <v-icon icon="mdi-pencil" @click="showEditOverlay('gender', _staff['gender'], _staff['staff_id'], index)"
+              color="black" />
           </td>
-          <td class="table-data">{{ _staff['dob'] }}</td>
-          <td class="table-data">{{ _staff['date_enrolled'] }}</td>
-          <td class="table-data">{{ _staff['religion'] }}</td>
-          <td class="table-data">{{ _staff['pob'] }}</td>
-          <td class="table-data">{{ _staff['region'] }}</td>
-          <td class="table-data">{{ _staff['nationality'] }}</td>
-          <td class="table-data">{{ _staff['contact'] }}</td>
-          <td class="table-data">{{ _staff['alt_contact'] }}</td>
-          <td class="table-data">{{ _staff['address'] }}</td>
-          <td class="table-data">{{ _staff['email'] }}</td>
-          <td class="table-data"><img class="profile-img" :src="_staff['img']"></td>
           <td class="table-data">
-            <v-btn color="red" size="x-small" v-if="['teacher', 'hod'].includes(_staff['role'].toLowerCase())" variant="flat"
-              @click="elementsStore.ShowDeletionOverlay(() => deleteStaff(_staff['staff_id']), 'Are you sure you want to delete this staff?')">
-              DELETE
-            </v-btn>
+            <v-chip class="ma-2" v-for="(role, ind) in _staff.roles" :key="ind"
+              :text="`${role.split('|')[1]} ${role.split('|')[0]}`" :size="elementsStore.btnSize1" />
+            <v-icon class="ma-2"
+              @click="showStaffRoleEditOverlay('addRole', index, _staff.staff_id, userAuthStore.adminData.staffRoles.filter(item => !_staff.roles.includes(item) && item.split('|')[0].trim().toLowerCase() !== 'administrator'))"
+              icon="mdi-plus" color="blue" />
+            <v-icon class="ma-2" v-if="_staff.roles.length > 0"
+              @click="showStaffRoleEditOverlay('removeRole', index, _staff.staff_id, _staff.roles.filter(item => item.split('|')[0].trim().toLowerCase() !== 'administrator'))"
+              icon="mdi-minus" color="blue" />
+          </td>
+          <td class="table-data">
+            <v-chip v-for="(department, ind) in _staff.departments" :key="ind"
+              :text="`${department.split('|')[0]} [${department.split('|')[1]}]`" :size="elementsStore.btnSize1" />
+          </td>
+          <td class="table-data">
+            <v-chip v-for="(_subj, ind) in _staff.subjects" :key="ind"
+              :text="`${_subj.split('|')[0]}(${_subj.split('|')[1]})`" :size="elementsStore.btnSize1" />
+            <v-icon icon="mdi-plus"
+              @click="showEditOverlay('addSubjects', '', _staff['staff_id'], index, userAuthStore.adminData.subjects.filter(item => !_staff.subjects.includes(item)))"
+              color="blue" />
+            <v-icon icon="mdi-minus" v-if="_staff.subjects.length > 0"
+              @click="showEditOverlay('removeSubjects', '', _staff['staff_id'], index, _staff.subjects.filter(item => item.split('|')[1].trim() === userAuthStore.userData['current_role']['level']['name']))"
+              color="blue" />
+          </td>
+          <td class="table-data">
+            {{ _staff['dob'] }}<v-icon icon="mdi-pencil"
+              @click="showEditOverlay('dob', `${_staff['dob']}`, _staff['staff_id'], index)" color="black" />
+          </td>
+          <td class="table-data">
+            {{ _staff['date_enrolled'] }}<v-icon icon="mdi-pencil"
+              @click="showEditOverlay('date_enrolled', `${_staff['date_enrolled']}`, _staff['staff_id'], index)"
+              color="black" />
+          </td>
+          <td class="table-data">
+            {{ _staff['religion'] }}<v-icon icon="mdi-pencil"
+              @click="showEditOverlay('religion', `${_staff['religion']}`, _staff['staff_id'], index)" color="black" />
+          </td>
+          <td class="table-data">
+            {{ _staff['pob'] }}<v-icon icon="mdi-pencil"
+              @click="showEditOverlay('pob', `${_staff['pob']}`, _staff['staff_id'], index)" color="black" />
+          </td>
+          <td class="table-data">
+            {{ _staff['region'] }}<v-icon icon="mdi-pencil"
+              @click="showEditOverlay('region', `${_staff['region']}`, _staff['staff_id'], index)" color="black" />
+          </td>
+          <td class="table-data">
+            {{ _staff['nationality'] }}<v-icon icon="mdi-pencil"
+              @click="showEditOverlay('nationality', `${_staff['nationality']}`, _staff['staff_id'], index)"
+              color="black" />
+          </td>
+          <td class="table-data">
+            {{ _staff['contact'] }}<v-icon icon="mdi-pencil"
+              @click="showEditOverlay('contact', `${_staff['contact']}`, _staff['staff_id'], index)" color="black" />
+          </td>
+          <td class="table-data">
+            {{ _staff['alt_contact'] }}<v-icon icon="mdi-pencil"
+              @click="showEditOverlay('alt_contact', `${_staff['alt_contact']}`, _staff['staff_id'], index)"
+              color="black" />
+          </td>
+          <td class="table-data">
+            {{ _staff['address'] }}<v-icon icon="mdi-pencil"
+              @click="showEditOverlay('address', `${_staff['address']}`, _staff['staff_id'], index)" color="black" />
+          </td>
+          <td class="table-data">
+            {{ _staff['email'] }}<v-icon icon="mdi-pencil"
+              @click="showEditOverlay('email', `${_staff['email']}`, _staff['staff_id'], index)" color="black" />
+          </td>
+          <td class="table-data">
+            <img class="profile-img" :src="_staff['img']">
+            <v-icon icon="mdi-pencil" @click="showEditOverlay('img', `${_staff['img']}`, _staff['staff_id'], index)"
+              color="black" />
+          </td>
+          <td class="table-data">
+            <v-btn color="red" size="x-small" variant="flat" icon="mdi-delete"
+              @click="elementsStore.ShowDeletionOverlay(() => deleteStaff(_staff['staff_id']), 'Are you sure you want to delete this staff?. The process cannot be reversed')" />
           </td>
         </tr>
       </tbody>
@@ -566,12 +865,18 @@ const closeOverlay = (element: string) => {
   min-height: 10% !important;
 }
 
-.overlay-card-content-container {
+.overlay-card-info-container {
   margin-top: 3em !important;
 }
 
 .overlay-card {
   max-width: 600px !important;
+}
+
+.previous-value {
+  font-size: .7rem !important;
+  font-family: Verdana, Geneva, Tahoma, sans-serif;
+  color: green;
 }
 
 @media screen and (min-width: 400px) {
@@ -582,13 +887,32 @@ const closeOverlay = (element: string) => {
   .btn-container {
     min-height: 10% !important;
   }
+
+  .previous-value {
+    font-size: .75rem !important;
+  }
+}
+
+@media screen and (min-width: 576px) {
+  .previous-value {
+    font-size: .8rem !important;
+  }
 }
 
 @media screen and (min-width: 700px) {
   .content-header {
     min-height: 10% !important;
   }
+
+  .previous-value {
+    font-size: .75rem !important;
+  }
 }
 
-@media screen and (min-width: 1200px) {}
+@media screen and (min-width: 767px) {
+  .previous-value {
+    font-size: .85rem !important;
+  }
+}
+
 </style>

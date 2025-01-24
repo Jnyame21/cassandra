@@ -1,155 +1,152 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue';
-
+import { useUserAuthStore } from '@/stores/userAuthStore'
+import { useElementsStore } from '@/stores/elementsStore'
+import TheLoader from '@/components/TheLoader.vue'
+import { computed } from 'vue'
 const userAuthStore = useUserAuthStore()
-const totalStudents: any = ref([]);
-const totalMales: any = ref([])
-const totalFemales: any = ref([])
-const yearOneStudents: any = ref([]);
-const yearOneMales: any = ref([])
-const yearOneFemales: any = ref([])
-const yearTwoStudents: any = ref([]);
-const yearTwoMales: any = ref([])
-const yearTwoFemales: any = ref([])
-const yearThreeStudents: any = ref([]);
-const yearThreeMales: any = ref([])
-const yearThreeFemales: any = ref([])
+const elementsStore = useElementsStore()
 
-const totalStaff: any = ref([])
-const staffMales: any = ref([])
-const staffFemales: any = ref([])
-
-
-
-watch(()=> userAuthStore.headDepartments, (newValue, oldValue)=>{
-    if (newValue){
-        newValue.forEach((department: any)=>{
-            if (department){
-                department['department']['teachers'].forEach((stf: any) =>{
-                    totalStaff.value.push(stf)
-                    stf['gender'] && stf['gender'] === 'MALE' || stf['gender'] === 'M' ? staffMales.value.push(stf) : staffFemales.value.push(stf)
-                })
-                
-            }
-        })
-    }
+const staff = computed(() => {
+  return userAuthStore.headData.staff
 })
-                   
-watch(()=> userAuthStore.headPrograms, (newValue, oldValue)=>{
-    if (newValue){
-        newValue.forEach((program: any) =>{
-            program.classes.forEach((clas: any) => {
-            if (clas && clas['students']) {
-                clas['students'].forEach((st: any) => {
-                    totalStudents.value.push(st)
-                    st['gender'] && st['gender']=== 'MALE' || st['gender']=== 'M' ? totalMales.value.push(st) : totalFemales.value.push(st)
-                    if (st['current_year'] && st['current_year'] === 1) {
-                        yearOneStudents.value.push(st);
-                        st['gender'] && st['gender']=== 'MALE' || st['gender']=== 'M' ? yearOneMales.value.push(st) : yearOneFemales.value.push(st)
-                    } 
-                    else if (st['current_year'] && st['current_year'] === 2) {
-                        yearTwoStudents.value.push(st);
-                        st['gender'] && st['gender']=== 'MALE' || st['gender']=== 'M' ? yearTwoMales.value.push(st) : yearTwoFemales.value.push(st)
-                    } 
-                    else if (st['current_year'] && st['current_year'] === 3){
-                        yearThreeStudents.value.push(st);
-                        st['gender'] && st['gender']=== 'MALE' || st['gender']=== 'M' ? yearThreeMales.value.push(st) : yearThreeFemales.value.push(st)
-                    }
-                });
-            }
-        });
-        })
-    }
+
+const classesData = computed(() => {
+  return Object.values(userAuthStore.headData.classes) || []
 })
+
+const students = computed(() => {
+    const all_students:any[] = []
+    classesData.value.forEach(item=>{
+        item.students.forEach(st=>{
+          all_students.push({'user': st.user, 'gender': st.gender})
+        })
+    })
+    return all_students
+})
+
+const maleStudents = computed(() => {
+  return students.value.filter(item => item.gender.toLocaleLowerCase() === 'male').length || 0
+})
+
+const femaleStudents = computed(() => {
+  return students.value.filter(item => item.gender.toLocaleLowerCase() === 'female').length || 0
+})
+
 
 </script>
 
 <template>
-    <div style="width: 100%; position: relative; height: 100%" class="overview">
-      <TheLoader v-if="!userAuthStore.headDepartments && !userAuthStore.headPrograms" />
-      <NoData :message="'No data yet'" v-if="userAuthStore.headDepartments && userAuthStore.headPrograms && totalStudents.length === 0 && totalStaff.length === 0"/>
-      <v-table class="mt-5" height="300px" v-if="totalStudents.length > 0 || totalStaff.length >0">
-        <tbody>
-        <tr class="table-title-container" style="position: relative">
-            <td>Justice</td>
-            <td class="table-title">students</td>
-        </tr>
-        <tr>
-            <td class="table-data">Total</td>
-            <td class="table-data-value">
-                {{totalStudents.length}} 
-                <span class="table-data" v-if="totalStudents && totalStudents.length >0 && totalStudents[0]['gender']">
-                    [ M: {{ totalMales.length }}({{ parseFloat(((totalMales.length/totalStudents.length)*100).toFixed(1)) }})%]
-                    [ F: {{ totalFemales.length }}({{ parseFloat(((totalFemales.length/totalStudents.length)*100).toFixed(1)) }})%]
-                </span>
-            </td>
-        </tr>
-        <tr>
-            <td class="table-data">form one</td>
-            <td class="table-data-value">
-                {{yearOneStudents.length}} 
-                <span class="table-data" v-if="yearOneStudents && yearOneStudents.length >0 && yearOneStudents[0]['gender']">
-                    [ M: {{ yearOneMales.length }}({{ parseFloat(((yearOneMales.length/yearOneStudents.length)*100).toFixed(1)) }})%]
-                    [ F: {{ yearOneFemales.length }}({{ parseFloat(((yearOneFemales.length/yearOneStudents.length)*100).toFixed(1)) }})%]
-                </span>
-            </td>
-        </tr>
-        <tr>
-            <td class="table-data">form two</td>
-            <td class="table-data-value">
-                {{yearTwoStudents.length}} 
-                <span class="table-data" v-if="yearTwoStudents && yearTwoStudents.length >0 && yearTwoStudents[0]['gender']">
-                    [ M: {{ yearTwoMales.length }}({{ parseFloat(((yearTwoMales.length/yearTwoStudents.length)*100).toFixed(1)) }})%]
-                    [ F: {{ yearTwoFemales.length }}({{ parseFloat(((yearTwoFemales.length/yearTwoStudents.length)*100).toFixed(1)) }})%]
-                </span>
-            </td>
-        </tr>
-        <tr>
-            <td class="table-data">form three</td>
-            <td class="table-data-value">
-                {{yearThreeStudents.length}} 
-                <span class="table-data" v-if="yearThreeStudents && yearThreeStudents.length >0 && yearThreeStudents[0]['gender']">
-                    [ M: {{ yearThreeMales.length }}({{ parseFloat(((yearThreeMales.length/yearThreeStudents.length)*100).toFixed(1)) }})%]
-                    [ F: {{ yearThreeFemales.length }}({{ parseFloat(((yearThreeFemales.length/yearThreeStudents.length)*100).toFixed(1)) }})%]
-                </span>
-            </td>
-        </tr>
-        </tbody>
-      </v-table>
-
-      <div v-for="(program, index) in userAuthStore.headPrograms" :key="index">
-        <HeadOverviewPrograms :program="program" />
-        </div>
-
-      <v-table class="mt-5" height="110px" v-if="totalStudents.length > 0 || totalStaff.length >0">
-        <tbody>
-        <tr class="table-title-container" style="position: relative">
-            <td>Justice</td>
-            <td class="table-title">teachers</td>
-        </tr>
-        <tr v-if="totalStaff">
-            <td class="table-data">total</td>
-            <td class="table-data-value">
-                {{totalStaff.length}} 
-                <span class="table-data" v-if="totalStaff.length >0 && totalStaff[0]['gender']">
-                    [ M: {{ staffMales.length }}({{ parseFloat(((staffMales.length/totalStaff.length)*100).toFixed(1)) }})%]
-                    [ F: {{ staffFemales.length }}({{ parseFloat(((staffFemales.length/totalStaff.length)*100).toFixed(1)) }})%]
-                </span>
-            </td>
-        </tr>
-        </tbody>
-      </v-table>
-      
+  <div class="content-wrapper" v-show="elementsStore.activePage === 'HeadOverview'" :class="{ 'is-active-page': elementsStore.activePage === 'HeadOverview' }">
+    <TheLoader :func="userAuthStore.getHeadData" v-if="!staff"/>
+    <div class="content-header info" v-if="staff">
+      <div class="content-header-text">
+        TOTAL NUMBER OF STUDENTS:
+        <span class="content-header-text-value">
+          {{ students.length }}
+        </span>
+      </div>
+      <div class="content-header-text">
+        MALE STUDENTS:
+        <span class="content-header-text-value">
+          {{ maleStudents }} [{{ ((maleStudents / students.length) * 100).toFixed(1) }}%]
+        </span>
+      </div>
+      <div class="content-header-text">
+        FEMALE STUDENTS:
+        <span class="content-header-text-value">
+          {{ femaleStudents }} [{{ ((femaleStudents / students.length) * 100).toFixed(1) }}%]
+        </span>
+      </div>
     </div>
+    <v-table fixed-header class="table" v-if="staff">
+      <thead>
+        <tr>
+          <th class="table-head">NAME</th>
+          <th class="table-head">ROLE</th>
+          <th class="table-head">GENDER</th>
+          <th class="table-head">SUBJECTS</th>
+          <th class="table-head" v-if="userAuthStore.userData['school']['has_departments']">DEPARTMENT</th>
+          <th class="table-head">CONTACT</th>
+          <th class="table-head">ALT CONTACT</th>
+          <th class="table-head">IMAGE</th>
+          <th class="table-head">ADDRESS</th>
+          <th class="table-head">EMAIL</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="(_staff, index) in staff" :key="index">
+          <td class="table-data">
+            <v-btn class="mr-2" size="x-small" v-if="_staff['staff_id'] === userAuthStore.userData['staff_id']" color="black">YOU</v-btn>{{ _staff['user'] }}
+            <v-list-item-subtitle>{{ _staff['staff_id'] }}</v-list-item-subtitle>
+          </td>
+          <td class="table-data">
+            {{ _staff['role'] }}
+          </td>
+          <td class="table-data">
+            {{ _staff['gender'] }}
+          </td>
+          <td class="table-data">
+            <p v-for="(_subject, ind) in _staff['subjects']" :key="ind">{{ _subject }}</p>
+          </td>
+          <td class="table-data" v-if="userAuthStore.userData['school']['has_departments']">
+            {{ _staff['department'] }}
+          </td>
+          <td class="table-data">
+            {{ _staff['contact'] }}
+          </td>
+          <td class="table-data">
+            {{ _staff['alt_contact'] }}
+          </td>
+          <td class="table-data">
+            <img class="profile-img" :src="_staff['img']">
+          </td>
+          <td class="table-data">
+            {{ _staff['address'] }}
+          </td>
+          <td class="table-data">
+            {{ _staff['email'] }}
+          </td>
+        </tr>
+      </tbody>
+    </v-table>
+  </div>
 </template>
 
 <style scoped>
 
-@import url('../assets/css/tables.css');
+.info {
+  height: 25% !important;
+}
 
-.overview{
-    display: flex;
-    flex-direction: column;
+@media screen and (min-width: 400px) {
+  .content-header-text {
+    font-size: .75rem !important;
+  }
+}
+
+@media screen and (min-width: 576px) {
+
+  .content-header-text {
+    font-size: .8rem !important;
+  }
+}
+
+@media screen and (min-width: 767px) {
+  .content-header-text {
+    font-size: .85rem !important;
+  }
+}
+
+@media screen and (min-width: 1000px) {
+  .content-header-text {
+    font-size: .9rem !important;
+  }
+}
+
+@media screen and (min-width: 1200px) {
+  .content-header-text {
+    font-size: 1rem !important;
+  }
 }
 
 

@@ -178,7 +178,7 @@ const showOverlay = (element: string, type_option:string='', subject_index:numbe
           />
         </div>
         <div class="overlay-card-action-btn-container">
-          <v-btn @click="createSubject"
+          <v-btn @click="createSubject()"
             :disabled="!(subjectName && subjectLevel)" :ripple="false"
             variant="flat" type="submit" color="black" size="small" append-icon="mdi-checkbox-marked-circle">
             SUBMIT
@@ -202,7 +202,7 @@ const showOverlay = (element: string, type_option:string='', subject_index:numbe
             />
           </div>
           <div class="overlay-card-action-btn-container">
-            <v-btn @click="addRemoveSchool"
+            <v-btn @click="addRemoveSchool()"
               :disabled="!subjectSchoolIdentifier" :ripple="false"
               variant="flat" type="submit" color="black" size="small" append-icon="mdi-checkbox-marked-circle">
               SUBMIT
@@ -222,6 +222,7 @@ const showOverlay = (element: string, type_option:string='', subject_index:numbe
     <v-table fixed-header class="table" v-if="subjects.length > 0">
       <thead>
         <tr>
+          <th class="table-head">ID</th>
           <th class="table-head">NAME</th>
           <th class="table-head">LEVEL</th>
           <th class="table-head">IDENTIFIER</th>
@@ -231,17 +232,26 @@ const showOverlay = (element: string, type_option:string='', subject_index:numbe
       </thead>
       <tbody>
         <tr v-for="(subject, index) in subjects" :key="index">
-            <td class="table-data">{{ subject.name }}</td>
-            <td class="table-data">{{ subject.level }}</td>
-            <td class="table-data">{{ subject.identifier }}</td>
-            <td class="table-data">
-              <v-btn @click="showOverlay('SuperUserSchoolsUnderSubjectOverlay', '', 0, '', subject.schools)" variant="flat" size="x-small" color="blue">VIEW SCHOOLS</v-btn>
-            </td>
-            <td class="table-data flex-all" style="display: flex">
-              <v-btn class="ml-2" v-if="userAuthStore.superUserData.schools" @click="showOverlay('SuperUserAddRemoveSchoolFromSubjectOverlay', 'addSchool', index, subject.identifier, userAuthStore.superUserData.schools.map(item=> item.identifier).filter(item=> !subject.schools.includes(item)))" variant="flat" icon="mdi-plus" size="x-small" color="blue" />
-              <v-btn class="ma-2" @click="showOverlay('SuperUserAddRemoveSchoolFromSubjectOverlay', 'removeSchool', index, subject.identifier, subject.schools)" variant="flat" icon="mdi-minus" size="x-small" color="blue" />
-              <v-btn class="ma-2" @click="elementsStore.ShowDeletionOverlay(()=>deleteSubject(index, subject.identifier), 'Are you sure you want to delete this subject. The process cannot be reversed')" variant="flat" icon="mdi-delete" size="x-small" color="red" />
-            </td>
+          <td class="table-data">{{ subject.id }}</td>
+          <td class="table-data">
+            <v-chip :size="elementsStore.btnSize1">{{ subject.name }}</v-chip>
+          </td>
+          <td class="table-data">
+            <v-chip :size="elementsStore.btnSize1">{{ subject.level }}</v-chip>
+          </td>
+          <td class="table-data">
+            <v-chip :size="elementsStore.btnSize1">{{ subject.identifier }}</v-chip>
+          </td>
+          <td class="table-data flex-all">
+            <v-btn @click="showOverlay('SuperUserSchoolsUnderSubjectOverlay', '', 0, '', subject.schools)" variant="flat" size="x-small" color="blue">
+              VIEW SCHOOLS
+            </v-btn>
+            <v-icon class="ml-2" v-if="userAuthStore.superUserData.schools" @click="showOverlay('SuperUserAddRemoveSchoolFromSubjectOverlay', 'addSchool', index, subject.identifier, userAuthStore.superUserData.schools.map(item=> item.identifier).filter(item=> !subject.schools.includes(item)))" variant="flat" icon="mdi-plus" color="blue" />
+            <v-icon class="ma-2" @click="showOverlay('SuperUserAddRemoveSchoolFromSubjectOverlay', 'removeSchool', index, subject.identifier, subject.schools)" variant="flat" icon="mdi-minus" color="blue" />
+          </td>
+          <td class="table-data">
+            <v-btn class="ma-2" @click="elementsStore.ShowDeletionOverlay(()=>deleteSubject(index, subject.identifier), 'Are you sure you want to delete this subject. The process cannot be reversed')" variant="flat" icon="mdi-delete" size="x-small" color="red" />
+          </td>
         </tr>
       </tbody>
     </v-table>

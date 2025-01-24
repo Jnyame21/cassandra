@@ -192,7 +192,7 @@ const showOverlay = (element: string, type_options: string = '', level_index: nu
           <v-checkbox class="select" v-model="studentsIndexNo" label="STUDENTS INDEX NO" color="blue" />
         </div>
         <div class="overlay-card-action-btn-container">
-          <v-btn @click="createLevel" :disabled="!(levelName && yearsToComplete)" :ripple="false" variant="flat"
+          <v-btn @click="createLevel()" :disabled="!(levelName && yearsToComplete)" :ripple="false" variant="flat"
             type="submit" color="black" size="small" append-icon="mdi-checkbox-marked-circle">
             SUBMIT
           </v-btn>
@@ -200,7 +200,7 @@ const showOverlay = (element: string, type_options: string = '', level_index: nu
       </div>
     </div>
 
-    <!-- add/remove creation overlay -->
+    <!-- add/remove schools from level overlay -->
     <div id="SuperUserAddRemoveSchoolFromLevelOverlay" class="overlay upload">
       <div class="overlay-card">
         <v-btn @click="closeOverlay('SuperUserAddRemoveSchoolFromLevelOverlay')" color="red" size="small" variant="flat"
@@ -216,7 +216,7 @@ const showOverlay = (element: string, type_options: string = '', level_index: nu
             hint="Select the school you want to remove" clearable />
         </div>
         <div class="overlay-card-action-btn-container">
-          <v-btn @click="addRemoveSchool" :disabled="!levelSchoolIdentifier" :ripple="false" variant="flat"
+          <v-btn @click="addRemoveSchool()" :disabled="!levelSchoolIdentifier" :ripple="false" variant="flat"
             type="submit" color="black" size="small" append-icon="mdi-checkbox-marked-circle">
             SUBMIT
           </v-btn>
@@ -234,6 +234,7 @@ const showOverlay = (element: string, type_options: string = '', level_index: nu
     <v-table fixed-header class="table" v-if="levels.length > 0">
       <thead>
         <tr>
+          <th class="table-head">ID</th>
           <th class="table-head">NAME</th>
           <th class="table-head">IDENTIFIER</th>
           <th class="table-head">YEARS TO COMPLETE</th>
@@ -247,14 +248,22 @@ const showOverlay = (element: string, type_options: string = '', level_index: nu
       </thead>
       <tbody>
         <tr v-for="(level, index) in levels" :key="index">
-          <td class="table-data">{{ level.name }}</td>
-          <td class="table-data">{{ level.identifier }}</td>
-          <td class="table-data">{{ level.years_to_complete }}</td>
+          <td class="table-data">{{ level.id }}</td>
           <td class="table-data">
-            <v-btn @click="showOverlay('SuperUserSchoolsUnderLevelOverlay', '', 0, '', level.schools)" variant="flat"
-              size="x-small" color="blue">
+            <v-chip :size="elementsStore.btnSize1">{{ level.name }}</v-chip>
+          </td>
+          <td class="table-data">
+            <v-chip :size="elementsStore.btnSize1">{{ level.identifier }}</v-chip>
+          </td>
+          <td class="table-data">
+            <v-chip :size="elementsStore.btnSize1">{{ level.years_to_complete }}</v-chip>
+          </td>
+          <td class="table-data flex-all">
+            <v-btn @click="showOverlay('SuperUserSchoolsUnderLevelOverlay', '', 0, '', level.schools)" variant="flat" size="x-small" color="blue">
               VIEW SCHOOLS
             </v-btn>
+            <v-icon class="ml-2" v-if="userAuthStore.superUserData.schools" @click="showOverlay('SuperUserAddRemoveSchoolFromLevelOverlay', 'addSchool', index, level.identifier, userAuthStore.superUserData.schools.map(item => item.identifier).filter(item => !level.schools.includes(item)))" variant="flat" icon="mdi-plus" color="blue" />
+            <v-icon class="ma-2" @click="showOverlay('SuperUserAddRemoveSchoolFromLevelOverlay', 'removeSchool', index, level.identifier, level.schools)" variant="flat" icon="mdi-minus" color="blue" />
           </td>
           <td class="table-data">
             <v-checkbox-btn color="blue" v-model="level.has_departments" disabled />
@@ -268,16 +277,10 @@ const showOverlay = (element: string, type_options: string = '', level_index: nu
           <td class="table-data">
             <v-checkbox-btn color="blue" v-model="level.students_index_no" disabled />
           </td>
-          <td class="table-data flex-all" style="display: flex">
-            <v-btn class="ml-2" v-if="userAuthStore.superUserData.schools"
-              @click="showOverlay('SuperUserAddRemoveSchoolFromLevelOverlay', 'addSchool', index, level.identifier, userAuthStore.superUserData.schools.map(item => item.identifier).filter(item => !level.schools.includes(item)))"
-              variant="flat" icon="mdi-plus" size="x-small" color="blue" />
-            <v-btn class="ma-2"
-              @click="showOverlay('SuperUserAddRemoveSchoolFromLevelOverlay', 'removeSchool', index, level.identifier, level.schools)"
-              variant="flat" icon="mdi-minus" size="x-small" color="blue" />
-            <v-btn class="ma-2"
-              @click="elementsStore.ShowDeletionOverlay(() => deleteLevel(index, level.identifier), 'Are you sure you want to delete this level. The process cannot be reversed')"
-              variant="flat" icon="mdi-delete" size="x-small" color="red" />
+          <td class="table-data">
+            <v-btn class="ma-2" @click="elementsStore.ShowDeletionOverlay(() => deleteLevel(index, level.identifier), 'Are you sure you want to delete this level. The process cannot be reversed')"
+              variant="flat" icon="mdi-delete" size="x-small" color="red" 
+            />
           </td>
         </tr>
       </tbody>

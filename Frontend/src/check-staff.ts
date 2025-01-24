@@ -4,9 +4,9 @@ export default defineNuxtRouteMiddleware((to, from) => {
     if (
       userAuthStore.userData?.['role'] === 'staff' &&
       userAuthStore.userData['staff_role'] != 'administrator' &&
-      !userAuthStore.staffData?.courseWork
+      !userAuthStore.teacherData?.courseWork
     ) {
-      userAuthStore.getstaffData()
+      userAuthStore.getTeacherData()
       userAuthStore.getTeacherStudentsAssessments()
       userAuthStore.getTeacherStudentsExams()
       userAuthStore.getTeacherStudentResults()

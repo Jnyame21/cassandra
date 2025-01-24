@@ -3,37 +3,26 @@ import axiosInstance from '../utils/axiosInstance';
 import { AxiosError } from 'axios';
 import { useUserAuthStore } from '@/stores/userAuthStore'
 import { useElementsStore } from '@/stores/elementsStore'
-import { defineProps } from 'vue'
+import { computed, defineProps } from 'vue'
 import { getGradeColor } from '@/utils/util';
+import NoData from './NoData.vue';
 
 const userAuthStore = useUserAuthStore()
 const elementsStore = useElementsStore()
 
 interface Props {
   className: string;
-  classIndex: number;
   subjectName: string;
-  subjectIndex: number;
-  resultData: {
-    'subject': string;
-    'total_assessment_percentage': number;
-    'exam_percentage': number;
-    'student_results': {
-      'remark': string;
-      'grade': string;
-      'total_assessment_score': number;
-      'exam_score': number;
-      'result': number;
-      'student': { 'name': string, 'st_id': string }
-    }[];
-  }
 }
 const props = defineProps<Props>()
 const className = props.className
-const classIndex = props.classIndex || 0
 const subjectName = props.subjectName
-const subjectIndex = props.subjectIndex || 0
-const resultData = props.resultData
+
+const resultData =  computed(()=>{
+  return userAuthStore.teacherData.studentsResults[className][subjectName]
+})
+
+const storeResultData = userAuthStore.teacherData.studentsResults[className][subjectName]
 
 const deleteResults = async () => {
   elementsStore.ShowLoadingOverlay()
@@ -46,13 +35,19 @@ const deleteResults = async () => {
 
   try {
     await axiosInstance.post('teacher/students-result', formData)
-    userAuthStore.staffData.studentsResults[classIndex]['results'][subjectIndex]['total_assessment_percentage'] = 0
-    userAuthStore.staffData.studentsResults[classIndex]['results'][subjectIndex]['exam_percentage'] = 0
-    userAuthStore.staffData.studentsResults[classIndex]['results'][subjectIndex]['student_results'] = []
-    userAuthStore.staffData.studentsAssessments[classIndex]['assignments'][subjectIndex]['assessments'].forEach((item: any) => {
-      item['percentage'] = 0
+    storeResultData.total_assessment_percentage = 0
+    storeResultData.exam_percentage = 0
+    storeResultData.student_results = {}
+    const studentAssessments = userAuthStore.teacherData.studentsAssessments?.[className]?.[subjectName]
+    if (studentAssessments)
+    Object.values(studentAssessments).forEach(item => {
+      item.percentage = 0
     })
-    userAuthStore.staffData.studentsExams[classIndex]['exams'][subjectIndex]['percentage'] = 0
+    const studentExamsData = userAuthStore.teacherData.studentsExams?.[className]?.[subjectName]
+    if (studentExamsData){
+      studentExamsData.percentage = 0
+    }
+    
     elementsStore.HideLoadingOverlay()
   }
   catch (error) {
@@ -79,53 +74,51 @@ const deleteResults = async () => {
 
 <template>
   <div class="content-wrapper"
-    v-show="elementsStore.activePage === `TeacherStudentsResults,${className},${subjectName},${subjectIndex}`"
-    :class="{ 'is-active-page': elementsStore.activePage === `TeacherStudentsResults,${className},${subjectName},${subjectIndex}` }">
-    <div class="no-data" v-if="resultData['student_results']?.length === 0">
-      <p>NO DATA</p>
-    </div>
-    <div class="content-header" v-if="resultData['student_results']?.length > 0">
+    v-show="elementsStore.activePage === `TeacherStudentsResults,${className},${subjectName}`"
+    :class="{ 'is-active-page': elementsStore.activePage === `TeacherStudentsResults,${className},${subjectName}` }">
+    <NoData message="You have not generated the students' results yet" v-if="Object.keys(resultData.student_results).length ===0"/>
+    <div class="content-header" v-if="Object.keys(resultData.student_results).length > 0">
       <span class="content-header-title">{{ className }} {{ subjectName }} STUDENT RESULTS</span>
     </div>
-    <div class="content-header btn-container" v-if="resultData['student_results']?.length > 0">
+    <div class="content-header btn-container" v-if="Object.keys(resultData.student_results).length > 0">
       <v-btn
         @click="elementsStore.ShowDeletionOverlay(() => deleteResults(), `Are you sure you want to delete all the ${subjectName} results data you have uploaded for this class?`)"
         color="red" :size="elementsStore.btnSize1" append-icon="mdi-delete" varaint="flat">DELETE RESULTS</v-btn>
     </div>
-    <v-table fixed-header class="table" v-if="resultData['student_results']?.length > 0">
+    <v-table fixed-header class="table" v-if="Object.keys(resultData.student_results).length > 0">
       <thead>
         <tr>
           <th class="table-head">NAME</th>
-          <th class="table-head">ASSESSMENTS({{ resultData['total_assessment_percentage'] }}%)</th>
-          <th class="table-head">EXAMS({{ resultData['exam_percentage'] }}%)</th>
+          <th class="table-head">ASSESSMENTS({{ resultData.total_assessment_percentage }}%)</th>
+          <th class="table-head">EXAMS({{ resultData.exam_percentage }}%)</th>
           <th class="table-head">TOTAL</th>
           <th class="table-head">GRADE</th>
         </tr>
       </thead>
       <tbody>
-        <tr v-for="(st, index) in resultData['student_results']" :key="index">
+        <tr v-for="(st, index) in Object.values(resultData.student_results).sort((a, b)=> b.result - a.result)" :key="index">
           <td class="table-data">
-            {{ st['student']['name'] }}
-            <v-list-item-subtitle>{{ st['student']['st_id'] }}</v-list-item-subtitle>
+            {{ st.student.name }}
+            <v-list-item-subtitle>{{ st.student.st_id }}</v-list-item-subtitle>
           </td>
           <td class="table-data">
             <v-btn size="small" variant="flat" color="black">
-              {{ Number(st['total_assessment_score']) }}
+              {{ Number(st.total_assessment_score) }}
             </v-btn>
           </td>
           <td class="table-data">
             <v-btn size="small" variant="flat" color="black">
-              {{ Number(st['exam_score']) }}
+              {{ Number(st.exam_score) }}
             </v-btn>
           </td>
           <td class="table-data">
             <v-btn size="small" variant="flat" color="black">
-              {{ Number(st['result']) }}
+              {{ Number(st.result) }}
             </v-btn>
           </td>
           <td class="table-data">
-            <v-btn variant="flat" size="small" :color="getGradeColor(st['grade'])">
-              {{ st['grade'] }}
+            <v-btn variant="flat" size="small" :color="getGradeColor(st.grade)">
+              {{ st.grade }}
             </v-btn>
           </td>
         </tr>
