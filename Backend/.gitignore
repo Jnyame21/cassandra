@@ -3,3 +3,8 @@
 *.env
 __pycache__/
 .idea
+*/migrations/
+staticfiles/silk/
+/db.sqlite3
+/SQLite Django db.session.sql
+/.vscode/settings.json
