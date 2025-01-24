@@ -53,73 +53,45 @@ const createGradingSystem = async () => {
   }
 }
 
-const addRemoveSchool = async () => {
+const addRemoveSchoolRange = async () => {
   elementsStore.ShowLoadingOverlay()
   const formData = new FormData()
-  formData.append('type', `${addRemoveType.value}School`)
-  formData.append('gradingSystemId', gradingSystemId.value);
-  formData.append('schoolIdentifier', gradingSystemSchoolIdentifierSelected.value);
+  formData.append('type', addRemoveType.value)
+  if (['addSchool', 'removeSchool'].includes(addRemoveType.value)){
+    formData.append('gradingSystemId', gradingSystemId.value);
+    formData.append('schoolIdentifier', gradingSystemSchoolIdentifierSelected.value);
+  }
+  else if (['addRange', 'removeRange'].includes(addRemoveType.value)){
+    formData.append('gradingSystemId', gradingSystemId.value);
+    formData.append('rangesIdentifiers', JSON.stringify(gradingSystemRangesSelected.value));
+  }
 
   try {
     await axiosInstance.post('superuser/grading_systems', formData)
-    if (addRemoveType.value === 'add') {
+    if (addRemoveType.value === 'addSchool') {
       userAuthStore.superUserData.gradingSystems[gradingSystemIndex.value]?.schools.unshift(gradingSystemSchoolIdentifierSelected.value)
     }
-    else if (addRemoveType.value === 'remove') {
+    else if (addRemoveType.value === 'removeSchool') {
       const selectedSchoolIndex = userAuthStore.superUserData.gradingSystems[gradingSystemIndex.value]?.schools.indexOf(gradingSystemSchoolIdentifierSelected.value)
       userAuthStore.superUserData.gradingSystems[gradingSystemIndex.value]?.schools.splice(selectedSchoolIndex, 1)
     }
-    gradingSystemSchoolIdentifierSelected.value = ''
-    gradingSystemIndex.value = null
-    gradingSystemId.value = ''
-    addRemoveOptionSelected.value = ''
-    closeOverlay('SuperUserAddRemoveSchoolRangeFromGradingSystemOverlay')
-    elementsStore.HideLoadingOverlay()
-  }
-  catch (error) {
-    elementsStore.HideLoadingOverlay()
-    if (error instanceof AxiosError) {
-      if (error.response) {
-        if (error.response.status === 400 && error.response.data.message) {
-          elementsStore.ShowOverlay(error.response.data.message, 'red', null, null)
-        } else {
-          elementsStore.ShowOverlay('Oops! something went wrong. Try again later', 'red', null, null)
-        }
-      }
-      else if (!error.response && (error.code === 'ECONNABORTED' || !navigator.onLine)) {
-        elementsStore.ShowOverlay('A network error occurred! Please check you internet connection', 'red', null, null)
-      }
-      else {
-        elementsStore.ShowOverlay('An unexpected error occurred!', 'red', null, null)
-      }
-    }
-  }
-}
-
-const addRemoveRange = async () => {
-  elementsStore.ShowLoadingOverlay()
-  const formData = new FormData()
-  formData.append('type', `${addRemoveType.value}Range`)
-  formData.append('gradingSystemId', gradingSystemId.value);
-  formData.append('rangesIdentifiers', JSON.stringify(gradingSystemRangesSelected.value));
-
-  try {
-    await axiosInstance.post('superuser/grading_systems', formData)
-    if (addRemoveType.value === 'add') {
+    else if (addRemoveType.value === 'addRange') {
       gradingSystemRangesSelected.value.forEach(range => {
         userAuthStore.superUserData.gradingSystems[gradingSystemIndex.value]?.ranges.unshift(range)
       })
     }
-    else if (addRemoveType.value === 'remove') {
+    else if (addRemoveType.value === 'removeRange') {
       gradingSystemRangesSelected.value.forEach(range => {
         const selectedRangeIndex = userAuthStore.superUserData.gradingSystems[gradingSystemIndex.value]?.ranges.indexOf(range)
         userAuthStore.superUserData.gradingSystems[gradingSystemIndex.value]?.ranges.splice(selectedRangeIndex, 1)
       })
     }
-    gradingSystemRangesSelected.value = []
+    gradingSystemSchoolIdentifierSelected.value = ''
     gradingSystemIndex.value = null
     gradingSystemId.value = ''
     addRemoveOptionSelected.value = ''
+    gradingSystemRangesSelected.value = []
+    addRemoveType.value = ''
     closeOverlay('SuperUserAddRemoveSchoolRangeFromGradingSystemOverlay')
     elementsStore.HideLoadingOverlay()
   }
@@ -174,6 +146,15 @@ const deleteGradingSystem = async (index: number, grading_system_id: string) => 
   }
 }
 
+const isAddRemoveFormValid = computed(()=>{
+  if (addRemoveType.value.split('S')[-1] === 'chool'){
+    return !(gradingSystemSchoolIdentifierSelected.value)
+  }
+  else if (addRemoveType.value.split('R')[-1] === 'ange'){
+    return !(gradingSystemRangesSelected.value.length > 0)
+  }
+  return true;
+})
 
 const closeOverlay = (element: string) => {
   const overlay = document.getElementById(element)
@@ -200,8 +181,7 @@ const showOverlay = (element: string, type_option: string = '', grading_system_i
 </script>
 
 <template>
-  <div class="content-wrapper" v-show="elementsStore.activePage === 'SuperUserGradingSystems'"
-    :class="{ 'is-active-page': elementsStore.activePage === 'SuperUserGradingSystems' }">
+  <div class="content-wrapper" v-show="elementsStore.activePage === 'SuperUserGradingSystems'" :class="{ 'is-active-page': elementsStore.activePage === 'SuperUserGradingSystems' }">
 
     <!-- gradingSystem schools overlay -->
     <div id="SuperUserSchoolsUnderGradingSystemOverlay" class="overlay upload">
@@ -237,12 +217,12 @@ const showOverlay = (element: string, type_option: string = '', grading_system_i
           X
         </v-btn>
         <div class="overlay-card-content-container">
-          <v-select class="select" :items="userAuthStore.superUserData.levels.map(item => item.identifier)"
-            label="LEVEL" v-model="gradingSystemLevelIdentifierSelected" density="comfortable" persistent-hint
-            hint="Select the level" variant="solo-filled" clearable />
+          <v-select class="select" :items="userAuthStore.superUserData.levels.map(item => item.identifier)" label="LEVEL" v-model="gradingSystemLevelIdentifierSelected"
+            density="comfortable" persistent-hint hint="Select the level" variant="solo-filled" clearable 
+          />
         </div>
         <div class="overlay-card-action-btn-container">
-          <v-btn @click="createGradingSystem" :disabled="!(gradingSystemLevelIdentifierSelected)" :ripple="false"
+          <v-btn @click="createGradingSystem()" :disabled="!(gradingSystemLevelIdentifierSelected)" :ripple="false"
             variant="flat" type="submit" color="black" size="small" append-icon="mdi-checkbox-marked-circle">
             SUBMIT
           </v-btn>
@@ -258,34 +238,22 @@ const showOverlay = (element: string, type_option: string = '', grading_system_i
           X
         </v-btn>
         <div class="overlay-card-content-container">
-          <v-select class="select" :items="['School', 'Range']" label="WHAT TO ADD/REMOVE"
-            v-model="addRemoveOptionSelected" variant="solo-filled" density="comfortable" persistent-hint
-            hint="Select what you want to add/remove" clearable />
-
-          <v-select class="select" v-if="addRemoveType === 'add' && addRemoveOptionSelected === 'School'"
-            :items="schoolOptions" label="SCHOOL" v-model="gradingSystemSchoolIdentifierSelected" variant="solo-filled"
-            density="comfortable" persistent-hint hint="Select the school you want to add" clearable />
-          <v-select class="select" v-if="addRemoveType === 'remove' && addRemoveOptionSelected === 'School'"
-            :items="schoolOptions" label="SCHOOL" v-model="gradingSystemSchoolIdentifierSelected" variant="solo-filled"
-            density="comfortable" persistent-hint hint="Select the school you want to remove" clearable />
-
-          <v-select class="select" v-if="addRemoveType === 'add' && addRemoveOptionSelected === 'Range'"
-            :items="rangeOptions" label="RANGE" v-model="gradingSystemRangesSelected" variant="solo-filled"
-            density="comfortable" persistent-hint hint="Select the range you want to add" multiple clearable />
-          <v-select class="select" v-if="addRemoveType === 'remove' && addRemoveOptionSelected === 'Range'"
-            :items="rangeOptions" label="RANGE" v-model="gradingSystemRangesSelected" variant="solo-filled"
-            density="comfortable" persistent-hint hint="Select the range you want to remove" multiple clearable />
-
+          <v-select class="select" v-if="addRemoveType === 'addSchool'" :items="schoolOptions" label="SCHOOL" v-model="gradingSystemSchoolIdentifierSelected" variant="solo-filled"
+            density="comfortable" persistent-hint hint="Select the school you want to add" clearable 
+          />
+          <v-select class="select" v-if="addRemoveType === 'removeSchool'" :items="schoolOptions" label="SCHOOL" v-model="gradingSystemSchoolIdentifierSelected" variant="solo-filled"
+            density="comfortable" persistent-hint hint="Select the school you want to remove" clearable 
+          />
+          <v-select class="select" v-if="addRemoveType === 'addRange'" :items="rangeOptions" label="RANGE" v-model="gradingSystemRangesSelected" variant="solo-filled"
+            density="comfortable" persistent-hint hint="Select the range you want to add" multiple clearable 
+          />
+          <v-select class="select" v-if="addRemoveType === 'removeRange'" :items="rangeOptions" label="RANGE" v-model="gradingSystemRangesSelected" variant="solo-filled"
+            density="comfortable" persistent-hint hint="Select the range you want to remove" multiple clearable 
+          />
         </div>
-        <div class="overlay-card-action-btn-container" v-if="addRemoveOptionSelected === 'School'">
-          <v-btn @click="addRemoveSchool" :disabled="!(gradingSystemSchoolIdentifierSelected)" :ripple="false"
+        <div class="overlay-card-action-btn-container">
+          <v-btn @click="addRemoveSchoolRange()" :disabled="isAddRemoveFormValid" :ripple="false"
             variant="flat" type="submit" color="black" size="small" append-icon="mdi-checkbox-marked-circle">
-            SUBMIT
-          </v-btn>
-        </div>
-        <div class="overlay-card-action-btn-container" v-if="addRemoveOptionSelected === 'Range'">
-          <v-btn @click="addRemoveRange" :disabled="!(gradingSystemRangesSelected)" :ripple="false" variant="flat"
-            type="submit" color="black" size="small" append-icon="mdi-checkbox-marked-circle">
             SUBMIT
           </v-btn>
         </div>
@@ -303,33 +271,45 @@ const showOverlay = (element: string, type_option: string = '', grading_system_i
     <v-table fixed-header class="table" v-if="gradingSystems.length > 0">
       <thead>
         <tr>
-          <th class="table-head">LEVEL</th>
+          <th class="table-head">ID</th>
           <th class="table-head">RANGES</th>
+          <th class="table-head">LEVEL</th>
           <th class="table-head">SCHOOLS</th>
           <th class="table-head">ACTION</th>
         </tr>
       </thead>
       <tbody>
         <tr v-for="(gradingSystem, index) in gradingSystems" :key="index">
-          <td class="table-data">{{ gradingSystem.level }}</td>
+          <td class="table-data">{{ gradingSystem.id }}</td>
           <td class="table-data">
-            <v-btn @click="showOverlay('SuperUserRangesUnderGradingSystemOverlay', '', 0, '', [], gradingSystem.ranges)"
-              variant="flat" size="x-small" color="blue">VIEW RANGES</v-btn>
+            <v-btn @click="showOverlay('SuperUserRangesUnderGradingSystemOverlay', '', 0, '', [], gradingSystem.ranges)" variant="flat" size="x-small" color="blue">
+              VIEW RANGES
+            </v-btn>
+            <v-icon class="ml-2" v-if="userAuthStore.superUserData.schools" icon="mdi-plus" color="blue"
+              @click="showOverlay('SuperUserAddRemoveSchoolRangeFromGradingSystemOverlay', 'addRange', index, gradingSystem.id.toString(), [], userAuthStore.superUserData.gradingSystemRanges.map(item => item.identifier).filter(item => !gradingSystem.ranges.includes(item)))"
+            />
+            <v-icon class="ma-2" icon="mdi-minus" color="blue"
+              @click="showOverlay('SuperUserAddRemoveSchoolRangeFromGradingSystemOverlay', 'removeRange', index, gradingSystem.id.toString(), [], gradingSystem.ranges)"
+            />
           </td>
           <td class="table-data">
-            <v-btn @click="showOverlay('SuperUserSchoolsUnderGradingSystemOverlay', '', 0, '', gradingSystem.schools)"
-              variant="flat" size="x-small" color="blue">VIEW SCHOOLS</v-btn>
+            <v-chip :size="elementsStore.btnSize1">{{ gradingSystem.level }}</v-chip>
+          </td>
+          <td class="table-data">
+            <v-btn @click="showOverlay('SuperUserSchoolsUnderGradingSystemOverlay', '', 0, '', gradingSystem.schools)" variant="flat" size="x-small" color="blue">
+              VIEW SCHOOLS
+            </v-btn>
+            <v-icon class="ml-2" v-if="userAuthStore.superUserData.schools" variant="flat" icon="mdi-plus" color="blue"
+              @click="showOverlay('SuperUserAddRemoveSchoolRangeFromGradingSystemOverlay', 'addSchool', index, gradingSystem.id.toString(), userAuthStore.superUserData.schools.map(item => item.identifier).filter(item => !gradingSystem.schools.includes(item)), [])"
+            />
+            <v-icon class="ma-2" variant="flat" icon="mdi-minus" color="blue"
+              @click="showOverlay('SuperUserAddRemoveSchoolRangeFromGradingSystemOverlay', 'removeSchool', index, gradingSystem.id.toString(), gradingSystem.schools, [])"
+            />
           </td>
           <td class="table-data flex-all" style="display: flex">
-            <v-btn class="ml-2" v-if="userAuthStore.superUserData.schools"
-              @click="showOverlay('SuperUserAddRemoveSchoolRangeFromGradingSystemOverlay', 'add', index, gradingSystem.id.toString(), userAuthStore.superUserData.schools.map(item => item.identifier).filter(item => !gradingSystem.schools.includes(item)), userAuthStore.superUserData.gradingSystemRanges.map(item => item.identifier).filter(item => !gradingSystem.ranges.includes(item)))"
-              variant="flat" icon="mdi-plus" size="x-small" color="blue" />
-            <v-btn class="ma-2"
-              @click="showOverlay('SuperUserAddRemoveSchoolRangeFromGradingSystemOverlay', 'remove', index, gradingSystem.id.toString(), gradingSystem.schools, gradingSystem.ranges)"
-              variant="flat" icon="mdi-minus" size="x-small" color="blue" />
-            <v-btn class="ma-2"
+            <v-btn class="ma-2" variant="flat" icon="mdi-delete" size="x-small" color="red"
               @click="elementsStore.ShowDeletionOverlay(() => deleteGradingSystem(index, gradingSystem.id.toString()), 'Are you sure you want to delete this grading system. The process cannot be reversed')"
-              variant="flat" icon="mdi-delete" size="x-small" color="red" />
+            />
           </td>
         </tr>
       </tbody>

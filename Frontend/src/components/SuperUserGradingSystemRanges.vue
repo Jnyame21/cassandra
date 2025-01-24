@@ -104,8 +104,8 @@ const showOverlay = (element: string) => {
 </script>
 
 <template>
-  <div class="content-wrapper" v-show="elementsStore.activePage === 'SuperUserGradingSystemRanges'"
-    :class="{ 'is-active-page': elementsStore.activePage === 'SuperUserGradingSystemRanges' }">
+  <div class="content-wrapper" v-show="elementsStore.activePage === 'SuperUserGradingSystemRanges'" :class="{ 'is-active-page': elementsStore.activePage === 'SuperUserGradingSystemRanges' }">
+    
     <!-- gradingSystemRange creation overlay -->
     <div id="SuperUserCreateGradingSystemRangeOverlay" class="overlay upload">
       <div class="overlay-card">
@@ -120,7 +120,7 @@ const showOverlay = (element: string) => {
           <v-text-field class="input-field" v-model="gradingSystemRangeRemark" label="REMARK" clearable />
         </div>
         <div class="overlay-card-action-btn-container">
-          <v-btn @click="createGradingSystemRange"
+          <v-btn @click="createGradingSystemRange()"
             :disabled="!(gradingSystemRangeLabel && gradingSystemRangeUperLimit && gradingSystemRangeLowerLimit && gradingSystemRangeRemark)"
             :ripple="false" variant="flat" type="submit" color="black" size="small"
             append-icon="mdi-checkbox-marked-circle">
@@ -142,6 +142,7 @@ const showOverlay = (element: string) => {
     <v-table fixed-header class="table" v-if="gradingSystemRanges.length > 0">
       <thead>
         <tr>
+          <th class="table-head">ID</th>
           <th class="table-head">LABEL</th>
           <th class="table-head">UPPER LIMIT</th>
           <th class="table-head">LOWER LIMIT</th>
@@ -152,11 +153,14 @@ const showOverlay = (element: string) => {
       </thead>
       <tbody>
         <tr v-for="(gradingSystemRange, index) in gradingSystemRanges" :key="index">
+          <td class="table-data">{{ gradingSystemRange.id }}</td>
           <td class="table-data">{{ gradingSystemRange.label }}</td>
           <td class="table-data">{{ gradingSystemRange.upper_limit }}</td>
           <td class="table-data">{{ gradingSystemRange.lower_limit }}</td>
           <td class="table-data">{{ gradingSystemRange.remark }}</td>
-          <td class="table-data">{{ gradingSystemRange.identifier }}</td>
+          <td class="table-data">
+            <v-chip :size="elementsStore.btnSize1">{{ gradingSystemRange.identifier }}</v-chip>
+          </td>
           <td class="table-data">
             <v-btn class="ma-2"
               @click="elementsStore.ShowDeletionOverlay(() => deleteGradingSystemRange(index, gradingSystemRange.id.toString()), 'Are you sure you want to delete this grading system range. The process cannot be reversed')"

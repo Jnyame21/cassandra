@@ -9,26 +9,27 @@ const elementsStore = useElementsStore()
 const name = ref('')
 const roleIndex = ref<number | null>(null)
 const roleId = ref('')
-const levelIdentifiers = ref<string[]>([])
+const levelIdentifier = ref('')
 const addRemoveType = ref('')
-const levelOptions = ref<string[]>([])
+const schoolIdentifiers = ref<string[]>([])
+const schoolOptions = ref<string[]>([])
 
 const roles = computed(() => {
   return userAuthStore.superUserData.staffRoles
 })
-
-const rolesData = userAuthStore.superUserData.staffRoles
 
 const createRole = async () => {
   elementsStore.ShowLoadingOverlay()
   const formData = new FormData()
   formData.append('type', 'create')
   formData.append('name', name.value);
+  formData.append('levelIdentifier', levelIdentifier.value);
 
   try {
     const response = await axiosInstance.post('superuser/staff_roles', formData)
-    rolesData.unshift(response.data)
+    userAuthStore.superUserData.staffRoles.unshift(response.data)
     name.value = ''
+    levelIdentifier.value = ''
     elementsStore.HideLoadingOverlay()
     elementsStore.ShowOverlay('Operation successful!', 'green', null, null)
   }
@@ -52,30 +53,30 @@ const createRole = async () => {
   }
 }
 
-const addRemoveLevel = async () => {
+const addRemoveSchool = async () => {
   elementsStore.ShowLoadingOverlay()
   const formData = new FormData()
   formData.append('type', addRemoveType.value)
   formData.append('id', roleId.value);
-  formData.append('levelIdentifiers', JSON.stringify(levelIdentifiers.value));
+  formData.append('schoolIdentifiers', JSON.stringify(schoolIdentifiers.value));
 
   try {
     await axiosInstance.post('superuser/staff_roles', formData)
-    if (addRemoveType.value === 'addRole'){
-      levelIdentifiers.value.forEach(item => {
-        rolesData[roleIndex.value as number].levels.push(item)
+    if (addRemoveType.value === 'addSchool') {
+      schoolIdentifiers.value.forEach(item => {
+        userAuthStore.superUserData.staffRoles[roleIndex.value as number].schools.unshift(item)
       })
     }
-    else if (addRemoveType.value === 'removeRole'){
-      levelIdentifiers.value.forEach(item => {
-        const selectedLevelIndex = rolesData[roleIndex.value as number].levels.indexOf(item)
-        rolesData[roleIndex.value as number].levels.splice(selectedLevelIndex, 1)
+    else if (addRemoveType.value === 'removeSchool') {
+      schoolIdentifiers.value.forEach(item => {
+        const selectedLevelIndex = userAuthStore.superUserData.staffRoles[roleIndex.value as number].schools.indexOf(item)
+        userAuthStore.superUserData.staffRoles[roleIndex.value as number].schools.splice(selectedLevelIndex, 1)
       })
     }
-    levelIdentifiers.value = []
+    schoolIdentifiers.value = []
     roleId.value = ''
     addRemoveType.value = ''
-    closeOverlay('SuperUserAddRemoveStaffRoleFromLevelOverlay')
+    closeOverlay('SuperUserAddRemoveSchoolFromStaffRoleOverlay')
     elementsStore.HideLoadingOverlay()
   }
   catch (error) {
@@ -106,7 +107,8 @@ const deleteRole = async (index: number, role_id:string) => {
 
   try {
     await axiosInstance.post('superuser/staff_roles', formData)
-    userAuthStore.superUserData.subjects.splice(index, 1)
+    userAuthStore.superUserData.staffRoles.splice(index, 1)
+    closeOverlay('SuperUserAddRemoveSchoolFromStaffRoleOverlay')
     elementsStore.HideLoadingOverlay()
   }
   catch (error) {
@@ -136,11 +138,11 @@ const closeOverlay = (element: string) => {
   }
 }
 
-const showOverlay = (element: string, type_option:string='', role_index:number=0, role_id:string='', level_options:string[]=[]) => {
+const showOverlay = (element: string, type_option:string='', role_index:number=0, role_id:string='', school_options:string[]=[]) => {
   addRemoveType.value = type_option
   roleId.value = role_id
   roleIndex.value = role_index
-  levelOptions.value = level_options
+  schoolOptions.value = school_options
   const overlay = document.getElementById(element)
   if (overlay) {
     overlay.style.display = 'flex'
@@ -153,13 +155,13 @@ const showOverlay = (element: string, type_option:string='', role_index:number=0
 <template>
   <div class="content-wrapper" v-show="elementsStore.activePage === 'SuperUserStaffRoles'" :class="{ 'is-active-page': elementsStore.activePage === 'SuperUserStaffRoles' }">
     <!-- subject schools overlay -->
-    <div id="SuperUserLevelsUnderStaffRoleOverlay" class="overlay upload">
+    <div id="SuperUserSchoolsUnderStaffRoleOverlay" class="overlay upload">
         <div class="overlay-card">
-          <v-btn @click="closeOverlay('SuperUserLevelsUnderStaffRoleOverlay')" color="red" size="small" variant="flat" class="close-btn">
+          <v-btn @click="closeOverlay('SuperUserSchoolsUnderStaffRoleOverlay')" color="red" size="small" variant="flat" class="close-btn">
             X
           </v-btn>
           <div class="overlay-card-content-container">
-            <p class="subject-card" v-for="(level, index) in levelOptions" :key=index>{{level}}</p>
+            <p class="subject-card" v-for="(school, index) in schoolOptions" :key=index>{{school}}</p>
           </div>
         </div>
     </div>
@@ -173,10 +175,13 @@ const showOverlay = (element: string, type_option:string='', role_index:number=0
         <div class="overlay-card-content-container">
           <v-text-field class="input-field" v-model="name" label="NAME" clearable
           />
+          <v-select class="select" :items="userAuthStore.superUserData.levels.map(item=> item.identifier)" label="LEVEL" v-model="levelIdentifier" variant="solo-filled"
+            density="comfortable" persistent-hint hint="Select the level for the role" clearable
+            />
         </div>
         <div class="overlay-card-action-btn-container">
-          <v-btn @click="createRole"
-            :disabled="!name" :ripple="false"
+          <v-btn @click="createRole()"
+            :disabled="!(name && levelIdentifier)" :ripple="false"
             variant="flat" type="submit" color="black" size="small" append-icon="mdi-checkbox-marked-circle">
             SUBMIT
           </v-btn>
@@ -184,23 +189,23 @@ const showOverlay = (element: string, type_option:string='', role_index:number=0
       </div>
     </div>
 
-    <!-- add/remove staff role from level overlay -->
-    <div id="SuperUserAddRemoveStaffRoleFromLevelOverlay" class="overlay upload">
+    <!-- add/remove school from staf role overlay -->
+    <div id="SuperUserAddRemoveSchoolFromStaffRoleOverlay" class="overlay upload">
         <div class="overlay-card">
-          <v-btn @click="closeOverlay('SuperUserAddRemoveStaffRoleFromLevelOverlay')" color="red" size="small" variant="flat" class="close-btn">
+          <v-btn @click="closeOverlay('SuperUserAddRemoveSchoolFromStaffRoleOverlay')" color="red" size="small" variant="flat" class="close-btn">
             X
           </v-btn>
           <div class="overlay-card-content-container">
-            <v-select class="select" v-if="addRemoveType === 'addRole'" :items="levelOptions" label="ROLE" v-model="levelIdentifiers" variant="solo-filled"
-            density="comfortable" persistent-hint hint="Select the level you want to add" clearable multiple
+            <v-select class="select" v-if="addRemoveType === 'addSchool'" :items="schoolOptions" label="SCHOOLS" v-model="schoolIdentifiers" variant="solo-filled"
+            density="comfortable" persistent-hint hint="Select the school(s) you want to add" clearable multiple
             />
-            <v-select class="select" v-if="addRemoveType === 'removeRole'" :items="levelOptions" label="ROLE" v-model="levelIdentifiers" variant="solo-filled"
-            density="comfortable" persistent-hint hint="Select the level you want to remove" clearable multiple
+            <v-select class="select" v-if="addRemoveType === 'removeSchool'" :items="schoolOptions" label="SCHOOLS" v-model="schoolIdentifiers" variant="solo-filled"
+            density="comfortable" persistent-hint hint="Select the school(s) you want to remove" clearable multiple
             />
           </div>
           <div class="overlay-card-action-btn-container">
-            <v-btn @click="addRemoveLevel"
-              :disabled="!(levelIdentifiers.length > 0)" :ripple="false"
+            <v-btn @click="addRemoveSchool()"
+              :disabled="!(schoolIdentifiers.length > 0)" :ripple="false"
               variant="flat" type="submit" color="black" size="small" append-icon="mdi-checkbox-marked-circle">
               SUBMIT
             </v-btn>
@@ -219,22 +224,36 @@ const showOverlay = (element: string, type_option:string='', role_index:number=0
     <v-table fixed-header class="table" v-if="roles.length > 0">
       <thead>
         <tr>
+          <th class="table-head">ID</th>
           <th class="table-head">NAME</th>
-          <th class="table-head">LEVELS</th>
+          <th class="table-head">LEVEL</th>
+          <th class="table-head">IDENTIFIER</th>
+          <th class="table-head">SCHOOLS</th>
           <th class="table-head">ACTION</th>
         </tr>
       </thead>
       <tbody>
         <tr v-for="(role, index) in roles" :key="index">
-            <td class="table-data">{{ role.name }}</td>
-            <td class="table-data">
-              <v-btn @click="showOverlay('SuperUserLevelsUnderStaffRoleOverlay', '', 0, '', role.levels)" variant="flat" size="x-small" color="blue">VIEW LEVELS</v-btn>
-            </td>
-            <td class="table-data flex-all" style="display: flex">
-              <v-btn class="ml-2" v-if="userAuthStore.superUserData.schools" @click="showOverlay('SuperUserAddRemoveStaffRoleFromLevelOverlay', 'addRole', index, role.id.toString(), userAuthStore.superUserData.levels.map(item=> item.identifier).filter(item=> !role.levels.includes(item)))" variant="flat" icon="mdi-plus" size="x-small" color="blue" />
-              <v-btn class="ma-2" @click="showOverlay('SuperUserAddRemoveStaffRoleFromLevelOverlay', 'removeRole', index, role.id.toString(), role.levels)" variant="flat" icon="mdi-minus" size="x-small" color="blue" />
-              <v-btn class="ma-2" @click="elementsStore.ShowDeletionOverlay(()=>deleteRole(index, role.id.toString()), 'Are you sure you want to delete this role. The process cannot be reversed')" variant="flat" icon="mdi-delete" size="x-small" color="red" />
-            </td>
+          <td class="table-data">{{ role.id }}</td>
+          <td class="table-data">
+            <v-chip :text="role.name" :size="elementsStore.btnSize1" />
+          </td>
+          <td class="table-data">
+            <v-chip :text="role.level" :size="elementsStore.btnSize1" />
+          </td>
+          <td class="table-data">
+            <v-chip :text="`${role.identifier.split('|')[1]} ${role.identifier.split('|')[0]}`" :size="elementsStore.btnSize1" />
+          </td>
+          <td class="table-data flex-all">
+            <v-btn @click="showOverlay('SuperUserSchoolsUnderStaffRoleOverlay', '', 0, '', role.schools)" variant="flat" size="x-small" color="blue">
+              VIEW SCHOOLS
+            </v-btn>
+            <v-icon class="ml-2" v-if="userAuthStore.superUserData.schools" @click="showOverlay('SuperUserAddRemoveSchoolFromStaffRoleOverlay', 'addSchool', index, role.id.toString(), userAuthStore.superUserData.schools.map(item=> item.identifier).filter(item=> !role.schools.includes(item)))" icon="mdi-plus" color="blue" />
+            <v-icon class="ma-2" @click="showOverlay('SuperUserAddRemoveSchoolFromStaffRoleOverlay', 'removeSchool', index, role.id.toString(), role.schools)" icon="mdi-minus" color="blue" />
+          </td>
+          <td class="table-data">
+            <v-btn class="ma-2" @click="elementsStore.ShowDeletionOverlay(()=>deleteRole(index, role.id.toString()), 'Are you sure you want to delete this role. The process cannot be reversed')" variant="flat" icon="mdi-delete" size="x-small" color="red" />
+          </td>
         </tr>
       </tbody>
     </v-table>

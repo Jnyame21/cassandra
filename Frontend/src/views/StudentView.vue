@@ -1,8 +1,18 @@
 <script setup lang="ts">
-
-definePageMeta({
-  middleware: ['check-student']
-})
+import { useUserAuthStore } from '@/stores/userAuthStore'
+import { useElementsStore } from '@/stores/elementsStore'
+import { onBeforeMount, ref } from 'vue'
+import { useHead } from '@vueuse/head';
+import HelpForm from '@/components/HelpForm.vue'
+import TheHeader from '@/components/TheHeader.vue';
+import TheFooter from '@/components/TheFooter.vue';
+import StudentAttendance from '@/components/StudentAttendance.vue';
+import StudentAssessments from '@/components/StudentAssessments.vue';
+import StudentResults from '@/components/StudentResults.vue';
+import StudentExams from '@/components/StudentExams.vue';
+import StudentClassStudents from '@/components/StudentClassStudents.vue';
+import StudentNavContainerMob from '@/components/StudentNavContainerMob.vue';
+import StudentNavContainerDesk from '@/components/StudentNavContainerDesk.vue';
 
 useHead({
   meta: [
@@ -14,56 +24,11 @@ const userAuthStore = useUserAuthStore()
 const elementsStore = useElementsStore()
 const rozmachAuth: any = ref(null)
 
-onBeforeUnmount(()=>{
-  document.body.style.overflow = 'auto'
-})
-
 onBeforeMount(()=>{
-  document.body.style.overflow = 'hidden'
-  document.title = "Cassandra"
-  elementsStore.activePage = 'StudentSubjects'
+  elementsStore.activePage = 'StudentClassStudents'
   rozmachAuth.value = localStorage.getItem('RozmachAuth')
   if (rozmachAuth.value){
     rozmachAuth.value = JSON.parse(rozmachAuth.value)
-  }
-})
-
-watch(()=>elementsStore.activePage, (newValue, oldValue)=>{
-  if (newValue.split(',')[0] === 'StudentResults'){
-    const year_results = userAuthStore.studentData.academicYearsData.find(item => item['name'] === newValue.split(',')[1])
-    if (year_results && newValue.split(',')[3] === '1'){
-      userAuthStore.studentData.currentResults = year_results['results']['term_one']
-    }
-    else if (year_results && newValue.split(',')[3] === '2'){
-      userAuthStore.studentData.currentResults = year_results['results']['term_two']
-    }
-    else if (year_results && newValue.split(',')[3] === '3'){
-      userAuthStore.studentData.currentResults = year_results['results']['term_three']
-    }
-  }
-  else if (newValue.split(',')[0] === 'StudentAttendance'){
-    const year_attendance = userAuthStore.studentData.academicYearsData.find(item => item['name'] === newValue.split(',')[1])
-    if (year_attendance && newValue.split(',')[3] === '1'){
-      userAuthStore.studentData.currentAttendance = year_attendance['attendance']['term_one']
-    }
-    else if (year_attendance && newValue.split(',')[3] === '2'){
-      userAuthStore.studentData.currentAttendance = year_attendance['attendance']['term_two']
-    }
-    else if (year_attendance && newValue.split(',')[3] === '3'){
-      userAuthStore.studentData.currentAttendance = year_attendance['attendance']['term_three']
-    }
-  }
-  else if (newValue.split(',')[0] === 'StudentAssessments'){
-    const year_assessments = userAuthStore.studentData.academicYearsData.find(item => item['name'] === newValue.split(',')[1])
-    if (year_assessments && newValue.split(',')[3] === '1'){
-      userAuthStore.studentData.currentAssessments = year_assessments['assessments']['term_one']
-    }
-    else if (year_assessments && newValue.split(',')[3] === '2'){
-      userAuthStore.studentData.currentAssessments = year_assessments['assessments']['term_two']
-    }
-    else if (year_assessments && newValue.split(',')[3] === '3'){
-      userAuthStore.studentData.currentAssessments = year_assessments['assessments']['term_three']
-    }
   }
 })
 
@@ -84,7 +49,7 @@ const hidOverlay = ()=>{
 
 <template>
     <!-- Welcome Overlay-->
-  <div id="welcome" class="welcome-overlay" v-if="rozmachAuth && !rozmachAuth['last_login'] && userAuthStore.userData">
+  <div id="welcome" class="overlay welcome-overlay" v-if="rozmachAuth && !rozmachAuth['last_login'] && userAuthStore.userData">
     <v-card class="flex-all-c card">
       <v-card-title id="company-name">{{userAuthStore.userData['school']['name']}}</v-card-title>
       <v-card-text style="font-size: .9rem; font-family: sans-serif; text-align: left; line-height: 1.2">
@@ -98,17 +63,51 @@ const hidOverlay = ()=>{
       </v-card-actions>
     </v-card>
   </div>
-  <TheHeader  v-if="userAuthStore.userData"/>
+  <TheHeader v-if="userAuthStore.userData"/>
   <main class="main" v-if="userAuthStore.userData">
-    <StudentNavContainerMob v-if="!elementsStore.navDrawer"/>
-    <StudentNavContainerDesk v-if="elementsStore.navDrawer"/>
+    <StudentNavContainerMob v-if="!elementsStore.onDesk"/>
+    <StudentNavContainerDesk v-if="elementsStore.onDesk"/>
     <div class="pages-container">
-      <StudentSubjects v-show="elementsStore.activePage === 'StudentSubjects' " />
-      <StudentClassStudents v-show="elementsStore.activePage === 'StudentClassStudents' " />
-      <StudentResults v-show="elementsStore.activePage.split(',')[0] === 'StudentResults' " />
-      <StudentAttendance v-show="elementsStore.activePage.split(',')[0] === 'StudentAttendance' " />
-      <StudentAssessments v-show="elementsStore.activePage.split(',')[0] === 'StudentAssessments' " />
-      <StudentTranscript v-show="elementsStore.activePage.split(',')[0] === 'StudentTranscript' " />
+      <div class="component-wrapper" :class="{ 'is-active-component': elementsStore.activePage === 'StudentClassStudents' }">
+        <StudentClassStudents v-show="elementsStore.activePage === 'StudentClassStudents'" />
+      </div>
+      <div class="component-wrapper" v-if="userAuthStore.studentData.results" :class="{ 'is-active-component': elementsStore.activePage.split(',')[0] === 'StudentResults' }">
+        <div v-for="[year_name, year_result_data] in Object.entries(userAuthStore.studentData.results )" :key="year_name">
+          <StudentResults v-show="elementsStore.activePage.split(',')[0] === 'StudentResults'" v-for="term_name in Object.keys(year_result_data)"
+          :key="term_name"
+          :yearName="year_name"
+          :termName="term_name"
+          />
+        </div>
+      </div>
+      <div class="component-wrapper" v-if="userAuthStore.studentData.attendances" :class="{ 'is-active-component': elementsStore.activePage.split(',')[0] === 'StudentAttendance' }">
+        <div v-for="[year_name, year_attendance_data] in Object.entries(userAuthStore.studentData.attendances)" :key="year_name">
+          <StudentAttendance v-show="elementsStore.activePage.split(',')[0] === 'StudentAttendance'" v-for="term_name in Object.keys(year_attendance_data)"
+          :key="term_name"
+          :yearName="year_name"
+          :termName="term_name"
+          />
+        </div>
+      </div>
+      <div class="component-wrapper" v-if="userAuthStore.studentData.assessments" :class="{ 'is-active-component': elementsStore.activePage.split(',')[0] === 'StudentAssessments' }">
+        <div v-for="[year_name, year_assessment_data] in Object.entries(userAuthStore.studentData.assessments )" :key="year_name">
+          <StudentAssessments v-show="elementsStore.activePage.split(',')[0] === 'StudentAssessments'" v-for="term_name in Object.keys(year_assessment_data)"
+          :key="term_name"
+          :yearName="year_name"
+          :termName="term_name"
+          />
+        </div>
+      </div>
+      <div class="component-wrapper" v-if="userAuthStore.studentData.exams" :class="{ 'is-active-component': elementsStore.activePage.split(',')[0] === 'StudentExams' }">
+        <div v-for="[year_name, year_exam_data] in Object.entries(userAuthStore.studentData.exams )" :key="year_name">
+          <StudentExams v-show="elementsStore.activePage.split(',')[0] === 'StudentExams'" v-for="term_name in Object.keys(year_exam_data)"
+          :key="term_name"
+          :yearName="year_name"
+          :termName="term_name"
+          />
+        </div>
+      </div>
+      <!-- <StudentTranscript v-show="elementsStore.activePage.split(',')[0] === 'StudentTranscript' " /> -->
       <HelpForm v-show="elementsStore.activePage.split(',')[0] === 'Help'" />
     </div>
   </main>

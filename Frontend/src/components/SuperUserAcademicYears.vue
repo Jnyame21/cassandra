@@ -105,6 +105,17 @@ const deleteAcademicYear = async (index: number, academic_year_id: string) => {
   }
 }
 
+const checkInput = computed(() => {
+  if (Number(noDivisions.value) === 2) {
+    return !(academicYearName.value && startDate.value && endDate.value && termOneEndDate.value && termTwoStartDate.value && termTwoEndDate.value)
+  }
+  else if (Number(noDivisions.value) === 3) {
+    return !(academicYearName.value && startDate.value && endDate.value && termOneEndDate.value && termTwoStartDate.value && termTwoEndDate.value && termThreeStartDate.value && termThreeEndDate.value)
+  }
+  else {
+    return true;
+  }
+})
 
 const closeOverlay = (element: string) => {
   const overlay = document.getElementById(element)
@@ -167,7 +178,7 @@ const showOverlay = (element: string) => {
             type="date" :label="`${periodDivision} 3 END DATE`" clearable />
         </div>
         <div class="overlay-card-action-btn-container">
-          <v-btn @click="createAcademicYear" :disabled="!(academicYearName && academicYearLevelIdentifer)"
+          <v-btn @click="createAcademicYear()" :disabled="checkInput"
             :ripple="false" variant="flat" type="submit" color="black" size="small"
             append-icon="mdi-checkbox-marked-circle">
             SUBMIT

@@ -17,10 +17,7 @@ const showOverlay = () => {
     }
 }
 
-
 </script>
-
-
 <template>
     <div class="nav-container-drawer" v-show="elementsStore.navDrawer">
         <v-list class="nav-list-container">
@@ -118,5 +115,5 @@ const showOverlay = () => {
     </div>
 </template>
 
-
-<style scoped></style>
+<style scoped>
+</style>

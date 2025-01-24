@@ -1,15 +1,16 @@
 <script setup lang="ts">
 import { useUserAuthStore } from '@/stores/userAuthStore';
 import { useElementsStore } from '@/stores/elementsStore';
+import SchoolProfile from './SchoolProfile.vue';
 
 const userAuthStore = useUserAuthStore()
 const elementsStore = useElementsStore()
 
 const drawer = document.getElementById('studentDrawer')
 
-document.addEventListener('click', (event: any) => {
+document.addEventListener('click', (event: MouseEvent) => {
   if (drawer?.style.display !== 'none') {
-    if (!drawer?.contains(event.target)) {
+    if (!drawer?.contains(event?.target as Node)) {
       elementsStore.drawer = false
     }
   }
@@ -21,8 +22,64 @@ document.addEventListener('click', (event: any) => {
 <template>
   <div id="studentDrawer" class="drawer-container" v-show="elementsStore.drawer">
     <v-list class="drawer-list" v-if="userAuthStore.userData">
-      <v-card-title class="drawer-head">STUDENT INFORMATION</v-card-title>
+      <SchoolProfile/>
+        
+        <v-card-title class="drawer-head">SCHOOL INFORMATION</v-card-title>
+        <v-list-item class="drawer-item" prepend-icon="mdi-school">
+          <v-list-item-title class="drawer-title">
+            SHORT NAME
+          </v-list-item-title>
+          <v-list-item-subtitle class="drawer-subtitle">
+            {{ userAuthStore.userData['school']['short_name'] }}
+          </v-list-item-subtitle>
+        </v-list-item>
 
+        <v-list-item class="drawer-item" prepend-icon="mdi-code-tags">
+          <v-list-item-title class="drawer-title">
+            CODE 
+          </v-list-item-title>
+          <v-list-item-subtitle class="drawer-subtitle">
+            {{ userAuthStore.userData['school']['code'] }}
+          </v-list-item-subtitle>
+        </v-list-item>
+
+        <v-list-item class="drawer-item" prepend-icon="mdi-home-map-marker">
+          <v-list-item-title class="drawer-title">
+            POSTAL ADDRESS 
+          </v-list-item-title>
+          <v-list-item-subtitle class="drawer-subtitle">
+            {{ userAuthStore.userData['school']['postal_address'] }}
+          </v-list-item-subtitle>
+        </v-list-item>
+
+        <v-list-item class="drawer-item" prepend-icon="mdi-phone">
+          <v-list-item-title class="drawer-title">
+            PHONE NUMBER 
+          </v-list-item-title>
+          <v-list-item-subtitle class="drawer-subtitle">
+            {{ userAuthStore.userData['school']['contact'] }}
+          </v-list-item-subtitle>
+        </v-list-item>
+
+        <v-list-item class="drawer-item" prepend-icon="mdi-home">
+          <v-list-item-title class="drawer-title">
+            ADDRESS
+          </v-list-item-title>
+          <v-list-item-subtitle class="drawer-subtitle">
+            {{ userAuthStore.userData['school']['address'] }}
+          </v-list-item-subtitle>
+        </v-list-item>
+
+        <v-list-item class="drawer-item" prepend-icon="mdi-email">
+          <v-list-item-title class="drawer-title">
+            EMAIL
+          </v-list-item-title>
+          <v-list-item-subtitle class="drawer-subtitle">
+            {{ userAuthStore.userData['school']['email'] }}
+          </v-list-item-subtitle>
+        </v-list-item>
+
+      <v-card-title class="drawer-head">STUDENT INFORMATION</v-card-title>
       <v-list-item class="drawer-item" prepend-icon="mdi-account">
         <v-list-item-title class="drawer-title">
           USERNAME
@@ -58,7 +115,7 @@ document.addEventListener('click', (event: any) => {
         </v-list-item-subtitle>
       </v-list-item>
 
-      <v-list-item v-if="userAuthStore.userData['index_no']" class="drawer-item" prepend-icon="mdi-account-details">
+      <v-list-item v-if="userAuthStore.userData['level']['students_index_no']" class="drawer-item" prepend-icon="mdi-account-details">
         <v-list-item-title class="drawer-title">
           INDEX NUMBER
         </v-list-item-title>
@@ -72,7 +129,7 @@ document.addEventListener('click', (event: any) => {
           CURRENT FORM
         </v-list-item-title>
         <v-list-item-subtitle class="drawer-subtitle">
-          {{ userAuthStore.userData['current_yr'] }}
+          {{ userAuthStore.userData['current_year'] }}
         </v-list-item-subtitle>
       </v-list-item>
 
@@ -113,7 +170,7 @@ document.addEventListener('click', (event: any) => {
         </v-list-item-subtitle>
       </v-list-item>
 
-      <v-list-item class="drawer-item" v-if="userAuthStore.userData['academic_year']['period_division'] !== 'SEMESTER'"
+      <v-list-item class="drawer-item" v-if="userAuthStore.userData['academic_year']['no_divisions'] > 2"
         prepend-icon="mdi-calendar">
         <v-list-item-title class="drawer-title">
           3rd {{ userAuthStore.userData['academic_year']['period_division'] }} START DATE
@@ -123,7 +180,7 @@ document.addEventListener('click', (event: any) => {
         </v-list-item-subtitle>
       </v-list-item>
 
-      <v-list-item class="drawer-item" v-if="userAuthStore.userData['academic_year']['period_division'] !== 'SEMESTER'"
+      <v-list-item class="drawer-item" v-if="userAuthStore.userData['academic_year']['no_divisions'] > 2"
         prepend-icon="mdi-calendar">
         <v-list-item-title class="drawer-title">
           3rd {{ userAuthStore.userData['academic_year']['period_division'] }} END DATE
@@ -236,19 +293,10 @@ document.addEventListener('click', (event: any) => {
       <v-card-title class="drawer-head">GUARDIAN INFORMATION</v-card-title>
       <v-list-item class="drawer-item" prepend-icon="mdi-account-outline">
         <v-list-item-title class="drawer-title">
-          FIRST NAME
+          GUARDIAN NAME
         </v-list-item-title>
         <v-list-item-subtitle class="drawer-subtitle">
-          {{ userAuthStore.userData['guardian_first_name'] }}
-        </v-list-item-subtitle>
-      </v-list-item>
-
-      <v-list-item class="drawer-item" prepend-icon="mdi-account-outline">
-        <v-list-item-title class="drawer-title">
-          LAST NAME
-        </v-list-item-title>
-        <v-list-item-subtitle class="drawer-subtitle">
-          {{ userAuthStore.userData['guardian_last_name'] }}
+          {{ userAuthStore.userData['guardian'] }}
         </v-list-item-subtitle>
       </v-list-item>
 

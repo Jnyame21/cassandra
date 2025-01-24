@@ -4,7 +4,6 @@ import { AxiosError } from 'axios';
 import { useUserAuthStore } from '@/stores/userAuthStore'
 import { useElementsStore } from '@/stores/elementsStore'
 import { computed, ref } from 'vue'
-import TheLoader from './TheLoader.vue';
 const userAuthStore = useUserAuthStore()
 const elementsStore = useElementsStore()
 const formErrorMessage = ref('')
@@ -14,7 +13,7 @@ const teacherSelected: any = ref(null)
 
 
 const studentClasses = computed(() => {
-  return userAuthStore.adminData.classes.map((_class:any)=> ({'name': _class['name'], 'subjects': _class['subjects']}))
+  return userAuthStore.adminData.classes.map(item=> ({'name': item['name'], 'subjects': item['subjects']}))
 })
 
 const subjectAssignments = computed(() => {
@@ -22,7 +21,7 @@ const subjectAssignments = computed(() => {
 })
 
 const teachers = computed(() => {
-  return userAuthStore.adminData.staff?.filter((_staff:any)=> _staff['role'] === 'teacher').map((_staff:any)=> ({'user': _staff['user'], 'staff_id': _staff['staff_id']}))
+  return userAuthStore.adminData.staff?.filter(item=> item.roles.includes(item.roles.filter(subItem=> subItem.toLowerCase() === `teacher | ${userAuthStore.userData['current_role']['level']['identifier'].toLowerCase()}`)[0])).map(item=> ({'user': item['user'], 'staff_id': item['staff_id']}))
 })
 
 const uploadSubjectAssignment = async () => {
@@ -37,7 +36,7 @@ const uploadSubjectAssignment = async () => {
 
   try {
     const response = await axiosInstance.post('school-admin/subject-assignment', formData)
-    userAuthStore.adminData.subjectAssignments?.push(response.data)
+    userAuthStore.adminData.subjectAssignments.push(response.data)
     teacherSelected.value = null
     subjectsSelected.value = []
     classSelected.value = null
@@ -64,18 +63,17 @@ const uploadSubjectAssignment = async () => {
   }
 }
 
-const deleteSubjectAssignment = async (index: number, teacherId: string, stClass: string) => {
+const deleteSubjectAssignment = async (index: number, assignment_id: number) => {
   elementsStore.ShowLoadingOverlay()
   const formData = new FormData()
   formData.append('type', 'delete')
-  formData.append('studentsClassName', stClass);
-  formData.append('teacher', teacherId);
+  formData.append('id', assignment_id.toString());
   formData.append('year', userAuthStore.activeAcademicYear);
   formData.append('term', userAuthStore.activeTerm.toString());
 
   try {
     await axiosInstance.post('school-admin/subject-assignment', formData)
-    userAuthStore.adminData.subjectAssignments?.splice(index, 1)
+    userAuthStore.adminData.subjectAssignments.splice(index, 1)
     elementsStore.HideLoadingOverlay()
   }
   catch (error) {
@@ -121,6 +119,7 @@ const showOverlay = (element: string) => {
 
 <template>
   <div class="content-wrapper" v-show="elementsStore.activePage === 'AdminSubjectAssignment'" :class="{ 'is-active-page': elementsStore.activePage === 'AdminSubjectAssignment' }">
+   
     <!-- subject assignment upload overlay -->
     <div id="AdminSubjectAssignmentOverlay" class="overlay upload">
       <div class="overlay-card">
@@ -144,7 +143,7 @@ const showOverlay = (element: string) => {
             <v-select class="select" v-if="_class.name === classSelected" :items="_class.subjects" label="SUBJECT(S)" v-model="subjectsSelected"
             multiple chips variant="solo-filled" density="comfortable" persistent-hint
             hint="Select the subject(s) you want the teaacher to teacher" 
-          />
+            />
           </div>
         </div>
         <div class="overlay-card-action-btn-container">
@@ -163,11 +162,10 @@ const showOverlay = (element: string) => {
         ASSIGN SUBJECT(S)
       </v-btn>
     </div>
-    <TheLoader v-if="!subjectAssignments" />
-    <div class="no-data" v-if="subjectAssignments?.length === 0">
+    <div class="no-data" v-if="subjectAssignments.length === 0">
       <p>NO DATA</p>
     </div>
-    <v-table fixed-header class="table" v-if="subjectAssignments && subjectAssignments.length > 0">
+    <v-table fixed-header class="table" v-if="subjectAssignments.length > 0">
       <thead>
         <tr>
           <th class="table-head">TEACHER</th>
@@ -190,7 +188,7 @@ const showOverlay = (element: string) => {
           </td>
           <td class="table-data">
             <v-btn
-              @click="elementsStore.ShowDeletionOverlay(() => deleteSubjectAssignment(index, _assign['teacher']['staff_id'], _assign['students_class']), 'Are you sure you want to delete this subject assignment?')"
+              @click="elementsStore.ShowDeletionOverlay(() => deleteSubjectAssignment(index, _assign.id), 'Are you sure you want to delete this subject assignment?')"
               variant="flat" icon="mdi-delete" size="x-small" color="red" 
             />
           </td>

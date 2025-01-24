@@ -2,19 +2,20 @@
 <script setup lang="ts">
 import { useUserAuthStore } from '@/stores/userAuthStore';
 import { useElementsStore } from '@/stores/elementsStore';
+import SchoolProfile from './SchoolProfile.vue';
 
 const userAuthStore = useUserAuthStore()
 const elementsStore = useElementsStore()
 
 const drawer = document.getElementById('staffDrawer')
-
-document.addEventListener('click', (event:any)=>{
+document.addEventListener('click', (event: MouseEvent)=>{
   if (drawer?.style.display !== 'none'){
-    if (!drawer?.contains(event.target)){
+    if (!drawer?.contains(event?.target as Node)){
       elementsStore.drawer = false
     }
   }
 })
+
 
 </script>
 
@@ -22,8 +23,64 @@ document.addEventListener('click', (event:any)=>{
 <template>
     <div id="staffDrawer" class="drawer-container" v-show="elementsStore.drawer">
       <v-list class="drawer-list">
-        <v-card-title class="drawer-head">STAFF INFORMATION</v-card-title>
+        <SchoolProfile/>
+        
+        <v-card-title class="drawer-head">SCHOOL INFORMATION</v-card-title>
+        <v-list-item class="drawer-item" prepend-icon="mdi-school">
+          <v-list-item-title class="drawer-title">
+            SHORT NAME
+          </v-list-item-title>
+          <v-list-item-subtitle class="drawer-subtitle">
+            {{ userAuthStore.userData['school']['short_name'] }}
+          </v-list-item-subtitle>
+        </v-list-item>
 
+        <v-list-item class="drawer-item" prepend-icon="mdi-code-tags">
+          <v-list-item-title class="drawer-title">
+            CODE 
+          </v-list-item-title>
+          <v-list-item-subtitle class="drawer-subtitle">
+            {{ userAuthStore.userData['school']['code'] }}
+          </v-list-item-subtitle>
+        </v-list-item>
+
+        <v-list-item class="drawer-item" prepend-icon="mdi-home-map-marker">
+          <v-list-item-title class="drawer-title">
+            POSTAL ADDRESS 
+          </v-list-item-title>
+          <v-list-item-subtitle class="drawer-subtitle">
+            {{ userAuthStore.userData['school']['postal_address'] }}
+          </v-list-item-subtitle>
+        </v-list-item>
+
+        <v-list-item class="drawer-item" prepend-icon="mdi-phone">
+          <v-list-item-title class="drawer-title">
+            PHONE NUMBER 
+          </v-list-item-title>
+          <v-list-item-subtitle class="drawer-subtitle">
+            {{ userAuthStore.userData['school']['contact'] }}
+          </v-list-item-subtitle>
+        </v-list-item>
+
+        <v-list-item class="drawer-item" prepend-icon="mdi-home">
+          <v-list-item-title class="drawer-title">
+            ADDRESS 
+          </v-list-item-title>
+          <v-list-item-subtitle class="drawer-subtitle">
+            {{ userAuthStore.userData['school']['address'] }}
+          </v-list-item-subtitle>
+        </v-list-item>
+
+        <v-list-item class="drawer-item" prepend-icon="mdi-email">
+          <v-list-item-title class="drawer-title">
+            EMAIL 
+          </v-list-item-title>
+          <v-list-item-subtitle class="drawer-subtitle">
+            {{ userAuthStore.userData['school']['email'] }}
+          </v-list-item-subtitle>
+        </v-list-item>
+
+        <v-card-title class="drawer-head">STAFF INFORMATION</v-card-title>
         <v-list-item class="drawer-item" prepend-icon="mdi-account">
           <v-list-item-title class="drawer-title">
             USERNAME
@@ -72,7 +129,7 @@ document.addEventListener('click', (event:any)=>{
         <v-list-item class="drawer-item" v-if="['teacher', 'hod'].includes(userAuthStore.userData['staff_role'].toLowerCase())" prepend-icon="mdi-book-open-outline">
           <v-list-item-title class="drawer-title">SUBJECT(S)</v-list-item-title>
           <v-list-item-subtitle class="drawer-subtitle" v-for="(subject, i) in userAuthStore.userData['subjects']" :key="i">
-            {{ subject['name'] }}
+            {{ subject }}
           </v-list-item-subtitle>
         </v-list-item>
 
@@ -279,7 +336,6 @@ document.addEventListener('click', (event:any)=>{
 
 
 <style scoped>
-
 
 
 </style>

@@ -7,12 +7,12 @@ import { useElementsStore } from '@/stores/elementsStore'
 import { defineProps } from 'vue'
 import { computed } from 'vue'
 
+
 const userAuthStore = useUserAuthStore()
 const elementsStore = useElementsStore()
 const formErrorMessage = ref('')
 const studentName = ref('')
 const studentId = ref('')
-const studentIndex: any = ref(null)
 const previousScore: any = ref(null)
 const previousComment = ref('')
 const newScore: any = ref(null)
@@ -32,35 +32,19 @@ const comment = ref('')
 
 interface Props {
   className: string;
-  classIndex: number;
   subjectName: string;
-  subjectIndex: number;
-  assessment: {
-    title: string;
-    description: string;
-    percentage: number;
-    total_score: number;
-    assessment_date: any;
-    students_with_assessment: {
-      'name': string;
-      'st_id': string
-      'score': number;
-      'comment': string;
-    }[];
-    students_without_assessment: {
-      'name': string;
-      'st_id': string;
-    }[];
-  };
-  assessmentIndex: number;
+  assessmentTitle: string;
 }
 const props = defineProps<Props>()
 const className = props.className
-const classIndex = props.classIndex || 0
 const subjectName = props.subjectName
-const subjectIndex = props.subjectIndex || 0
-const assessment = props.assessment
-const assessmentIndex = props.assessmentIndex || 0
+const assessmentTitle = props.assessmentTitle
+
+const assessmentData = computed(()=>{
+  return userAuthStore.teacherData.studentsAssessments[className][subjectName][assessmentTitle]
+})
+
+const storeAssessmentData = userAuthStore.teacherData.studentsAssessments[className][subjectName][assessmentTitle]
 
 const clearMessage = () => {
   setTimeout(() => {
@@ -86,20 +70,20 @@ const fileChange = (event: any) => {
 // Generate an excel file
 const generateFile = async () => {
   formErrorMessage.value = ''
-  if (assessment['students_without_assessment'].length === 0) {
-    showErrorMessage(`You have already uploaded all the students assessment for the assessment titled [ ${assessment['title']} ] under ${subjectName}`)
+  if (!assessmentData.value.students_without_assessment) {
+    showErrorMessage(`You have already uploaded all the students assessment for the assessment titled [ ${assessmentTitle} ] under ${subjectName}`)
     return;
   }
   elementsStore.ShowLoadingOverlay()
   const formData = new FormData()
   formData.append('studentsClassName', className)
   formData.append('subject', subjectName)
-  formData.append('selectedStudents', JSON.stringify(assessment['students_without_assessment']))
+  formData.append('selectedStudents', JSON.stringify(assessmentData.value.students_without_assessment))
   formData.append('type', 'getFile')
   formData.append('year', userAuthStore.activeAcademicYear)
-  formData.append('term', userAuthStore.activeTerm)
-  formData.append('title', assessment['title'])
-  formData.append('totalScore', assessment['total_score'].toString())
+  formData.append('term', userAuthStore.activeTerm.toString())
+  formData.append('title', assessmentData.value.title)
+  formData.append('totalScore', assessmentData.value.total_score.toString())
 
   try {
     const response = await axiosInstance.post('teacher/assessments', formData)
@@ -136,10 +120,10 @@ const upload = async () => {
   formErrorMessage.value = ''
   const formData = new FormData()
   formData.append('year', userAuthStore.activeAcademicYear)
-  formData.append('term', userAuthStore.activeTerm)
+  formData.append('term', userAuthStore.activeTerm.toString())
   formData.append('studentsClassName', className)
   formData.append('subject', subjectName)
-  formData.append('title', assessment['title'])
+  formData.append('title', assessmentData.value.title)
   if (uploadTypeSelected.value === 'file') {
     formData.append('file', fileToUpload.value)
     formData.append('type', 'uploadWithFile')
@@ -151,7 +135,7 @@ const upload = async () => {
     } else if (studentScore.value < 0) {
       showErrorMessage("The students' score cannot be negative")
       return;
-    } else if (studentScore.value > assessment['total_score']) {
+    } else if (studentScore.value > assessmentData.value.total_score) {
       showErrorMessage("The students' score cannot be greater than the total assessment score")
       return;
     }
@@ -163,28 +147,13 @@ const upload = async () => {
   elementsStore.ShowLoadingOverlay()
   try {
     const response = await axiosInstance.post('teacher/assessments', formData)
-    if (uploadTypeSelected.value === 'file') {
-      const students_data = response.data['data']
-      students_data.forEach((st: any) => {
-        userAuthStore.staffData.studentsAssessments[classIndex]['assignments'][subjectIndex]['assessments'][assessmentIndex]['students_with_assessment'].push(st)
-        const _student = userAuthStore.staffData.studentsAssessments[classIndex]['assignments'][subjectIndex]['assessments'][assessmentIndex]['students_without_assessment'].find((item: any) => item['st_id'] === st['st_id'])
-        if (_student) {
-          const _stIndex = userAuthStore.staffData.studentsAssessments[classIndex]['assignments'][subjectIndex]['assessments'][assessmentIndex]['students_without_assessment'].indexOf(_student)
-          userAuthStore.staffData.studentsAssessments[classIndex]['assignments'][subjectIndex]['assessments'][assessmentIndex]['students_without_assessment'].splice(_stIndex, 1)
-        }
-      })
-    }
-    else if (uploadTypeSelected.value === 'noFile') {
-      selectedStudents.value.forEach((st_id: any) => {
-        const _student = userAuthStore.staffData.studentsAssessments[classIndex]['assignments'][subjectIndex]['assessments'][assessmentIndex]['students_without_assessment'].find((item: any) => item['st_id'] === st_id)
-        if (_student) {
-          const _stIndex = userAuthStore.staffData.studentsAssessments[classIndex]['assignments'][subjectIndex]['assessments'][assessmentIndex]['students_without_assessment'].indexOf(_student)
-          userAuthStore.staffData.studentsAssessments[classIndex]['assignments'][subjectIndex]['assessments'][assessmentIndex]['students_without_assessment'].splice(_stIndex, 1)
-          userAuthStore.staffData.studentsAssessments[classIndex]['assignments'][subjectIndex]['assessments'][assessmentIndex]['students_with_assessment'].push({ 'name': _student['name'], 'st_id': _student['st_id'], 'score': Number(studentScore.value.toFixed(2)), 'comment': comment.value })
-        }
-      })
-    }
-    userAuthStore.staffData.studentsAssessments[classIndex]['assignments'][subjectIndex]['assessments'][assessmentIndex]['students_with_assessment'].sort((a: any, b: any) => b.score - a.score)
+    const students_data = response.data['data']
+    students_data.forEach((st: any) => {
+      const student_id:string = st['st_id']
+      storeAssessmentData.students_with_assessment[student_id] = st
+      delete storeAssessmentData.students_without_assessment[student_id]
+    })
+    
     selectedStudents.value = []
     studentScore.value = null
     comment.value = ''
@@ -225,17 +194,17 @@ const editAssessment = async () => {
   formData.append('year', userAuthStore.activeAcademicYear);
   formData.append('term', userAuthStore.activeTerm.toString());
   formData.append('type', 'editAssessment');
-  formData.append('title', assessment['title']);
+  formData.append('title', assessmentData.value.title);
 
   if (editType.value === 'score') {
-    if (assessment['total_score'] >= newScore.value && newScore.value >= 0) {
+    if (assessmentData.value.total_score >= newScore.value && newScore.value >= 0) {
       formData.append('newScore', newScore.value);
       formData.append('editType', 'score');
       formData.append('studentId', studentId.value);
     } else {
       if (newScore.value < 0) {
         formErrorMessage.value = "The student's score cannot be negative"
-      } else if (newScore.value > Number(assessment['total_score'])) {
+      } else if (newScore.value > Number(assessmentData.value.total_score)) {
         formErrorMessage.value = "The student's score cannot be greater than the total assessment score"
       } else if (newScore.value === previousScore.value) {
         formErrorMessage.value = "The new student's score must be different from the old students's score"
@@ -260,7 +229,7 @@ const editAssessment = async () => {
     if (newTitle.value.length > 50) {
       showErrorMessage("The maximum characters for the title must not exceed 50")
       return;
-    } else if (newTitle.value === assessment['title']) {
+    } else if (newTitle.value === assessmentData.value.title) {
       showErrorMessage("The new title must be different from the old assessment title")
       return;
     }
@@ -268,7 +237,7 @@ const editAssessment = async () => {
     formData.append('editType', 'title');
   }
   else if (editType.value === 'description') {
-    if (newDescription.value === assessment['description']) {
+    if (newDescription.value === assessmentData.value.description) {
       showErrorMessage("The new description must be different from the old assessment description")
       return;
     } else if (newDescription.value.length > 100) {
@@ -282,10 +251,12 @@ const editAssessment = async () => {
     if (newTotalScore.value <= 0) {
       showErrorMessage('The total assessment score cannot be negative or zero(0)')
       return;
-    } else if (newTotalScore.value === Number(assessment['total_score'])) {
+    }
+    else if (newTotalScore.value === Number(assessmentData.value.total_score)) {
       showErrorMessage("The new total score must be different from the old assessment total score")
       return;
-    } else if (newTotalScore.value < Math.max(...assessment['students_with_assessment'].map(st => Number(st.score)))) {
+    }
+    else if (newTotalScore.value < Math.max(...Object.values(assessmentData.value.students_with_assessment).map(st=> st.score))) {
       showErrorMessage(`The total assessment score cannot be less than the maximum score of a student. Ensure each student's score is less than ${newTotalScore.value}`)
       return;
     }
@@ -293,7 +264,7 @@ const editAssessment = async () => {
     formData.append('editType', 'totalScore');
   }
   else if (editType.value === 'date') {
-    if (newDate.value === assessment['assessment_date']) {
+    if (newDate.value === assessmentData.value.assessment_date) {
       showErrorMessage('The new date must be different from the old assessment date')
       return;
     }
@@ -309,41 +280,42 @@ const editAssessment = async () => {
   try {
     const response = await axiosInstance.post('teacher/assessments', formData)
     const data = response.data
+    const studentResults = userAuthStore.teacherData.studentsResults?.[className]?.[subjectName]
     if (editType.value === 'score') {
-      userAuthStore.staffData.studentsAssessments[classIndex]['assignments'][subjectIndex]['assessments'][assessmentIndex]['students_with_assessment'][studentIndex.value]['score'] = Number(newScore.value.toFixed(2))
-      userAuthStore.staffData.studentsAssessments[classIndex]['assignments'][subjectIndex]['assessments'][assessmentIndex]['students_with_assessment'].sort((a: any, b: any) => b.score - a.score)
-      const resultStudent = userAuthStore.staffData.studentsResults[classIndex]['results'][subjectIndex]['student_results'].find((item: any) => item['student']['st_id'] === studentId.value)
-      if (resultStudent) {
-        const resultStudentIndex = userAuthStore.staffData.studentsResults[classIndex]['results'][subjectIndex]['student_results'].indexOf(resultStudent)
-        userAuthStore.staffData.studentsResults[classIndex]['results'][subjectIndex]['student_results'][resultStudentIndex]['result'] = data['new_result']
-        userAuthStore.staffData.studentsResults[classIndex]['results'][subjectIndex]['student_results'][resultStudentIndex]['remark'] = data['new_remark']
-        userAuthStore.staffData.studentsResults[classIndex]['results'][subjectIndex]['student_results'][resultStudentIndex]['grade'] = data['new_grade']
-        userAuthStore.staffData.studentsResults[classIndex]['results'][subjectIndex]['student_results'][resultStudentIndex]['total_assessment_score'] = data['new_total_assessment_score']
-        userAuthStore.staffData.studentsResults[classIndex]['results'][subjectIndex]['student_results'].sort((a: any, b: any) => b.result - a.result)
+      storeAssessmentData.students_with_assessment[studentId.value].score = Number(newScore.value.toFixed(2))
+      if (studentResults) {
+        studentResults.student_results[studentId.value].result = data['new_result']
+        studentResults.student_results[studentId.value].remark = data['new_remark']
+        studentResults.student_results[studentId.value].grade = data['new_grade']
+        studentResults.student_results[studentId.value].total_assessment_score = data['new_total_assessment_score']
       }
     }
     else if (editType.value === 'comment') {
-      userAuthStore.staffData.studentsAssessments[classIndex]['assignments'][subjectIndex]['assessments'][assessmentIndex]['students_with_assessment'][studentIndex.value]['comment'] = newComment.value
+      storeAssessmentData.students_with_assessment[studentId.value].comment = newComment.value
     }
     else {
       if (editType.value === 'title') {
-        userAuthStore.staffData.studentsAssessments[classIndex]['assignments'][subjectIndex]['assessments'][assessmentIndex]['title'] = newTitle.value
-        elementsStore.activePage = `TeacherStudentsAssessments,${className},${subjectName},${assessment['title']},${assessmentIndex}`
+        const storeData = userAuthStore.teacherData.studentsAssessments[className][subjectName]
+        const oldTitle = storeAssessmentData.title
+        storeData[newTitle.value] = storeAssessmentData
+        storeData[newTitle.value].title = newTitle.value
+        delete storeData[oldTitle]
+        elementsStore.activePage = `TeacherStudentsAssessments,${className},${subjectName},${newTitle.value}`
       }
       else if (editType.value === 'description') {
-        userAuthStore.staffData.studentsAssessments[classIndex]['assignments'][subjectIndex]['assessments'][assessmentIndex]['description'] = newDescription.value
+        storeAssessmentData.description = newDescription.value
       }
       else if (editType.value === 'totalScore') {
-        userAuthStore.staffData.studentsAssessments[classIndex]['assignments'][subjectIndex]['assessments'][assessmentIndex]['total_score'] = Number(newTotalScore.value.toFixed(2))
-        if (userAuthStore.staffData.studentsResults[classIndex]['results'][subjectIndex]['student_results']?.length > 0) {
-          userAuthStore.staffData.studentsResults[classIndex]['results'][subjectIndex]['student_results'] = data
+        storeAssessmentData.total_score = Number(newTotalScore.value.toFixed(2))
+        if (studentResults) {
+          studentResults.student_results = data
         }
       }
       else if (editType.value === 'date') {
-        userAuthStore.staffData.studentsAssessments[classIndex]['assignments'][subjectIndex]['assessments'][assessmentIndex]['assessment_date'] = newDate.value
+        storeAssessmentData.assessment_date = newDate.value
       }
     }
-    closeOverlay(`TeacherStudentsAssessmentEdit${className}${subjectName}${assessment['title']}${assessmentIndex}`)
+    closeOverlay(`TeacherStudentsAssessmentEdit${className}${subjectName}${assessmentTitle}`)
     elementsStore.HideLoadingOverlay()
   }
   catch (error) {
@@ -374,12 +346,12 @@ const deleteAssessment = async () => {
   formData.append('year', userAuthStore.activeAcademicYear);
   formData.append('term', userAuthStore.activeTerm.toString());
   formData.append('type', 'deleteAssessment');
-  formData.append('title', assessment['title']);
+  formData.append('title', assessmentData.value.title);
 
   try {
     await axiosInstance.post('teacher/assessments', formData)
-    userAuthStore.staffData.studentsAssessments[classIndex]['assignments'][subjectIndex]['assessments'].splice(assessmentIndex, 1)
-    elementsStore.activePage = `TeacherCoursework,${className},${classIndex}`
+    delete userAuthStore.teacherData.studentsAssessments[className][subjectName][assessmentTitle]
+    elementsStore.activePage = `TeacherCoursework,${className}`
     elementsStore.HideLoadingOverlay()
   }
   catch (error) {
@@ -460,19 +432,18 @@ const showOverlay = (element: string) => {
   }
 }
 
-const showForm = (type: string, prevValue: any = null, stName: string = '', stId: string = '', stIndex: any = null) => {
+const showEditForm = (type: string, prevValue: any = null, stName: string = '', stId: string = '') => {
   editType.value = type
   if (type === 'score' || type === 'comment') {
     studentId.value = stId
     studentName.value = stName
-    studentIndex.value = stIndex
     if (type === 'score') {
       previousScore.value = prevValue
     } else {
       previousComment.value = prevValue
     }
   }
-  const formOverlay = document.getElementById(`TeacherStudentsAssessmentEdit${className}${subjectName}${assessment['title']}${assessmentIndex}`)
+  const formOverlay = document.getElementById(`TeacherStudentsAssessmentEdit${className}${subjectName}${assessmentTitle}`)
   if (formOverlay) {
     formOverlay.style.display = 'flex'
   }
@@ -483,19 +454,19 @@ const showForm = (type: string, prevValue: any = null, stName: string = '', stId
 
 <template>
   <div class="content-wrapper"
-    v-show="elementsStore.activePage === `TeacherStudentsAssessments,${className},${subjectName},${assessment['title']},${assessmentIndex}`"
-    :class="{ 'is-active-page': elementsStore.activePage === `TeacherStudentsAssessments,${className},${subjectName},${assessment['title']},${assessmentIndex}` }">
+    v-show="elementsStore.activePage === `TeacherStudentsAssessments,${className},${subjectName},${assessmentTitle}`"
+    :class="{ 'is-active-page': elementsStore.activePage === `TeacherStudentsAssessments,${className},${subjectName},${assessmentTitle}` }">
     <!-- upload overlay -->
-    <div :id="`teacherStudentsAssessmentUpload${className}${subjectName}${assessment['title']}${assessmentIndex}`"
-      class="overlay upload-overlay" v-if="assessment['students_without_assessment'].length > 0">
+    <div :id="`teacherStudentsAssessmentUpload${className}${subjectName}${assessmentTitle}`"
+      class="overlay upload-overlay" v-if="assessmentData.students_without_assessment">
       <form class="overlay-card upload-card">
         <v-btn
-          @click.prevent="closeOverlay(`teacherStudentsAssessmentUpload${className}${subjectName}${assessment['title']}${assessmentIndex}`)"
+          @click.prevent="closeOverlay(`teacherStudentsAssessmentUpload${className}${subjectName}${assessmentTitle}`)"
           color="red" variant="flat" size="small" class="close-btn flex-all">X</v-btn>
-        <h2 v-if="formErrorMessage" class="form-message" style="color: red">{{ formErrorMessage }}</h2>
+        <h2 v-if="formErrorMessage" class="form-error-message" style="color: red">{{ formErrorMessage }}</h2>
         <div class="overlay-card-info-container">
-          <h2 class="info-text">ASSESSMENT: <span class="info-text-value"> {{ assessment['title'] }}</span></h2>
-          <h2 class="info-text">TOTAL SCORE: <span class="info-text-value"> {{ assessment['total_score'] }}</span></h2>
+          <h2 class="info-text">ASSESSMENT: <span class="info-text-value"> {{ assessmentData.title }}</span></h2>
+          <h2 class="info-text">TOTAL SCORE: <span class="info-text-value"> {{ assessmentData.total_score }}</span></h2>
         </div>
         <div class="overlay-card-content-container">
           <v-select v-model="uploadTypeSelected" class="select" label="DATA" variant="solo-filled"
@@ -505,7 +476,7 @@ const showForm = (type: string, prevValue: any = null, stName: string = '', stId
 
           <!-- no file -->
           <v-select v-show="uploadTypeSelected === 'noFile'" multiple clearable v-model="selectedStudents" chips
-            class="select" label="STUDENT(S)" variant="solo-filled" :items="assessment['students_without_assessment']"
+            class="select" label="STUDENT(S)" variant="solo-filled" :items="Object.values(assessmentData.students_without_assessment)"
             item-title="name" item-value="st_id" density="comfortable" persistent-hint
             hint="Select the student(s) you want to upload assessment for">
             <template v-slot:item="{ props, item }">
@@ -538,25 +509,24 @@ const showForm = (type: string, prevValue: any = null, stName: string = '', stId
       </form>
     </div>
     <!-- edit assessment overlay -->
-    <div :id="`TeacherStudentsAssessmentEdit${className}${subjectName}${assessment['title']}${assessmentIndex}`"
-      class="overlay edit-overlay"
-      v-if="userAuthStore.staffData.studentsAssessments?.[classIndex]?.assignments?.[subjectIndex]?.assessments?.[assessmentIndex]">
+    <div :id="`TeacherStudentsAssessmentEdit${className}${subjectName}${assessmentTitle}`"
+      class="overlay edit-overlay">
       <form style="position: relative" class="overlay-card">
         <v-btn
-          @click.prevent="closeOverlay(`TeacherStudentsAssessmentEdit${className}${subjectName}${assessment['title']}${assessmentIndex}`)"
+          @click.prevent="closeOverlay(`TeacherStudentsAssessmentEdit${className}${subjectName}${assessmentTitle}`)"
           class="close-btn" size="small" variant="flat" color="red">X</v-btn>
-        <h2 v-if="formErrorMessage" class="form-message mt-10" style="color: red">{{ formErrorMessage }}</h2>
+        <h2 v-if="formErrorMessage" class="form-error-message mt-10" style="color: red">{{ formErrorMessage }}</h2>
         <div class="overlay-card-info-container">
           <h2 class="info-text" v-if="editType === 'score' || editType === 'comment'">STUDENT: <span
               class="info-text-value"> {{ studentName }} [{{ studentId }}]</span></h2>
           <h2 class="info-text" v-if="editType === 'title'">PREVIOUS TITLE: <span class="info-text-value">
-              {{ assessment['title'] }}</span></h2>
+              {{ assessmentTitle }}</span></h2>
           <h2 class="info-text" v-if="editType === 'description'">PREVIOUS DESCRIPTION: <span class="info-text-value">
-              {{ assessment['description'] }}</span></h2>
+              {{ assessmentData.description }}</span></h2>
           <h2 class="info-text" v-if="editType === 'totalScore'">PREVIOUS TOTAL SCORE: <span class="info-text-value">
-              {{ Number(assessment['total_score']) }}</span></h2>
+              {{ Number(assessmentData.total_score) }}</span></h2>
           <h2 class="info-text" v-if="editType === 'date'">PREVIOUS DATE: <span class="info-text-value">
-              {{ assessment['assessment_date'] }}</span></h2>
+              {{ assessmentData.assessment_date }}</span></h2>
           <h2 class="info-text" v-if="editType === 'score'">PREVIOUS SCORE: <span class="info-text-value">
               {{ previousScore }}</span></h2>
           <h2 class="info-text" v-if="editType === 'comment'">PREVIOUS COMMENT: <span class="info-text-value">
@@ -584,46 +554,43 @@ const showForm = (type: string, prevValue: any = null, stName: string = '', stId
       </form>
     </div>
 
-    <div class="content-header"
-      v-if="userAuthStore.staffData.studentsAssessments?.[classIndex]?.assignments?.[subjectIndex]?.assessments?.[assessmentIndex]">
+    <div class="content-header">
       <div class="content-header-text">
-        TITLE: <span class="content-header-text-value">{{ assessment['title'] }}</span>
-        <v-icon class="ml-1" @click="showForm('title')" color="blue" icon="mdi-pencil" />
+        TITLE: <span class="content-header-text-value">{{ assessmentTitle }}</span>
+        <v-icon class="ml-1" @click="showEditForm('title')" color="blue" icon="mdi-pencil" />
       </div>
       <div class="content-header-text">
-        DESCRIPTION: <span class="content-header-text-value">{{ assessment['description'] }}</span>
-        <v-icon class="ml-1" @click="showForm('description')" color="blue" icon="mdi-pencil" />
+        DESCRIPTION: <span class="content-header-text-value">{{ assessmentData.description }}</span>
+        <v-icon class="ml-1" @click="showEditForm('description')" color="blue" icon="mdi-pencil" />
       </div>
       <div class="content-header-text">
-        TOTAL SCORE: <span class="content-header-text-value">{{ assessment['total_score'] }}</span>
-        <v-icon class="ml-1" @click="showForm('totalScore')" color="blue" icon="mdi-pencil" />
+        TOTAL SCORE: <span class="content-header-text-value">{{ assessmentData.total_score }}</span>
+        <v-icon class="ml-1" @click="showEditForm('totalScore')" color="blue" icon="mdi-pencil" />
       </div>
-      <div class="content-header-text" v-if="assessment['percentage'] !== 0">
-        PERCENTAGE: <span class="content-header-text-value">{{ assessment['percentage'] }}%</span>
+      <div class="content-header-text" v-if="assessmentData.percentage !== 0">
+        PERCENTAGE: <span class="content-header-text-value">{{ assessmentData.percentage }}%</span>
       </div>
       <div class="content-header-text">
-        DATE: <span class="content-header-text-value">{{ assessment['assessment_date'] }}</span>
-        <v-icon class="ml-1" @click="showForm('date')" color="blue" icon="mdi-pencil" />
+        DATE: <span class="content-header-text-value">{{ assessmentData.assessment_date }}</span>
+        <v-icon class="ml-1" @click="showEditForm('date')" color="blue" icon="mdi-pencil" />
       </div>
     </div>
     <div class="content-header btn-container">
-      <v-btn v-if="assessment['students_without_assessment'].length > 0"
-        @click="showOverlay(`teacherStudentsAssessmentUpload${className}${subjectName}${assessment['title']}${assessmentIndex}`)"
+      <v-btn v-if="assessmentData.students_without_assessment"
+        @click="showOverlay(`teacherStudentsAssessmentUpload${className}${subjectName}${assessmentTitle}`)"
         :size="elementsStore.btnSize1" color="blue" varaint="flat">
         ADD STUDENT(S) ASSESSMENT
       </v-btn>
       <v-btn class="ml-5"
-        @click="elementsStore.ShowDeletionOverlay(() => deleteAssessment(), `Are you sure you want to delete the assessment [${assessment['title']} ] and all it's data you have uploaded? You will be redirected to the ${className} class when the process is complete`)"
+        @click="elementsStore.ShowDeletionOverlay(() => deleteAssessment(), `Are you sure you want to delete the assessment [${assessmentTitle} ] and all it's data you have uploaded? You will be redirected to the ${className} class when the process is complete`)"
         :size="elementsStore.btnSize1" append-icon="mdi-delete" color="red" varaint="flat">
         DELETE
       </v-btn>
     </div>
-    <h4 class="no-data"
-      v-if="userAuthStore.staffData.studentsAssessments?.[classIndex]?.assignments?.[subjectIndex]?.assessments?.[assessmentIndex]?.students_with_assessment?.length === 0">
+    <h4 class="no-data" v-if="!assessmentData.students_with_assessment">
       <p>NO DATA</p>
     </h4>
-    <v-table fixed-header class="table"
-      v-if="userAuthStore.staffData.studentsAssessments?.[classIndex]?.assignments?.[subjectIndex]?.assessments?.[assessmentIndex]?.students_with_assessment?.length > 0">
+    <v-table fixed-header class="table" v-if="assessmentData.students_with_assessment">
       <thead>
         <tr>
           <th class="table-head">NAME</th>
@@ -633,19 +600,18 @@ const showForm = (type: string, prevValue: any = null, stName: string = '', stId
       </thead>
       <tbody>
         <tr
-          v-for="(st, index) in userAuthStore.staffData.studentsAssessments?.[classIndex]?.assignments?.[subjectIndex]?.assessments?.[assessmentIndex]?.students_with_assessment"
-          :key="index">
+          v-for="(st, index) in Object.values(assessmentData.students_with_assessment).sort((a, b)=> b.score - a.score)" :key="index">
           <td class="table-data">
-            {{ st['name'] }}
-            <v-list-item-subtitle>{{ st['st_id'] }}</v-list-item-subtitle>
+            {{ st.name }}
+            <v-list-item-subtitle>{{ st.st_id }}</v-list-item-subtitle>
           </td>
           <td class="table-data">
-            <v-btn @click="showForm('score', st['score'], st['name'], st['st_id'], index)" size="small" color="black"
-              variant="flat">{{ st['score'] }}</v-btn>
+            <v-btn @click="showEditForm('score', st.score, st.name, st.st_id)" size="small" color="black"
+              variant="flat">{{ st.score }}</v-btn>
           </td>
           <td class="table-data st-comment" style="text-transform: none">
-            {{ st['comment'] }}
-            <v-btn @click="showForm('comment', st['comment'], st['name'], st['st_id'], index)" size="x-small"
+            {{ st.comment }}
+            <v-btn @click="showEditForm('comment', st.comment, st.name, st.st_id)" size="x-small"
               variant="flat" icon="mdi-pencil"></v-btn>
           </td>
         </tr>

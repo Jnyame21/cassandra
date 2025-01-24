@@ -140,8 +140,8 @@ const showOverlay = (element: string) => {
 </script>
 
 <template>
-  <div class="content-wrapper" v-show="elementsStore.activePage === 'SuperUserSchools'"
-    :class="{ 'is-active-page': elementsStore.activePage === 'SuperUserSchools' }">
+  <div class="content-wrapper" v-show="elementsStore.activePage === 'SuperUserSchools'" :class="{ 'is-active-page': elementsStore.activePage === 'SuperUserSchools' }">
+
     <!-- school creation -->
     <div id="SuperUserCreateSchoolOverlay" class="overlay upload">
       <div class="overlay-card">
@@ -167,7 +167,7 @@ const showOverlay = (element: string) => {
           <v-text-field class="input-field" v-model="schoolEmail" label="EMAIL" hint="Optional" />
         </div>
         <div class="overlay-card-action-btn-container">
-          <v-btn @click="createSchool" :disabled="isCreateSchoolFormValid" :ripple="false" variant="flat" type="submit"
+          <v-btn @click="createSchool()" :disabled="isCreateSchoolFormValid" :ripple="false" variant="flat" type="submit"
             color="black" size="small" append-icon="mdi-checkbox-marked-circle">
             SUBMIT
           </v-btn>
@@ -226,7 +226,8 @@ const showOverlay = (element: string) => {
           <td class="table-data">
             <v-btn
               @click="elementsStore.ShowDeletionOverlay(() => deleteSchool(index, school.identifier), 'Are you sure you want to delete this school. The process cannot be reversed')"
-              variant="flat" icon="mdi-delete" size="x-small" color="red" />
+              variant="flat" icon="mdi-delete" size="x-small" color="red" 
+            />
           </td>
         </tr>
       </tbody>

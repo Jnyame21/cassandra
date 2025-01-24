@@ -7,6 +7,7 @@ import { Bar } from 'vue-chartjs';
 import { useUserAuthStore } from '@/stores/userAuthStore'
 import { useElementsStore } from '@/stores/elementsStore'
 import { defineProps, computed, watch, ref } from 'vue'
+import NoData from './NoData.vue';
 
 const userAuthStore = useUserAuthStore()
 const elementsStore = useElementsStore()
@@ -18,7 +19,6 @@ const selectedStudents: any = ref([])
 const academicYearStartDate = new Date(userAuthStore.userData['academic_year']['start_date'])
 const academicYearEndDate = new Date(userAuthStore.userData['academic_year']['end_date'])
 const academic_year = userAuthStore.activeAcademicYear
-const attendances = ref(getAttendanceData(academicYearStartDate, academicYearEndDate));
 const chartData = ref({
   labels: currentLabels.value,
   datasets: [
@@ -36,21 +36,22 @@ const chartOptions = ref({
 
 interface Props {
   className: string;
-  classIndex: number;
-  students: any[];
-}
-interface Student {
-  user: {
-    first_name: string;
-    last_name: string;
-  };
-  st_id: string;
 }
 
 const props = defineProps<Props>()
 const className = props.className
-const classIndex = props.classIndex || 0
-const students = props.students
+
+const students = computed(()=>{
+  return userAuthStore.teacherData.studentsAttendance[className].students
+})
+
+const attendances = ref(getAttendanceData(academicYearStartDate, academicYearEndDate))
+
+const attendanceData = computed(()=>{
+  return userAuthStore.teacherData.studentsAttendance[className].attendances
+})
+
+const storeStudentAttendance = userAuthStore.teacherData.studentsAttendance[className].attendances
 
 const changeAnalysis = (type: string, month: string = '', week: string = '') => {
   currentLabels.value = []
@@ -105,7 +106,7 @@ const changeAnalysis = (type: string, month: string = '', week: string = '') => 
   }
 }
 
-watch(() => userAuthStore.staffData.studentsattendance?.[classIndex]?.attendances, (newValue) => {
+watch(() => userAuthStore.teacherData.studentsAttendance[className].attendances, (newValue) => {
   if (newValue) {
     attendances.value = getAttendanceData(academicYearStartDate, academicYearEndDate)
     let date: any = null
@@ -115,23 +116,23 @@ watch(() => userAuthStore.staffData.studentsattendance?.[classIndex]?.attendance
     let numberOfStudentsPresents = 0
     if (newValue.length > 0) {
       newValue.forEach((item: any) => {
-        numberOfStudentsPresents = item['students_present'].length
-        date = new Date(item['date'].toString())
+        numberOfStudentsPresents = item.students_present.length
+        date = new Date(item.date.toString())
         dayName = date.toLocaleString('default', { 'weekday': 'short' })
         weekNumber = getWeekNumberInMonth(date)
         monthName = date.toLocaleString('default', { 'month': 'long' }).toUpperCase()
-        const attendanceMonth = attendances.value.find(month => month['month'] === monthName)
+        const attendanceMonth = attendances.value.find(month => month.month === monthName)
         if (attendanceMonth) {
           const monthIndex = attendances.value.indexOf(attendanceMonth)
-          attendances.value[monthIndex]['studentsPresent'] += numberOfStudentsPresents
-          const attendanceWeek = attendanceMonth['weeks'].find((week: any) => week['week'].split(' ')[1] === weekNumber.toString())
+          attendances.value[monthIndex].studentsPresent += numberOfStudentsPresents
+          const attendanceWeek = attendanceMonth.weeks.find(week => week.week.split(' ')[1] === weekNumber.toString())
           if (attendanceWeek) {
-            const attendanceWeekIndex = attendanceMonth['weeks'].indexOf(attendanceWeek)
-            attendances.value[monthIndex]['weeks'][attendanceWeekIndex]['studentsPresent'] += numberOfStudentsPresents
-            const attendanceDay = attendanceWeek['days'].find((day: any) => day['day'].split('(')[0] === dayName.toUpperCase())
+            const attendanceWeekIndex = attendanceMonth.weeks.indexOf(attendanceWeek)
+            attendances.value[monthIndex].weeks[attendanceWeekIndex].studentsPresent += numberOfStudentsPresents
+            const attendanceDay = attendanceWeek.days.find(day => day.day.split('(')[0] === dayName.toUpperCase())
             if (attendanceDay) {
-              const attendanceDayIndex = attendanceWeek['days'].indexOf(attendanceDay)
-              attendances.value[monthIndex]['weeks'][attendanceWeekIndex]['days'][attendanceDayIndex]['studentsPresent'] += numberOfStudentsPresents
+              const attendanceDayIndex = attendanceWeek.days.indexOf(attendanceDay)
+              attendances.value[monthIndex].weeks[attendanceWeekIndex].days[attendanceDayIndex].studentsPresent += numberOfStudentsPresents
             }
           }
         }
@@ -178,14 +179,14 @@ const uploadAttendance = async () => {
   formData.append('className', className)
   formData.append('absentStudents', selectedStudents.value)
   formData.append('year', userAuthStore.activeAcademicYear)
-  formData.append('term', userAuthStore.activeTerm)
+  formData.append('term', userAuthStore.activeTerm.toString())
   formData.append('type', 'create')
   formData.append('date', attendanceUploadDate.value)
 
   try {
     const response = await axiosInstance.post('teacher/students/attendance', formData)
-    userAuthStore.staffData.studentsattendance?.[classIndex].attendances.unshift(response.data)
-    userAuthStore.staffData.studentsattendance?.[classIndex].attendances.sort((a: any, b: any) => {
+    storeStudentAttendance.unshift(response.data)
+    storeStudentAttendance.sort((a: any, b: any) => {
       const dateA = new Date(a.date).getTime();
       const dateB = new Date(b.date).getTime();
       return dateB - dateA;
@@ -225,7 +226,7 @@ const deleteAttendance = async (index: number, date: string) => {
   elementsStore.ShowLoadingOverlay()
   try {
     await axiosInstance.post('teacher/students/attendance', formData)
-    userAuthStore.staffData.studentsattendance?.[classIndex]?.attendances?.splice(index, 1)
+    storeStudentAttendance.splice(index, 1)
     elementsStore.HideLoadingOverlay()
   }
   catch (error) {
@@ -273,19 +274,18 @@ const checkInput = computed(() => {
 
 <template>
   <div class="content-wrapper"
-    v-show="elementsStore.activePage === `TeacherStudentsAttendance,${className},${classIndex}`"
-    :class="{ 'is-active-page': elementsStore.activePage === `TeacherStudentsAttendance,${className},${classIndex}` }">
+    v-show="elementsStore.activePage === `TeacherStudentsAttendance,${className}`"
+    :class="{ 'is-active-page': elementsStore.activePage === `TeacherStudentsAttendance,${className}` }">
     <!-- Attendance overlay -->
-    <div :id="`studentAttendanceOverlay${className}${classIndex}`" class="overlay"
-      v-if="userAuthStore.staffData.studentsattendance?.length > 0">
+    <div :id="`studentAttendanceOverlay${className}`" class="overlay" v-if="students.length > 0">
       <div class="overlay-card attendance-upload">
-        <v-btn @click="hidOverlay(`studentAttendanceOverlay${className}${classIndex}`)" color="red" size="small"
+        <v-btn @click="hidOverlay(`studentAttendanceOverlay${className}`)" color="red" size="small"
           class="close-btn" variant="flat">X</v-btn>
-        <p class="form-message" style="color: red" v-if="formErrorMessage">{{ formErrorMessage }}</p>
+        <p class="form-error-message" style="color: red" v-if="formErrorMessage">{{ formErrorMessage }}</p>
         <v-text-field label="DATE" class="input-field" v-model="attendanceUploadDate"
           hint="select the date for the class attendance" persistent-hint clearable variant="solo-filled" type="date"
           density="compact" />
-        <v-select v-if="students" clearable multiple chips v-model="selectedStudents" class="select" label="STUDENTS"
+        <v-select clearable multiple chips v-model="selectedStudents" class="select" label="STUDENTS"
           :items="students" item-title="name" item-value="st_id" variant="solo-filled" density="comfortable"
           persistent-hint hint="Select the students who did not attend class for the specified date">
           <template v-slot:item="{ props, item }">
@@ -298,11 +298,10 @@ const checkInput = computed(() => {
     </div>
 
     <!-- Analytics overlay -->
-    <div :id="`teacherStudentsAttendanceAnalyticsOverlay${className}${classIndex}`" class="overlay"
-      v-if="userAuthStore.staffData.studentsattendance?.length > 0">
+    <div :id="`teacherStudentsAttendanceAnalyticsOverlay${className}`" class="overlay" v-if="students.length > 0">
       <div class="overlay-card flex-all-c">
         <v-btn class="close-btn"
-          @click="hidOverlay(`teacherStudentsAttendanceAnalyticsOverlay${className}${classIndex}`)" size="small"
+          @click="hidOverlay(`teacherStudentsAttendanceAnalyticsOverlay${className}`)" size="small"
           variant="flat" color="red">X</v-btn>
         <div class="chart-info-wrapper flex-all-c">
           <v-list class="info-container">
@@ -330,21 +329,18 @@ const checkInput = computed(() => {
         </div>
       </div>
     </div>
-    <div class="content-header" v-if="userAuthStore.staffData.studentsattendance?.length > 0">
-      <span class="content-header-title">{{ className }} STUDENTS ATTENDANCE FOR THE {{ academic_year }} ACADEMIC
-        YEAR</span>
+    <div class="content-header">
+      <span class="content-header-title">{{ className }} STUDENTS ATTENDANCE FOR THE {{ academic_year }} ACADEMIC YEAR</span>
     </div>
-    <div class="content-header btn-container" v-if="userAuthStore.staffData.studentsattendance?.length > 0">
-      <v-btn class="mr-3" @click="showOverlay(`studentAttendanceOverlay${className}${classIndex}`)"
+    <div class="content-header btn-container">
+      <v-btn class="mr-3" @click="showOverlay(`studentAttendanceOverlay${className}`)" v-if="students.length > 0"
         :size="elementsStore.btnSize1" color="blue" varaint="flat">ADD ATTENDANCE</v-btn>
-      <v-btn class="ml-3" @click="showOverlay(`teacherStudentsAttendanceAnalyticsOverlay${className}${classIndex}`)"
+      <v-btn class="ml-3" @click="showOverlay(`teacherStudentsAttendanceAnalyticsOverlay${className}`)" v-if="students.length > 0"
         :size="elementsStore.btnSize1" color="blue" varaint="flat">SUMMARY</v-btn>
     </div>
-    <h4 class="no-data" v-if="userAuthStore.staffData.studentsattendance?.[classIndex]?.attendances?.length === 0">
-      <p>No data yet</p>
-    </h4>
-    <v-table class="table" fixed-header
-      v-if="userAuthStore.staffData.studentsattendance?.[classIndex]?.attendances?.length > 0">
+    <NoData v-if="students.length === 0" message="There are no student in this class. Contact your school administrator" />
+    <NoData message="You have not uploaded any student attendance yet" v-if="students.length > 0 && attendanceData.length === 0" />
+    <v-table class="table" fixed-header v-if="students.length > 0 && attendanceData.length > 0">
       <thead>
         <tr>
           <th class="table-head">DATE</th>
@@ -354,25 +350,25 @@ const checkInput = computed(() => {
         </tr>
       </thead>
       <tbody>
-        <tr v-for="(attend, index) in userAuthStore.staffData.studentsattendance[classIndex].attendances" :key="index">
-          <td class="table-data">{{ attend['date'] }}</td>
+        <tr v-for="(_attendance, index) in attendanceData"
+          :key="index">
+          <td class="table-data">{{ _attendance.date }}</td>
           <td style=" padding: 0">
             <v-list class="pa-0">
               <v-list-group>
                 <template v-slot:activator="{ props }">
                   <v-list-item class="title" v-bind="props">
-                    <v-icon icon="mdi-account-circle" />{{ attend['students_present'].length }} STUDENTS
+                    <v-icon icon="mdi-account-circle" />{{ _attendance.students_present.length }} STUDENTS
                   </v-list-item>
                 </template>
-                <v-virtual-scroll class="v-scroll" height="22vh" :items="attend['students_present']">
+                <v-virtual-scroll class="v-scroll" height="22vh" :items="_attendance.students_present">
                   <template v-slot:default="{ item }">
                     <v-list-item style="position: relative">
                       <v-list-item-title>
-                        <p class="user-name">{{ (item as Student).user.first_name }} {{ (item as Student).user.last_name
-                          }}</p>
+                        <p class="user-name">{{ item.user }}</p>
                       </v-list-item-title>
                       <v-list-item-subtitle>
-                        <p class="user-name">{{ (item as Student).st_id }}</p>
+                        <p class="user-name">{{ item.st_id }}</p>
                       </v-list-item-subtitle>
                     </v-list-item>
                   </template>
@@ -385,18 +381,17 @@ const checkInput = computed(() => {
               <v-list-group>
                 <template v-slot:activator="{ props }">
                   <v-list-item class="title" v-bind="props">
-                    <v-icon icon="mdi-account-circle" />{{ attend['students_absent'].length }} STUDENTS
+                    <v-icon icon="mdi-account-circle" />{{ _attendance['students_absent'].length }} STUDENTS
                   </v-list-item>
                 </template>
-                <v-virtual-scroll class="v-scroll" height="22vh" :items="attend['students_absent']">
+                <v-virtual-scroll class="v-scroll" height="22vh" :items="_attendance.students_absent">
                   <template v-slot:default="{ item }">
                     <v-list-item style="position: relative">
                       <v-list-item-title>
-                        <p class="user-name">{{ (item as Student).user.first_name }} {{ (item as Student).user.last_name
-                          }}</p>
+                        <p class="user-name">{{ item.user }}</p>
                       </v-list-item-title>
                       <v-list-item-subtitle>
-                        <p class="user-name">{{ (item as Student).st_id }}</p>
+                        <p class="user-name">{{ item.st_id }}</p>
                       </v-list-item-subtitle>
                     </v-list-item>
                   </template>
@@ -406,8 +401,8 @@ const checkInput = computed(() => {
           </td>
           <td class="table-data">
             <v-btn
-              @click="elementsStore.ShowDeletionOverlay(() => deleteAttendance(index, attend['date']), 'Are you sure you want to delete this attendance data?')"
-              variant="flat" icon="mdi-delete" size="x-small" color="red" 
+              @click="elementsStore.ShowDeletionOverlay(() => deleteAttendance(index, _attendance.date), 'Are you sure you want to delete this attendance data?')"
+              variant="flat" icon="mdi-delete" size="x-small" color="red"
             />
           </td>
         </tr>
@@ -512,4 +507,6 @@ const checkInput = computed(() => {
     height: 70% !important;
   }
 }
+
+
 </style>

@@ -1,17 +1,41 @@
 <script setup lang="ts">
 import { useUserAuthStore } from '@/stores/userAuthStore';
+import { useElementsStore } from '@/stores/elementsStore';
+import { computed } from 'vue';
+import TheLoader from './TheLoader.vue';
 
 const userAuthStore = useUserAuthStore()
+const elementsStore = useElementsStore()
 
-const showOverlay = ()=>{
-  const overlay = document.getElementById('teacherInfoOverlay')
+const headTeacher = computed(()=>{
+  return userAuthStore.studentData.headTeacher
+})
+
+const students = computed(()=>{
+  return userAuthStore.studentData.students
+})
+
+const subjects = computed(()=>{
+  return userAuthStore.studentData.subjects
+})
+
+const maleStudents = computed(()=>{
+  return students.value?.filter(item => item.gender.toLocaleLowerCase() === 'male').length || 0
+})
+
+const femaleStudents = computed(()=>{
+  return students.value?.filter(item => item.gender.toLocaleLowerCase() === 'female').length || 0
+})
+
+const showOverlay = (element:string)=>{
+  const overlay = document.getElementById(element)
   if (overlay){
     overlay.style.display = 'flex'
   }
 }
 
-const closeBtn = ()=>{
-  const overlay = document.getElementById('teacherInfoOverlay')
+const closeBtn = (element:string)=>{
+  const overlay = document.getElementById(element)
   if (overlay){
     overlay.style.display = 'none'
   }
@@ -20,44 +44,99 @@ const closeBtn = ()=>{
 </script>
 
 <template>
-  <div class="content-wrapper">
-    <div id="teacherInfoOverlay" class="overlay" v-if="userAuthStore.studentData.classData">
+  <div class="content-wrapper" v-show="elementsStore.activePage === 'StudentClassStudents'"
+  :class="{ 'is-active-page': elementsStore.activePage === 'StudentClassStudents'}">
+    
+    <div id="teacherInfoOverlay" class="overlay">
       <div class="info-container">
-        <v-btn @click="closeBtn" color="red" size="small" class="close-btn">X</v-btn>
+        <v-btn @click="closeBtn('teacherInfoOverlay')" color="red" size="small" variant="flat" class="close-btn">X</v-btn>
         <div class="flex-all-c ma-5 mt-15">
-          <div class="teacher-info">
+          <p v-if="!headTeacher">No head teacher has been assigned to this class yet</p>
+          <div class="teacher-info" v-if="headTeacher">
             <h4  class="title">CLASS HEAD TEACHER INFORMATION</h4>
-            <p class="title">NAME: <strong>{{ userAuthStore.studentData.classData['head_teacher']['user']['first_name'] }} {{ userAuthStore.studentData.classData['head_teacher']['user']['last_name'] }}</strong></p>
-            <p class="title">GENDER: <strong>{{ userAuthStore.studentData.classData['head_teacher']['gender'] }}</strong></p>
-            <p class="title" v-if="userAuthStore.studentData.classData['head_teacher']['department'] !=='none' ">DEPARTMENT: <strong>{{ userAuthStore.studentData.classData['head_teacher']['department']['name'] }}</strong></p>
-            <p class="title" v-if="userAuthStore.studentData.classData['head_teacher']['contact']">PHONE NO: <strong>{{ userAuthStore.studentData.classData['head_teacher']['contact']}}</strong></p>
-            <p class="title" v-if="userAuthStore.studentData.classData['head_teacher']['user']['email']">EMAIL: <strong>{{ userAuthStore.studentData.classData['head_teacher']['user']['email']}}</strong></p>
-            <p class="title"><img class="teacher-img" :src="userAuthStore.studentData.classData['head_teacher']['img']"></p>
+            <p class="title">NAME: <strong>{{ headTeacher.user }}</strong></p>
+            <p class="title">GENDER: <strong>{{ headTeacher.gender }}</strong></p>
+            <p class="title">PHONE NO: <strong>{{ headTeacher.contact}}</strong></p>
+            <p class="title" v-if="headTeacher.email">EMAIL: <strong>{{ headTeacher.email}}</strong></p>
+            <p class="title"><img class="teacher-img" :src="headTeacher.img"></p>
           </div>
         </div>
       </div>
     </div>
-    <TheLoader v-if="!userAuthStore.studentData.classData" />
-    <div class="content-header" v-if="userAuthStore.studentData.classData && userAuthStore.studentData.classData['head_teacher'] !=='none' ">
-      <v-btn size="small" @click="showOverlay()">HEAD TEACHER</v-btn>
+    
+    <!-- subjects overlay -->
+    <div id="SubjectOverlay" class="overlay" v-if="subjects.length > 0">
+      <div class="overlay-card subjects">
+        <v-btn @click="closeBtn('SubjectOverlay')" color="red" variant="flat" size="small" class="close-btn">X</v-btn>
+        <div class="overlay-card-content-container">
+          <v-table fixed-header class="table">
+            <thead>
+            <tr>
+              <th class="table-head">SUBJECT</th>
+              <th class="table-head">TEACHER NAME</th>
+              <th class="table-head">TEACHER GENDER</th>
+              <th class="table-head">TEACHER CONTACT</th>
+              <th class="table-head">TEACHER EMAIL</th>
+              <th class="table-head">IMAGE</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr v-for="(_subject, i) in subjects" :key="i">
+              <td class="table-data">{{_subject.name}}</td>
+              <td class="table-data">{{_subject.teacher}}<span style="color: red" v-if="!_subject.teacher">No teacher has been assgined yet</span></td>
+              <td class="table-data">{{_subject.teacher_gender}}</td>
+              <td class="table-data">{{_subject.teacher_contact}}</td>
+              <td class="table-data">{{_subject.teacher_email}}</td>
+              <td class="table-data" v-if="_subject.teacher_img"><img class="profile-img" :src="_subject.teacher_img"></td>
+            </tr>
+            </tbody>
+          </v-table>
+        </div>
+      </div>
     </div>
-    <div class="content-header" v-if="userAuthStore.studentData.classData && userAuthStore.studentData.classData['students'].length >0 ">
-      TOTAL NUMBER OF STUDENTS 
-      <h4>{{ userAuthStore.studentData.classData['students'].length }}</h4>
+    <TheLoader v-if="!students" />
+    <div class="content-header" v-if="students">
+      <h4 class="content-header-title">{{ userAuthStore.userData['st_class'] }}</h4>
     </div>
-    <v-table fixed-header class="table" v-if="userAuthStore.studentData.classData && userAuthStore.studentData.classData['students'].length >0 ">
+    <div class="content-header stats" v-if="students">
+      <div class="content-header-text">
+        TOTAL NUMBER OF STUDENTS:
+        <span class="content-header-text-value">
+          {{ students.length }}
+        </span>
+      </div>
+      <div class="content-header-text">
+        MALE STUDENTS:
+        <span class="content-header-text-value">
+          {{ maleStudents }} [{{ ((maleStudents / students.length) * 100).toFixed(1) }}%]
+        </span>
+      </div>
+      <div class="content-header-text">
+        FEMALE STUDENTS:
+        <span class="content-header-text-value">
+          {{ femaleStudents }} [{{ ((femaleStudents / students.length) * 100).toFixed(1) }}%]
+        </span>
+      </div>
+    </div>
+    <div class="content-header" v-if="students">
+      <v-btn class="mr-2" :size="elementsStore.btnSize1" @click="showOverlay('teacherInfoOverlay')" color="blue">HEAD TEACHER</v-btn>
+      <v-btn class="ml-2" v-if="subjects.length > 0" :size="elementsStore.btnSize1" @click="showOverlay('SubjectOverlay')" color="blue">SUBJECTS</v-btn>
+    </div>
+    <v-table fixed-header class="table" v-if="students">
       <thead>
       <tr>
         <th class="table-head">NAME</th>
         <th class="table-head">GENDER</th>
+        <th class="table-head">PHONE NO</th>
         <th class="table-head">IMAGE</th>
       </tr>
       </thead>
       <tbody>
-      <tr v-for="(st, i) in userAuthStore.studentData.classData['students']" :key="i">
-        <td class="table-data">{{st['user']['first_name']}} {{st['user']['last_name']}}</td>
-        <td class="table-data">{{st['gender']}}</td>
-        <td class="table-data"><img class="profile-img" :src="st['img']"></td>
+      <tr v-for="(st, i) in students" :key="i">
+        <td class="table-data">{{st.user}}</td>
+        <td class="table-data">{{st.gender}}</td>
+        <td class="table-data">{{st.contact}}</td>
+        <td class="table-data"><img class="profile-img" :src="st.img"></td>
       </tr>
       </tbody>
     </v-table>
@@ -66,8 +145,17 @@ const closeBtn = ()=>{
 
 <style scoped>
 
+.subjects .overlay-card{
+  max-width: 1200px !important;
+}
+.subjects .overlay-card-content-container{
+  margin-top: 4em;
+}
+.stats{
+  height: 30% !important;
+}
 .table{
-  height: 80% !important;
+  min-height: 50% !important;
 }
 .info-container{
   position: relative;
@@ -99,19 +187,17 @@ const closeBtn = ()=>{
   height: 50px;
   border-radius: 50%;
 }
-.overlay{
-  position: absolute;
-  background: rgba(0, 0, 0, .5);
-  top: 0;
-  left: 0;
-  height: 100%;
-  width: 100%;
-  z-index: 10 !important;
-  align-items: center;
-  justify-content: center;
-  display: none;
+
+@media screen and (min-width: 460px) {
+  .stats{
+    height: 20% !important;
+  }
 }
 
-
+@media screen and (min-width: 720px) {
+  .stats{
+    height: 10% !important;
+  }
+}
 
 </style>

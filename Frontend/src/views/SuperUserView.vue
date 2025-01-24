@@ -100,35 +100,6 @@ onBeforeMount(() => {
         <SuperUserStaff v-for="school in Object.keys(userAuthStore.superUserData.staff)" :key="school"
           :schoolIdentifier="school" />
       </div>
-
-      <!-- <div class="component-wrapper" v-if="userAuthStore.studentData.results" :class="{ 'is-active-component': elementsStore.activePage.split(',')[0] === 'StudentResults' }">
-        <div v-for="[year_name, year_result_data] in Object.entries(userAuthStore.studentData.results )" :key="year_name">
-          <StudentResults v-show="elementsStore.activePage.split(',')[0] === 'StudentResults'" v-for="term_name in Object.keys(year_result_data)"
-          :key="term_name"
-          :yearName="year_name"
-          :termName="term_name"
-          />
-        </div>
-      </div> -->
-      <!-- <div class="component-wrapper" v-if="userAuthStore.studentData.attendances" :class="{ 'is-active-component': elementsStore.activePage.split(',')[0] === 'StudentAttendance' }">
-        <div v-for="[year_name, year_attendance_data] in Object.entries(userAuthStore.studentData.attendances)" :key="year_name">
-          <StudentAttendance v-show="elementsStore.activePage.split(',')[0] === 'StudentAttendance'" v-for="term_name in Object.keys(year_attendance_data)"
-          :key="term_name"
-          :yearName="year_name"
-          :termName="term_name"
-          />
-        </div>
-      </div>
-      <div class="component-wrapper" v-if="userAuthStore.studentData.assessments" :class="{ 'is-active-component': elementsStore.activePage.split(',')[0] === 'StudentAssessments' }">
-        <div v-for="[year_name, year_assessment_data] in Object.entries(userAuthStore.studentData.assessments )" :key="year_name">
-          <StudentAssessments v-show="elementsStore.activePage.split(',')[0] === 'StudentAssessments'" v-for="term_name in Object.keys(year_assessment_data)"
-          :key="term_name"
-          :yearName="year_name"
-          :termName="term_name"
-          />
-        </div>
-      </div> -->
-
     </div>
   </main>
   <TheFooter />
