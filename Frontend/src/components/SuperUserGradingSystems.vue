@@ -147,10 +147,10 @@ const deleteGradingSystem = async (index: number, grading_system_id: string) => 
 }
 
 const isAddRemoveFormValid = computed(()=>{
-  if (addRemoveType.value.split('S')[-1] === 'chool'){
+  if (addRemoveType.value.split('S')[1] === 'chool'){
     return !(gradingSystemSchoolIdentifierSelected.value)
   }
-  else if (addRemoveType.value.split('R')[-1] === 'ange'){
+  else if (addRemoveType.value.split('R')[1] === 'ange'){
     return !(gradingSystemRangesSelected.value.length > 0)
   }
   return true;

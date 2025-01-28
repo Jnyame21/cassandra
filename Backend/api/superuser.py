@@ -39,7 +39,7 @@ def get_superuser_data(request):
     staff_data = {}
     schools = School.objects.all()
     for _school in schools:
-        academic_years = AcademicYear.objects.filter(school=_school)
+        academic_years = AcademicYear.objects.select_related('level').filter(school=_school)
         academic_year_data[_school.identifier] = AcademicYearSerializer(academic_years, many=True).data
         departments = Department.objects.select_related('level', 'school', 'hod').prefetch_related('subjects').filter(school=_school)
         department_data[_school.identifier] = SuperuserDepartmentSerializer(departments, many=True).data
@@ -185,7 +185,7 @@ def superuser_levels(request):
     elif data['type'] == 'delete':
         identifier = data['identifier']
         level = EducationalLevel.objects.get(identifier=identifier)
-        if Student.objects.filter(level=level).exists():
+        if Student.objects.filter(levels=level).exists():
             return Response({'message': f'There are students in this level. Delete the students before'}, status=400)
         elif Classe.objects.filter(level=level).exists():
             return Response({'message': f'There are classes in this level. Delete the classes before'}, status=400)
@@ -193,8 +193,6 @@ def superuser_levels(request):
             return Response({'message': f'There are academic year data in this level. Delete those data before'}, status=400)
         elif Department.objects.filter(level=level).exists():
             return Response({'message': f'There are department data in this level. Delete those data before'}, status=400)
-        elif LinkedClasse.objects.filter(level=level).exists():
-            return Response({'message': f'There are linked classes data in this level. Delete those data before'}, status=400)
         elif SubjectAssignment.objects.filter(level=level).exists():
             return Response({'message': f'There are subject assignments data in this level. Delete those data before'}, status=400)
         elif Assessment.objects.filter(level=level).exists():
@@ -324,7 +322,7 @@ def superuser_programs(request):
         program = Program.objects.get(identifier=identifier)
         if Classe.objects.filter(program=program).exists():
             return Response({'message': f'There are classes doing this program. Remove the program from the classes before'}, status=400)
-        elif Student.objects.filter(program=program).exists():
+        elif Student.objects.filter(programs=program).exists():
             return Response({'message': f'There are students doing this program. Remove the program from the students before'}, status=400)
         
         with transaction.atomic():
@@ -459,6 +457,16 @@ def superuser_classes(request):
         
         return Response(to_class.identifier, status=200)
     
+    elif data['type'] == 'removeLinkedClass':
+        classe = Classe.objects.get(id=int(data['classId']))
+        try:
+            classe.linked_class = None
+            classe.save()
+        except Exception:
+            return Response(status=400)
+        
+        return Response(status=200)
+    
     elif data['type'] == 'setClassHeadTeacher':
         school = School.objects.get(identifier=data['schoolIdentifier'])
         classe = Classe.objects.select_related('head_teacher').get(id=int(data['classId']))
@@ -482,16 +490,6 @@ def superuser_classes(request):
         
         return Response(status=200)
     
-    elif data['type'] == 'removeLinkedClass':
-        classe = Classe.objects.get(id=int(data['classId']))
-        try:
-            classe.linked_class = None
-            classe.save()
-        except Exception:
-            return Response(status=400)
-        
-        return Response(status=200)
-        
     elif data['type'].split('S')[-1] == 'ubject':
         subject_identifiers = json.loads(data['subjectIdentifiers'])
         classe = Classe.objects.prefetch_related('subjects').get(id=data['classId'])
@@ -504,7 +502,7 @@ def superuser_classes(request):
         return Response(status=200)
     
     elif data['type'] == 'deleteClass':
-        classe = Classe.objects.prefetch_related('students').get(id=int(data['id']))
+        classe = Classe.objects.prefetch_related('students').get(id=int(data['classId']))
         if classe.students.all().exists():
             return Response({'message': f'There are students in this class. Remove them before'}, status=400)
         elif LinkedClasse.objects.filter(Q(from_class=classe) | Q(to_class=classe)).exists():
@@ -594,12 +592,11 @@ def superuser_grading_systems(request):
         grading_system_ranges = GradingSystemRange.objects.filter(identifier__in=json.loads(data['rangesIdentifiers']))
         grading_system = GradingSystem.objects.prefetch_related('ranges').get(id=int(data['gradingSystemId']))
         try:
-            grading_system.ranges.add(*grading_system_ranges) if data['type'].split('S')[0] == 'add' else grading_system.ranges.remove(*grading_system_ranges)
+            grading_system.ranges.add(*grading_system_ranges) if data['type'].split('R')[0] == 'add' else grading_system.ranges.remove(*grading_system_ranges)
+            return Response(status=200)
         except Exception as e:
             return Response(status=400)         
         
-        return Response(status=200)
-    
     elif data['type'] == 'delete':
         grading_system = GradingSystem.objects.prefetch_related('schools').get(id=int(data['id']))
         if grading_system.schools.all().exists():
@@ -1167,7 +1164,7 @@ def superuser_staff(request):
         role = StaffRole.objects.get(schools=school, identifier=data['roleIdentifier'])
         if role in staff.roles.all():
             return Response({'message': "The staff you selected already has this role"}, status=400)
-        department = Department.objects.prefetch_related('teachers').get(school=school, level=level, identifier=data['departmentIdentifier']) if data['departmentIdentifier'] else None
+        department = Department.objects.prefetch_related('teachers').get(school=school, identifier=data['departmentIdentifier']) if data['departmentIdentifier'] else None
         
         with transaction.atomic():
             try:
@@ -1204,6 +1201,13 @@ def superuser_staff(request):
         return Response({
             'department': department.identifier if department else '',
         }, status=200)
+    
+    elif data['type'] == 'setCurrentRole':
+        staff = Staff.objects.select_related('current_role').get(school=school, staff_id=data['staffId'])
+        role = StaffRole.objects.get(schools=school, identifier=data['roleIdentifier'])
+        staff.current_role = role
+        staff.save()
+        return Response(status=200)
         
     elif data['type'] == 'delete':
         staff_to_delete = Staff.objects.get(school=school, staff_id=data['staffId'])

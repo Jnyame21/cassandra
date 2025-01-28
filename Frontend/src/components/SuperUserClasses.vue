@@ -222,6 +222,13 @@ const deleteOrRemoveItem = async (delete_or_remove_type: string, class_index: nu
 
 
 const closeOverlay = (element: string) => {
+  classHeadTeacherId.value = ''
+  addRemoveType.value = ''
+  classIndex.value = ''
+  classId.value = ''
+  subjectOptions.value = []
+  linkToClassOptions.value = []
+  linkToClassId.value = ''
   const overlay = document.getElementById(element)
   if (overlay) {
     overlay.style.display = 'none'
@@ -264,8 +271,7 @@ const showOverlay = (element: string, type_option: string = '', class_index: num
     <!-- class creation overlay -->
     <div :id="`SuperUserCreateClassOverlay,${schoolIdentifer}`" class="overlay upload">
       <div class="overlay-card">
-        <v-btn @click="closeOverlay(`SuperUserCreateClassOverlay,${schoolIdentifer}`)" color="red" size="small"
-          variant="flat" class="close-btn">
+        <v-btn @click="closeOverlay(`SuperUserCreateClassOverlay,${schoolIdentifer}`)" color="red" size="small" variant="flat" class="close-btn">
           X
         </v-btn>
         <div class="overlay-card-info-container"></div>
@@ -277,10 +283,11 @@ const showOverlay = (element: string, type_option: string = '', class_index: num
             :items="userAuthStore.superUserData.levels.filter(item => item.schools.includes(schoolIdentifer)).map(item => item.identifier)"
             label="LEVEL" v-model="classLevelIdentifer" density="comfortable" persistent-hint hint="Select the level"
             variant="solo-filled" clearable />
-          <v-select class="select"
-            :items="userAuthStore.superUserData.programs.filter(item => item.schools.includes(schoolIdentifer)).map(item => item.identifier)"
-            label="PROGRAM" v-model="classProgramIdentifer" density="comfortable" persistent-hint
-            hint="Select the program" variant="solo-filled" clearable />
+          <v-select class="select" v-if="userAuthStore.superUserData.levels.find(item=> item.identifier === classLevelIdentifer)?.has_programs"
+            :items="userAuthStore.superUserData.programs.filter(item => item.schools.includes(schoolIdentifer) && item.level === classLevelIdentifer).map(item => ({'title': item.name, 'value': item.identifier}))"
+            label="PROGRAM" item-title="title" item-value="value" v-model="classProgramIdentifer" density="comfortable" persistent-hint
+            hint="Select the program" variant="solo-filled" clearable 
+          />
         </div>
         <div class="overlay-card-action-btn-container">
           <v-btn @click="createClass" :disabled="!(className && classStudentsYear && classLevelIdentifer)"
@@ -320,8 +327,7 @@ const showOverlay = (element: string, type_option: string = '', class_index: num
     <!-- link class and class head teacher overlay overlay -->
     <div :id="`SuperUserLinkClassOrSetClassHeadTeacherOverlay,${schoolIdentifer}`" class="overlay upload">
       <div class="overlay-card">
-        <v-btn @click="closeOverlay(`SuperUserLinkClassOrSetClassHeadTeacherOverlay,${schoolIdentifer}`)" color="red" size="small"
-          variant="flat" class="close-btn">
+        <v-btn @click="closeOverlay(`SuperUserLinkClassOrSetClassHeadTeacherOverlay,${schoolIdentifer}`)" color="red" size="small" variant="flat" class="close-btn">
           X
         </v-btn>
         <div class="overlay-card-info-container"></div>
@@ -331,7 +337,7 @@ const showOverlay = (element: string, type_option: string = '', class_index: num
             hint="Select the class you want to link to this class" clearable />
         </div>
         <div class="overlay-card-content-container" v-if="addRemoveType ==='setClassHeadTeacher'">
-          <v-select class="select" :items="userAuthStore.superUserData.staff[schoolIdentifer].filter(item=> item.levels.includes(userAuthStore.superUserData.classes[schoolIdentifer][Number(classIndex)].level)).map(item=> ({'title': item.user, 'value': item.staff_id}))" 
+          <v-select class="select" :items="userAuthStore.superUserData.staff[schoolIdentifer].filter(item=> item.roles.map(subItem=> subItem.split('|').slice(1).map(sub=> sub.trim()).join(' | ')).includes(userAuthStore.superUserData.classes[schoolIdentifer][Number(classIndex)].level)).map(item=> ({'title': item.user, 'value': item.staff_id}))" 
             variant="solo-filled" density="comfortable" persistent-hint item-title="title" item-value="value" label="CLASS HEAD TEACHER" v-model="classHeadTeacherId"
             hint="Select the staff you want him/her to be the head teacher of the class" clearable>
             <template v-slot:item="{ props, item }">
@@ -369,9 +375,9 @@ const showOverlay = (element: string, type_option: string = '', class_index: num
           <th class="table-head">STUDENTS YEAR</th>
           <th class="table-head">LEVEL</th>
           <th class="table-head">PROGRAM</th>
-          <th class="table-head">HEAD TEACHER</th>
-          <th class="table-head">IDENTIFIER</th>
           <th class="table-head">SUBJECTS</th>
+          <th class="table-head">IDENTIFIER</th>
+          <th class="table-head">HEAD TEACHER</th>
           <th class="table-head">LINKED CLASS</th>
           <th class="table-head">ACTION</th>
         </tr>
@@ -386,24 +392,10 @@ const showOverlay = (element: string, type_option: string = '', class_index: num
             <v-chip :size="elementsStore.btnSize1">{{ _class.students_year }}</v-chip>
           </td>
           <td class="table-data">
-            <v-chip :size="elementsStore.btnSize1">{{ _class.program }}</v-chip>
-          </td>
-          <td class="table-data">
             <v-chip :size="elementsStore.btnSize1">{{ _class.level.split('|')[0] }}</v-chip>
           </td>
-          <td class="table-data flex-all">
-            <v-chip class="chip-link" v-if="_class.head_teacher" @click="showOverlay(`SuperUserLinkClassOrSetClassHeadTeacherOverlay,${schoolIdentifer}`, 'setClassHeadTeacher', index, _class.id, [], [])" :size="elementsStore.btnSize1">
-              {{ _class.head_teacher.user }}[ {{ _class.head_teacher.staff_id }} ]
-            </v-chip>
-            <v-chip class="chip-link" v-if="!_class.head_teacher" @click="showOverlay(`SuperUserLinkClassOrSetClassHeadTeacherOverlay,${schoolIdentifer}`, 'setClassHeadTeacher', index, _class.id, [], [])" :size="elementsStore.btnSize1">
-              SET CLASS HEAD TEACHER
-            </v-chip>
-            <v-icon v-if="_class.head_teacher" class="ma-2" icon="mdi-delete" size="x-small" color="red"
-              @click="elementsStore.ShowDeletionOverlay(() => deleteOrRemoveItem('removeClassHeadTeacher', index, _class.id), 'Are you sure you want to remove the class head teacher?')"
-            />
-          </td>
           <td class="table-data">
-            <v-chip :size="elementsStore.btnSize1">{{ _class.identifier }}</v-chip>
+            <v-chip :size="elementsStore.btnSize1">{{ _class.program?.split('|')[0] }}</v-chip>
           </td>
           <td class="table-data flex-all">
             <v-btn @click="showOverlay(`SuperUserSubjectsUnderClassOverlay,${schoolIdentifer}`, '', 0, _class.id, _class.subjects)" size="x-small" color="blue" variant="flat">
@@ -414,6 +406,20 @@ const showOverlay = (element: string, type_option: string = '', class_index: num
             />
             <v-icon class="ma-2" v-if="userAuthStore.superUserData.schools" icon="mdi-minus" color="blue"
               @click="showOverlay(`SuperUserAddRemoveSubjectFromClassOverlay,${schoolIdentifer}`, 'removeSubject', index, _class.id, _class.subjects)"
+            />
+          </td>
+          <td class="table-data">
+            <v-chip :size="elementsStore.btnSize1">{{ _class.identifier }}</v-chip>
+          </td>
+          <td class="table-data flex-all">
+            <v-chip class="chip-link" v-if="_class.head_teacher" @click="showOverlay(`SuperUserLinkClassOrSetClassHeadTeacherOverlay,${schoolIdentifer}`, 'setClassHeadTeacher', index, _class.id, [], [])" :size="elementsStore.btnSize1">
+              {{ _class.head_teacher.user }}[ {{ _class.head_teacher.staff_id }} ]
+            </v-chip>
+            <v-chip class="chip-link" v-if="!_class.head_teacher" @click="showOverlay(`SuperUserLinkClassOrSetClassHeadTeacherOverlay,${schoolIdentifer}`, 'setClassHeadTeacher', index, _class.id, [], [])" color="blue" :size="elementsStore.btnSize1">
+              SET CLASS HEAD TEACHER
+            </v-chip>
+            <v-icon v-if="_class.head_teacher" class="ma-2" icon="mdi-delete" size="x-small" color="red"
+              @click="elementsStore.ShowDeletionOverlay(() => deleteOrRemoveItem('removeClassHeadTeacher', index, _class.id), 'Are you sure you want to remove the class head teacher?')"
             />
           </td>
           <td class="table-data">

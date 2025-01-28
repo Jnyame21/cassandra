@@ -5,6 +5,7 @@ import { useElementsStore } from '@/stores/elementsStore'
 import { ref, computed } from 'vue'
 import { AxiosError } from 'axios';
 import axiosInstance from '@/utils/axiosInstance';
+import { academicYearOptions } from '@/utils/util';
 
 const userAuthStore = useUserAuthStore()
 const elementsStore = useElementsStore()
@@ -33,9 +34,6 @@ const academicYearPeriodDivisionOptions = [
 const term3DivisionOptions = [
   { 'label': 'TERM', 'value': 'term' },
   { 'label': 'TRIMESTER', 'value': 'trimester' },
-]
-const academicYearOptions = [
-  '2020/2021', '2021/2022', '2022/2023', '2023/2024', '2024/2025', '2025/2026', '2027/2028', '2028/2029', '2029/2030', '2030/2031', '2031/2032', '2032/2033', '2033/2034'
 ]
 
 const showErrorMessage = (message: string) => {

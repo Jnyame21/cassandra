@@ -75,12 +75,6 @@ const checkSuperuser = async (to: any, from: any, next: NavigationGuardNext) => 
   else if (userAuthStore.userData?.['role']?.toLowerCase() === 'staff') {
     if (!userAuthStore.teacherData.staff &&  ['teacher', 'hod'].includes(userAuthStore.userData['staff_role'].toLowerCase())) {
       userAuthStore.getTeacherData()
-      userAuthStore.getTeacherStudentsAssessments()
-      userAuthStore.getTeacherStudentsExams()
-      userAuthStore.getTeacherStudentResults()
-      if (userAuthStore.userData?.['staff_role'].toLowerCase() === 'hod') {
-        userAuthStore.getHodData()
-      }
     } 
     else if (!userAuthStore.adminData.staff && userAuthStore.userData?.['staff_role'].toLowerCase() === 'administrator') {
       userAuthStore.getAdminData()
@@ -113,12 +107,6 @@ const checkStudent = async (to: any, from: any, next: NavigationGuardNext) => {
   else if (userAuthStore.userData?.['role']?.toLowerCase() === 'staff') {
     if (!userAuthStore.teacherData.staff && ['teacher', 'hod'].includes(userAuthStore.userData['staff_role'].toLowerCase())) {
       userAuthStore.getTeacherData()
-      userAuthStore.getTeacherStudentsAssessments()
-      userAuthStore.getTeacherStudentsExams()
-      userAuthStore.getTeacherStudentResults()
-      if (userAuthStore.userData?.['staff_role'].toLowerCase() === 'hod') {
-        userAuthStore.getHodData()
-      }
     } 
     else if (!userAuthStore.adminData.staff && userAuthStore.userData?.['staff_role'].toLowerCase() === 'administrator') {
       userAuthStore.getAdminData()
@@ -153,12 +141,6 @@ const checkStaff = async (to: any, from: any, next: NavigationGuardNext) => {
   }
   if (!userAuthStore.teacherData.staff && ['teacher', 'hod'].includes(userAuthStore.userData['staff_role'].toLowerCase())) {
     userAuthStore.getTeacherData()
-    userAuthStore.getTeacherStudentsAssessments()
-    userAuthStore.getTeacherStudentsExams()
-    userAuthStore.getTeacherStudentResults()
-    if (userAuthStore.userData?.['staff_role'].toLowerCase() === 'hod') {
-      userAuthStore.getHodData()
-    }
   } 
   else if (!userAuthStore.adminData.staff && userAuthStore.userData?.['staff_role'].toLowerCase() === 'administrator') {
     userAuthStore.getAdminData()

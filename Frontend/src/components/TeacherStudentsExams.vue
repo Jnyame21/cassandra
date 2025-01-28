@@ -6,7 +6,7 @@ import { useUserAuthStore } from '@/stores/userAuthStore'
 import { useElementsStore } from '@/stores/elementsStore'
 import { defineProps } from 'vue'
 import { computed } from 'vue'
-import NoData from './NoData.vue';
+import NoData from '@/components/NoData.vue';
 
 const userAuthStore = useUserAuthStore()
 const elementsStore = useElementsStore()
@@ -35,10 +35,6 @@ const uploadOptions = [
 ]
 
 const examsData = computed(()=>{
-  return userAuthStore.teacherData.studentsExams[className][subjectName]
-})
-
-const storeExamsData = computed(()=>{
   return userAuthStore.teacherData.studentsExams[className][subjectName]
 })
 
@@ -126,8 +122,8 @@ const upload = async () => {
     const students_data = response.data['data']
     students_data.forEach((st: any) => {
       const student_id = st['st_id']
-      storeExamsData.value.students_with_exams[student_id] = st
-      delete storeExamsData.value.students_without_exams[student_id]
+      userAuthStore.teacherData.studentsExams[className][subjectName].students_with_exams[student_id] = st
+      delete userAuthStore.teacherData.studentsExams[className][subjectName].students_without_exams[student_id]
     })
 
     selectedStudents.value = []
@@ -172,9 +168,9 @@ const deleteExam = async () => {
 
   try {
     await axiosInstance.post('teacher/exams', formData)
-    storeExamsData.value.total_score = 0
-    storeExamsData.value.percentage = 0
-    storeExamsData.value.students_with_exams = {}
+    userAuthStore.teacherData.studentsExams[className][subjectName].total_score = 0
+    userAuthStore.teacherData.studentsExams[className][subjectName].percentage = 0
+    userAuthStore.teacherData.studentsExams[className][subjectName].students_with_exams = {}
     elementsStore.HideLoadingOverlay()
   }
   catch (error) {
@@ -237,20 +233,19 @@ const editExam = async () => {
   try {
     const response = await axiosInstance.post('teacher/exams', formData)
     const data = response.data
-    const studentResult = userAuthStore.teacherData.studentsResults?.[className]?.[subjectName]
     if (editType.value === 'studentScore') {
-      storeExamsData.value.students_with_exams[studentId.value].score = Number(studentScore.value.toFixed(2))
-      if (studentResult) {
-        studentResult.student_results[studentId.value].result = data['new_result']
-        studentResult.student_results[studentId.value].remark = data['new_remark']
-        studentResult.student_results[studentId.value].grade = data['new_grade']
-        studentResult.student_results[studentId.value].exam_score = data['new_exam_score']
+      userAuthStore.teacherData.studentsExams[className][subjectName].students_with_exams[studentId.value].score = Number(studentScore.value.toFixed(2))
+      if (userAuthStore.teacherData.studentsResults?.[className]?.[subjectName]?.student_results) {
+        userAuthStore.teacherData.studentsResults[className][subjectName].student_results[studentId.value].result = data['new_result']
+        userAuthStore.teacherData.studentsResults[className][subjectName].student_results[studentId.value].remark = data['new_remark']
+        userAuthStore.teacherData.studentsResults[className][subjectName].student_results[studentId.value].grade = data['new_grade']
+        userAuthStore.teacherData.studentsResults[className][subjectName].student_results[studentId.value].exam_score = data['new_exam_score']
       }
     }
     else if (editType.value === 'totalScore') {
-      storeExamsData.value.total_score = Number(newTotalScore.value.toFixed(2))
-      if (studentResult) {
-        studentResult.student_results = data
+      userAuthStore.teacherData.studentsExams[className][subjectName].total_score = Number(newTotalScore.value.toFixed(2))
+      if (userAuthStore.teacherData.studentsResults?.[className]?.[subjectName]?.student_results) {
+        userAuthStore.teacherData.studentsResults[className][subjectName].student_results = data
       }
     }
     

@@ -224,8 +224,8 @@ const showOverlay = (element: string, type_option:string='', subject_index:numbe
         <tr>
           <th class="table-head">ID</th>
           <th class="table-head">NAME</th>
-          <th class="table-head">LEVEL</th>
           <th class="table-head">IDENTIFIER</th>
+          <th class="table-head">LEVEL</th>
           <th class="table-head">SCHOOLS</th>
           <th class="table-head">ACTION</th>
         </tr>
@@ -237,10 +237,10 @@ const showOverlay = (element: string, type_option:string='', subject_index:numbe
             <v-chip :size="elementsStore.btnSize1">{{ subject.name }}</v-chip>
           </td>
           <td class="table-data">
-            <v-chip :size="elementsStore.btnSize1">{{ subject.level }}</v-chip>
+            <v-chip :size="elementsStore.btnSize1">{{ subject.identifier }}</v-chip>
           </td>
           <td class="table-data">
-            <v-chip :size="elementsStore.btnSize1">{{ subject.identifier }}</v-chip>
+            <v-chip :size="elementsStore.btnSize1">{{ subject.level.split('|')[0] }}</v-chip>
           </td>
           <td class="table-data flex-all">
             <v-btn @click="showOverlay('SuperUserSchoolsUnderSubjectOverlay', '', 0, '', subject.schools)" variant="flat" size="x-small" color="blue">

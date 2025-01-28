@@ -43,7 +43,6 @@ const editStudentId = ref('')
 interface Props {
   className: string;
   classIndex: number;
-  students: any[];
   subjects: string[];
   students_year: number;
   program: string | null;
@@ -52,12 +51,14 @@ interface Props {
 const props = defineProps<Props>()
 const className = props.className
 const classIndex = props.classIndex || 0
-const students = props.students
 const subjects = props.subjects
 const students_year = props.students_year
 const program = props.program || null
 const selectedHeadTeacher = ref('')
 
+const students = computed(() => {
+  return userAuthStore.adminData.classes[classIndex].students || []
+})
 
 let timeout: any;
 const showErrorMessage = (message: string) => {
@@ -83,11 +84,11 @@ const nameTypeOptions = [
 ]
 
 const maleStudents = computed(() => {
-  return students.filter((_st: any) => _st['gender'].toLowerCase() === 'male').length
+  return students.value.filter(item => item.gender.toLowerCase() === 'male').length
 })
 
 const femaleStudents = computed(() => {
-  return students.filter((_st: any) => _st['gender'].toLowerCase() === 'female').length
+  return students.value.filter(item => item.gender.toLowerCase() === 'female').length
 })
 
 const removeClassHeadTeacher = async () => {
@@ -235,7 +236,7 @@ const addStudent = async () => {
     }
     else if (typeSelected.value === 'file') {
       data.forEach((_student: any) => {
-        userAuthStore.adminData.classes[classIndex]['students'].unshift(_student)
+        userAuthStore.adminData.classes[classIndex].students.unshift(_student)
       })
     }
     firstName.value = ''

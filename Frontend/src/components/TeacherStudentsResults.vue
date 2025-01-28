@@ -5,7 +5,7 @@ import { useUserAuthStore } from '@/stores/userAuthStore'
 import { useElementsStore } from '@/stores/elementsStore'
 import { computed, defineProps } from 'vue'
 import { getGradeColor } from '@/utils/util';
-import NoData from './NoData.vue';
+import NoData from '@/components/NoData.vue';
 
 const userAuthStore = useUserAuthStore()
 const elementsStore = useElementsStore()
@@ -22,8 +22,6 @@ const resultData =  computed(()=>{
   return userAuthStore.teacherData.studentsResults[className][subjectName]
 })
 
-const storeResultData = userAuthStore.teacherData.studentsResults[className][subjectName]
-
 const deleteResults = async () => {
   elementsStore.ShowLoadingOverlay()
   const formData = new FormData()
@@ -35,17 +33,14 @@ const deleteResults = async () => {
 
   try {
     await axiosInstance.post('teacher/students-result', formData)
-    storeResultData.total_assessment_percentage = 0
-    storeResultData.exam_percentage = 0
-    storeResultData.student_results = {}
-    const studentAssessments = userAuthStore.teacherData.studentsAssessments?.[className]?.[subjectName]
-    if (studentAssessments)
-    Object.values(studentAssessments).forEach(item => {
+    userAuthStore.teacherData.studentsResults[className][subjectName] = {}
+    if (Object.keys(userAuthStore.teacherData.studentsAssessments?.[className]?.[subjectName] || {}).length > 0) {
+      Object.values(userAuthStore.teacherData.studentsAssessments[className][subjectName]).forEach(item => {
       item.percentage = 0
     })
-    const studentExamsData = userAuthStore.teacherData.studentsExams?.[className]?.[subjectName]
-    if (studentExamsData){
-      studentExamsData.percentage = 0
+    }
+    if (Object.keys(userAuthStore.teacherData.studentsExams?.[className]?.[subjectName] || {}).length > 0) {
+      userAuthStore.teacherData.studentsExams[className][subjectName].percentage = 0
     }
     
     elementsStore.HideLoadingOverlay()
@@ -73,19 +68,17 @@ const deleteResults = async () => {
 </script>
 
 <template>
-  <div class="content-wrapper"
-    v-show="elementsStore.activePage === `TeacherStudentsResults,${className},${subjectName}`"
-    :class="{ 'is-active-page': elementsStore.activePage === `TeacherStudentsResults,${className},${subjectName}` }">
-    <NoData message="You have not generated the students' results yet" v-if="Object.keys(resultData.student_results).length ===0"/>
-    <div class="content-header" v-if="Object.keys(resultData.student_results).length > 0">
+  <div class="content-wrapper" v-show="elementsStore.activePage === `TeacherStudentsResults,${className},${subjectName}`" :class="{ 'is-active-page': elementsStore.activePage === `TeacherStudentsResults,${className},${subjectName}` }">
+    <NoData message="You have not generated students results yet" v-if="Object.keys(resultData).length === 0"/>
+    <div class="content-header" v-if="Object.keys(resultData).length > 0">
       <span class="content-header-title">{{ className }} {{ subjectName }} STUDENT RESULTS</span>
     </div>
-    <div class="content-header btn-container" v-if="Object.keys(resultData.student_results).length > 0">
+    <div class="content-header btn-container" v-if="Object.keys(resultData).length > 0">
       <v-btn
         @click="elementsStore.ShowDeletionOverlay(() => deleteResults(), `Are you sure you want to delete all the ${subjectName} results data you have uploaded for this class?`)"
         color="red" :size="elementsStore.btnSize1" append-icon="mdi-delete" varaint="flat">DELETE RESULTS</v-btn>
     </div>
-    <v-table fixed-header class="table" v-if="Object.keys(resultData.student_results).length > 0">
+    <v-table fixed-header class="table" v-if="Object.keys(resultData).length > 0">
       <thead>
         <tr>
           <th class="table-head">NAME</th>
@@ -96,7 +89,7 @@ const deleteResults = async () => {
         </tr>
       </thead>
       <tbody>
-        <tr v-for="(st, index) in Object.values(resultData.student_results).sort((a, b)=> b.result - a.result)" :key="index">
+        <tr v-for="(st, index) in Object.values(resultData.student_results || {}).sort((a, b)=> b.result - a.result)" :key="index">
           <td class="table-data">
             {{ st.student.name }}
             <v-list-item-subtitle>{{ st.student.st_id }}</v-list-item-subtitle>
@@ -185,4 +178,6 @@ const deleteResults = async () => {
     font-size: 1rem !important;
   }
 }
+
+
 </style>

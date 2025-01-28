@@ -497,8 +497,7 @@ const closeOverlay = (element: string) => {
     <!-- add/remove staff role overlay -->
     <div id="AdminAddRemoveStaffRoleOverlay" class="overlay" v-if="staff">
       <div class="overlay-card edit-overlay">
-        <v-btn @click="closeOverlay('AdminAddRemoveStaffRoleOverlay')" color="red" size="small" variant="flat"
-          class="close-btn">
+        <v-btn @click="closeOverlay('AdminAddRemoveStaffRoleOverlay')" color="red" size="small" variant="flat" class="close-btn">
           X
         </v-btn>
         <p class="form-error-message" v-if="formErrorMessage">{{ formErrorMessage }}</p>
@@ -507,7 +506,7 @@ const closeOverlay = (element: string) => {
         <div class="overlay-card-content-container" v-if="staffRoleEditType === 'addRole'">
           <v-select class="select"
             :items="staffRoleOptions.map(item => ({ 'title': item.split('|')[0], 'value': item }))" label="ROLE"
-            v-model="staffRoleSelected" variant="solo-filled" @update:model-value="() => staffDepartmentSelected = ''"
+            v-model="staffRoleSelected" item-title="title" item-value="value" variant="solo-filled" @update:model-value="() => staffDepartmentSelected = ''"
             density="comfortable" persistent-hint hint="Select the staff role" clearable />
           <v-select class="select"
             v-if="staffRoleSelected?.split('|')[0].trim().toLowerCase() === 'teacher' && userAuthStore.userData['current_role']['level']['has_departments']"
@@ -761,7 +760,7 @@ const closeOverlay = (element: string) => {
       <tbody>
         <tr v-for="(_staff, index) in staff" :key="index">
           <td class="table-data">
-            {{ _staff['user'] }}<v-icon icon="mdi-pencil"
+            <v-btn class="mr-1" size="x-small" v-if="_staff.staff_id === userAuthStore.userData['staff_id']" color="black">YOU</v-btn>{{ _staff['user'] }}<v-icon icon="mdi-pencil"
               @click="showEditOverlay('user', _staff['user'], _staff['staff_id'], index)" color="black" />
             <v-list-item-subtitle>
               {{ _staff['staff_id'] }}<v-icon v-if="userAuthStore.userData['school']['staff_id']" icon="mdi-pencil"

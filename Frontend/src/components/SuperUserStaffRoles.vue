@@ -226,8 +226,8 @@ const showOverlay = (element: string, type_option:string='', role_index:number=0
         <tr>
           <th class="table-head">ID</th>
           <th class="table-head">NAME</th>
-          <th class="table-head">LEVEL</th>
           <th class="table-head">IDENTIFIER</th>
+          <th class="table-head">LEVEL</th>
           <th class="table-head">SCHOOLS</th>
           <th class="table-head">ACTION</th>
         </tr>
@@ -239,10 +239,10 @@ const showOverlay = (element: string, type_option:string='', role_index:number=0
             <v-chip :text="role.name" :size="elementsStore.btnSize1" />
           </td>
           <td class="table-data">
-            <v-chip :text="role.level" :size="elementsStore.btnSize1" />
+            <v-chip :text="role.identifier" :size="elementsStore.btnSize1" />
           </td>
           <td class="table-data">
-            <v-chip :text="`${role.identifier.split('|')[1]} ${role.identifier.split('|')[0]}`" :size="elementsStore.btnSize1" />
+            <v-chip :text="role.level.split('|')[0]" :size="elementsStore.btnSize1" />
           </td>
           <td class="table-data flex-all">
             <v-btn @click="showOverlay('SuperUserSchoolsUnderStaffRoleOverlay', '', 0, '', role.schools)" variant="flat" size="x-small" color="blue">

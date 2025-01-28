@@ -4,6 +4,7 @@ import { AxiosError } from 'axios';
 import { useUserAuthStore } from '@/stores/userAuthStore'
 import { useElementsStore } from '@/stores/elementsStore'
 import { computed, ref } from 'vue'
+import { academicYearOptions } from '@/utils/util';
 const userAuthStore = useUserAuthStore()
 const elementsStore = useElementsStore()
 const academicYearName = ref('')
@@ -146,11 +147,16 @@ const showOverlay = (element: string) => {
           X
         </v-btn>
         <div class="overlay-card-content-container">
-          <v-text-field class="input-field" v-model="academicYearName" label="NAME" clearable />
+          <v-select class="select"
+            :items="academicYearOptions"
+            label="NAME" v-model="academicYearName" density="comfortable" persistent-hint
+            hint="Select the name of the academic year" variant="solo-filled" clearable 
+          />
           <v-select class="select"
             :items="userAuthStore.superUserData.levels.filter(item => item.schools.includes(schoolIdentifier)).map(item => item.identifier)"
             label="LEVEL" v-model="academicYearLevelIdentifer" density="comfortable" persistent-hint
-            hint="Select the level" variant="solo-filled" clearable />
+            hint="Select the level" variant="solo-filled" clearable 
+          />
           <v-text-field class="input-field" v-model="startDate" type="date" label="START DATE" clearable />
           <v-text-field class="input-field" v-model="endDate" type="date" label="END DATE" clearable />
           <v-text-field class="input-field" v-model="studentsGraduationDate" type="date"
@@ -205,7 +211,7 @@ const showOverlay = (element: string) => {
           <th class="table-head">END DATE</th>
           <th class="table-head">TERM ONE END DATE</th>
           <th class="table-head">TERM TWO START DATE</th>
-          <th class="table-head">TERM TWO START DATE</th>
+          <th class="table-head">TERM TWO END DATE</th>
           <th class="table-head">TERM THREE START DATE</th>
           <th class="table-head">TERM THREE END DATE</th>
           <th class="table-head">STUDENTS GRADUATION DATE</th>
@@ -214,16 +220,36 @@ const showOverlay = (element: string) => {
       </thead>
       <tbody>
         <tr v-for="(academicYear, index) in academicYears" :key="index">
-          <td class="table-data">{{ academicYear.name }}</td>
-          <td class="table-data">{{ academicYear.level }}</td>
-          <td class="table-data">{{ academicYear.start_date }}</td>
-          <td class="table-data">{{ academicYear.end_date }}</td>
-          <td class="table-data">{{ academicYear.term_1_end_date }}</td>
-          <td class="table-data">{{ academicYear.term_2_start_date }}</td>
-          <td class="table-data">{{ academicYear.term_2_end_date }}</td>
-          <td class="table-data">{{ academicYear.term_3_start_date }}</td>
-          <td class="table-data">{{ academicYear.term_3_end_date }}</td>
-          <td class="table-data">{{ academicYear.students_graduation_date }}</td>
+          <td class="table-data">
+            <v-chip>{{ academicYear.name }}</v-chip>
+          </td>
+          <td class="table-data">
+            <v-chip>{{ academicYear.level.split('|')[0] }}</v-chip>
+          </td>
+          <td class="table-data">
+            <v-chip>{{ academicYear.start_date }}</v-chip>
+          </td>
+          <td class="table-data">
+            <v-chip>{{ academicYear.end_date }}</v-chip>
+          </td>
+          <td class="table-data">
+            <v-chip>{{ academicYear.term_1_end_date }}</v-chip>
+          </td>
+          <td class="table-data">
+            <v-chip>{{ academicYear.term_2_start_date }}</v-chip>
+          </td>
+          <td class="table-data">
+            <v-chip>{{ academicYear.term_2_end_date }}</v-chip>
+          </td>
+          <td class="table-data">
+            <v-chip v-if="academicYear.term_3_start_date">{{ academicYear.term_3_start_date }}</v-chip>
+          </td>
+          <td class="table-data">
+            <v-chip v-if="academicYear.term_3_end_date">{{ academicYear.term_3_end_date }}</v-chip>
+          </td>
+          <td class="table-data">
+            <v-chip v-if="academicYear.students_graduation_date">{{ academicYear.students_graduation_date }}</v-chip>
+          </td>
           <td class="table-data flex-all" style="display: flex">
             <v-btn class="ma-2"
               @click="elementsStore.ShowDeletionOverlay(() => deleteAcademicYear(index, academicYear.id.toString()), 'Are you sure you want to delete this academic year. The process cannot be reversed')"

@@ -123,8 +123,7 @@ const showOverlay = (element: string) => {
     <!-- subject assignment upload overlay -->
     <div id="AdminSubjectAssignmentOverlay" class="overlay upload">
       <div class="overlay-card">
-        <v-btn @click="closeOverlay('AdminSubjectAssignmentOverlay')" color="red" size="small" variant="flat"
-          class="close-btn">
+        <v-btn @click="closeOverlay('AdminSubjectAssignmentOverlay')" color="red" size="small" variant="flat" class="close-btn">
           X
         </v-btn>
         <p class="form-error-message" v-if="formErrorMessage" style="color: red">{{ formErrorMessage }}</p>

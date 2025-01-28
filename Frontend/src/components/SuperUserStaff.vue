@@ -304,7 +304,7 @@ const addRemoveStaffRole = async () => {
     formData.append('roleIdentifier', staffRoleSelected.value)
     formData.append('departmentIdentifier', staffDepartmentSelected.value)
   }
-  else if (staffRoleEditType.value === 'removeRole'){
+  else if (['setCurrentRole', 'removeRole'].includes(staffRoleEditType.value)){
     formData.append('roleIdentifier', staffRoleSelected.value)
   }
 
@@ -324,6 +324,9 @@ const addRemoveStaffRole = async () => {
         const staffDepartmentItemIndex = userAuthStore.superUserData.staff[schoolIdentifier][staffIndex.value as number].departments.indexOf(responseDepartment)
         userAuthStore.superUserData.staff[schoolIdentifier][staffIndex.value as number].departments.splice(staffDepartmentItemIndex, 1)
       }
+    }
+    else if (staffRoleEditType.value === 'setCurrentRole'){
+      userAuthStore.superUserData.staff[schoolIdentifier][staffIndex.value as number].current_role = staffRoleSelected.value
     }
     staffId.value = ''
     staffIndex.value = null
@@ -412,13 +415,12 @@ const editImgChange = (event: any) => {
   newValue.value = file
 }
 
-const showEditOverlay = (edit_type: string, previous_value: string, staff_id: string, staff_index: number, staff_levels:string[]=[]) => {
+const showEditOverlay = (edit_type: string, previous_value: string, staff_id: string, staff_index: number) => {
   const overlay = document.getElementById(`SuperUserEditStaffOverlay,${schoolIdentifier}`)
   previousValue.value = previous_value
   editType.value = edit_type
   editStaffId.value = staff_id
   editStaffIndex.value = staff_index
-  levels.value = staff_levels
   if (overlay) {
     overlay.style.display = 'flex'
   }
@@ -437,14 +439,14 @@ const showStaffRoleEditOverlay = (edit_type:string, staff_index:number, staff_id
 
 const isAddRemoveStaffRoleFormValid = computed(()=>{
   if (staffRoleEditType.value === 'addRole'){
-    if (staffRoleSelected.value?.split('|')[0].trim().toLowerCase() === 'teacher' && userAuthStore.superUserData.levels.find(item=> item.identifier === staffRoleSelected.value?.split('|').slice(1).join('|'))?.has_departments) {
+    if (staffRoleSelected.value?.split(' | ')[0].toLowerCase() === 'teacher' && userAuthStore.superUserData.levels.find(item=> item.identifier === staffRoleSelected.value?.split(' | ').slice(1).join(' | '))?.has_departments) {
       return !(staffRoleSelected.value && staffDepartmentSelected.value)
     }
-    else if (staffRoleSelected.value && !userAuthStore.superUserData.levels.find(item=> item.identifier === staffRoleSelected.value?.split('|').slice(1).join('|'))?.has_departments) {
+    else if (staffRoleSelected.value) {
       return !(staffRoleSelected.value)
     }
   }
-  else if (staffRoleEditType.value === 'removeRole'){
+  else if (['setCurrentRole', 'removeRole'].includes(staffRoleEditType.value)){
     return !(staffRoleSelected.value)
   }
   return true
@@ -491,7 +493,7 @@ const closeOverlay = (element: string) => {
   <div class="content-wrapper" v-show="elementsStore.activePage === `SuperUserStaff,${schoolIdentifier}`"
     :class="{ 'is-active-page': elementsStore.activePage === `SuperUserStaff,${schoolIdentifier}` }">
 
-    <!-- add/remove staff role overlay -->
+    <!-- add/remove/change staff role overlay -->
     <div :id="`SuperUserAddRemoveStaffRoleOverlay,${schoolIdentifier}`" class="overlay" v-if="staff">
       <div class="overlay-card edit-overlay">
         <v-btn @click="closeOverlay(`SuperUserAddRemoveStaffRoleOverlay,${schoolIdentifier}`)" color="red" size="small"
@@ -506,8 +508,8 @@ const closeOverlay = (element: string) => {
             label="ROLE" v-model="staffRoleSelected" item-title="title" item-value="value" variant="solo-filled" @update:model-value="()=> staffDepartmentSelected = ''" density="comfortable" persistent-hint
             hint="Select the staff role you want to add" clearable 
           />
-          <v-select class="select" v-if="userAuthStore.superUserData.levels.find(item=> item.schools.includes(schoolIdentifier) && item.identifier===staffRoleSelected?.split('|').slice(1).join('|'))?.has_departments && staffRoleSelected?.split('|')[0].trim().toLowerCase() === 'teacher'" 
-            :items="userAuthStore.superUserData.departments[schoolIdentifier].filter(item=> item.level=staffRoleSelected?.split('|').slice(1).join('|')).map(item=> ({'title': `${item.identifier.split('|')[1]} ${item.name}`, 'value': item.identifier}))"
+          <v-select class="select" v-if="userAuthStore.superUserData.levels.find(item=> item.schools.includes(schoolIdentifier) && item.identifier===staffRoleSelected?.split(' | ').slice(1).join(' | '))?.has_departments && staffRoleSelected?.split(' | ')[0].toLowerCase() === 'teacher'" 
+            :items="userAuthStore.superUserData.departments[schoolIdentifier].filter(item=> item.level=staffRoleSelected?.split(' | ').slice(1).join(' | ')).map(item=> ({'title': `${item.identifier.split('|')[1]} ${item.name}`, 'value': item.identifier}))"
             label="DEPARTMENT" v-model="staffDepartmentSelected" item-title="title" item-value="value" variant="solo-filled" density="comfortable" persistent-hint
             hint="Select the department the staff is in" clearable 
           />
@@ -516,6 +518,12 @@ const closeOverlay = (element: string) => {
           <v-select class="select" :items="staffRoleOptions.map(item=> ({'title': `${item.split('|')[1]} ${item.split('|')[0]}`, 'value': item}))"
             label="ROLE" v-model="staffRoleSelected" item-title="title" item-value="value" variant="solo-filled" density="comfortable" persistent-hint
             hint="Select the staff role you want to remove" clearable 
+          />
+        </div>
+        <div class="overlay-card-content-container" v-if="staffRoleEditType === 'setCurrentRole'">
+          <v-select class="select" :items="staffRoleOptions.map(item=> ({'title': `${item.split('|')[1]} ${item.split('|')[0]}`, 'value': item}))"
+            label="ROLE" v-model="staffRoleSelected" item-title="title" item-value="value" variant="solo-filled" density="comfortable" persistent-hint
+            hint="Select the staff role you want set as the staff's current rolle" clearable 
           />
         </div>
         <div class="overlay-card-action-btn-container">
@@ -760,6 +768,7 @@ const closeOverlay = (element: string) => {
           <th class="table-head">NAME</th>
           <th class="table-head">GENDER</th>
           <th class="table-head">ROLES</th>
+          <th class="table-head">CURRENT ROLE</th>
           <th class="table-head">DEPARTMENTS</th>
           <th class="table-head">SUBJECTS</th>
           <th class="table-head">DATE OF BIRTH</th>
@@ -797,11 +806,16 @@ const closeOverlay = (element: string) => {
             <v-icon class="ma-2" v-if="_staff.roles.length > 0" @click="showStaffRoleEditOverlay('removeRole', index, _staff.staff_id, _staff.roles)" icon="mdi-minus" color="blue"/>
           </td>
           <td class="table-data">
+            <v-chip class="ma-2 chip-link" v-if="!_staff.current_role" @click="showStaffRoleEditOverlay('setCurrentRole', index, _staff.staff_id, _staff.roles)" text="SET CURRENT ROLE" color="blue" :size="elementsStore.btnSize1" />
+            <v-chip class="ma-2 chip-link" v-if="_staff.current_role" @click="showStaffRoleEditOverlay('setCurrentRole', index, _staff.staff_id, _staff.roles)" :text="`${_staff.current_role.split('|')[1]} ${_staff.current_role.split('|')[0]}`" :size="elementsStore.btnSize1" />
+            <v-icon class="ma-2 chip-link" v-if="_staff.current_role" @click="showStaffRoleEditOverlay('setCurrentRole', index, _staff.staff_id, _staff.roles)" icon="mdi-change" color="blue"/>
+          </td>
+          <td class="table-data">
             <v-chip v-for="(department, ind) in _staff.departments" :key="ind" :text="`${department.split('|')[0]} [${department.split('|')[1]}]`" :size="elementsStore.btnSize1" />
           </td>
           <td class="table-data">
             <v-chip v-for="(_subj, ind) in _staff.subjects" :key="ind" :text="`${_subj.split('|')[1]} ${_subj.split('|')[0]}`" :size="elementsStore.btnSize1" />
-            <v-icon icon="mdi-pencil" @click="showEditOverlay('subjects', '', _staff['staff_id'], index, _staff.levels)" color="black" />
+            <v-icon icon="mdi-pencil" @click="showEditOverlay('subjects', '', _staff['staff_id'], index)" color="black" />
           </td>
           <td class="table-data">
             {{ _staff['dob'] }}<v-icon icon="mdi-pencil"

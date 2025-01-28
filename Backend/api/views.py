@@ -102,6 +102,9 @@ def change_staff_role(request):
     data = request.data
     staff = Staff.objects.select_related('school', 'current_role__level').get(user=request.user)
     school = staff.school
+    if not AcademicYear.objects.filter(school=school, level=staff.current_role.level).exists():
+        return Response('There are no academic year data for the level of your role. Contact your school administrator', status=400)
+    
     role_identifier = data['newRoleIdentifier']
     new_role = StaffRole.objects.get(schools=school, identifier=role_identifier)
     staff.current_role = new_role

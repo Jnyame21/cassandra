@@ -1010,7 +1010,7 @@ def school_admin_students(request):
 
     elif data['type'] == 'getFile':
         students_class = data['studentsClassName']
-        file = get_students_creation_file(sch_admin.current_level, students_class)
+        file = get_students_creation_file(current_level, students_class)
         filename = f'{students_class}.xlsx'
         response = FileResponse(file, as_attachment=True, filename=filename)
         response['Content-Type'] = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'

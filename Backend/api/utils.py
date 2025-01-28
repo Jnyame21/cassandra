@@ -6,6 +6,7 @@ from django.conf import settings
 from rest_framework.response import Response
 from django.core.files.storage import default_storage
 from django.core.validators import EmailValidator
+from django.http import FileResponse
 
 # Document Manipulation
 from openpyxl import Workbook, load_workbook, styles
@@ -58,7 +59,7 @@ class ErrorMessageException(Exception):
 
 # Get the current academic year
 def get_current_academic_year(school, level, user_data):
-    academic_years = AcademicYear.objects.filter(school=school, level=level).order_by('-start_date')
+    academic_years = AcademicYear.objects.select_related('level').filter(school=school, level=level).order_by('-start_date')
     current_date = timezone.now().date()
     if academic_years.exists():
         current_year = academic_years[0]
@@ -96,10 +97,10 @@ def get_current_academic_year(school, level, user_data):
             return user_data
 
         else:
-            return 'There is not current academic year for you, contact you school administrator'
+            return 'There is no current academic year for your current level, contact you school administrator'
 
     else:
-        return 'There is not current academic year for you, contact you school administrator'
+        return 'There is no current academic year for your current level, contact you school administrator'
     
         
 def get_staff_creation_file(school):
@@ -152,6 +153,19 @@ def get_students_creation_file(level, students_classname:str):
     byte_file.seek(0)
     
     return byte_file
+
+
+def send_file(file_type:str, byte_file:io.BytesIO, filename:str):
+    byte_file.seek(0)
+    if file_type == 'excel':
+        filename += '.xlsx'
+        response = FileResponse(byte_file, as_attachment=True, filename=filename)
+        response['Content-Type'] = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    else:
+        raise Exception('Invalid file type')
+    
+    response['Access-Control-Expose-Headers'] = 'Content-Disposition'
+    return response
 
 
 def get_school_folder(school_name: str):

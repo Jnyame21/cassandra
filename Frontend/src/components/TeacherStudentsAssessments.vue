@@ -6,6 +6,7 @@ import { useUserAuthStore } from '@/stores/userAuthStore'
 import { useElementsStore } from '@/stores/elementsStore'
 import { defineProps } from 'vue'
 import { computed } from 'vue'
+import { downloadFile } from '@/utils/util';
 
 
 const userAuthStore = useUserAuthStore()
@@ -44,8 +45,6 @@ const assessmentData = computed(()=>{
   return userAuthStore.teacherData.studentsAssessments[className][subjectName][assessmentTitle]
 })
 
-const storeAssessmentData = userAuthStore.teacherData.studentsAssessments[className][subjectName][assessmentTitle]
-
 const clearMessage = () => {
   setTimeout(() => {
     formErrorMessage.value = ''
@@ -78,7 +77,7 @@ const generateFile = async () => {
   const formData = new FormData()
   formData.append('studentsClassName', className)
   formData.append('subject', subjectName)
-  formData.append('selectedStudents', JSON.stringify(assessmentData.value.students_without_assessment))
+  formData.append('selectedStudents', JSON.stringify(Object.values(assessmentData.value.students_without_assessment)))
   formData.append('type', 'getFile')
   formData.append('year', userAuthStore.activeAcademicYear)
   formData.append('term', userAuthStore.activeTerm.toString())
@@ -86,13 +85,8 @@ const generateFile = async () => {
   formData.append('totalScore', assessmentData.value.total_score.toString())
 
   try {
-    const response = await axiosInstance.post('teacher/assessments', formData)
-    const link = document.createElement('a');
-    link.href = response.data.file_path;
-    link.setAttribute('download', response.data.filename);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const response = await axiosInstance.post('teacher/assessments', formData, {'responseType': 'blob'})
+    downloadFile(response.headers, response.data, `${assessmentData.value.title}`)
     elementsStore.HideLoadingOverlay();
   }
   catch (error) {
@@ -150,16 +144,16 @@ const upload = async () => {
     const students_data = response.data['data']
     students_data.forEach((st: any) => {
       const student_id:string = st['st_id']
-      storeAssessmentData.students_with_assessment[student_id] = st
-      delete storeAssessmentData.students_without_assessment[student_id]
+      userAuthStore.teacherData.studentsAssessments[className][subjectName][assessmentTitle].students_with_assessment[student_id] = st
+      delete userAuthStore.teacherData.studentsAssessments[className][subjectName][assessmentTitle].students_without_assessment[student_id]
     })
     
     selectedStudents.value = []
     studentScore.value = null
     comment.value = ''
     fileToUpload.value = null
+    closeOverlay(`teacherStudentsAssessmentUploadOverlay,${className},${subjectName},${assessmentTitle}`)
     elementsStore.HideLoadingOverlay()
-    elementsStore.ShowOverlay(response.data.message, 'green', null, null)
   }
   catch (error) {
     elementsStore.HideLoadingOverlay()
@@ -280,42 +274,40 @@ const editAssessment = async () => {
   try {
     const response = await axiosInstance.post('teacher/assessments', formData)
     const data = response.data
-    const studentResults = userAuthStore.teacherData.studentsResults?.[className]?.[subjectName]
     if (editType.value === 'score') {
-      storeAssessmentData.students_with_assessment[studentId.value].score = Number(newScore.value.toFixed(2))
-      if (studentResults) {
-        studentResults.student_results[studentId.value].result = data['new_result']
-        studentResults.student_results[studentId.value].remark = data['new_remark']
-        studentResults.student_results[studentId.value].grade = data['new_grade']
-        studentResults.student_results[studentId.value].total_assessment_score = data['new_total_assessment_score']
+      userAuthStore.teacherData.studentsAssessments[className][subjectName][assessmentTitle].students_with_assessment[studentId.value].score = Number(newScore.value.toFixed(2))
+      if (userAuthStore.teacherData.studentsResults?.[className]?.[subjectName]?.student_results) {
+        userAuthStore.teacherData.studentsResults[className][subjectName].student_results[studentId.value].result = data['new_result']
+        userAuthStore.teacherData.studentsResults[className][subjectName].student_results[studentId.value].remark = data['new_remark']
+        userAuthStore.teacherData.studentsResults[className][subjectName].student_results[studentId.value].grade = data['new_grade']
+        userAuthStore.teacherData.studentsResults[className][subjectName].student_results[studentId.value].total_assessment_score = data['new_total_assessment_score']
       }
     }
     else if (editType.value === 'comment') {
-      storeAssessmentData.students_with_assessment[studentId.value].comment = newComment.value
+      userAuthStore.teacherData.studentsAssessments[className][subjectName][assessmentTitle].students_with_assessment[studentId.value].comment = newComment.value
     }
     else {
       if (editType.value === 'title') {
-        const storeData = userAuthStore.teacherData.studentsAssessments[className][subjectName]
-        const oldTitle = storeAssessmentData.title
-        storeData[newTitle.value] = storeAssessmentData
-        storeData[newTitle.value].title = newTitle.value
-        delete storeData[oldTitle]
+        const oldTitle = userAuthStore.teacherData.studentsAssessments[className][subjectName][assessmentTitle].title
+        userAuthStore.teacherData.studentsAssessments[className][subjectName][newTitle.value] = userAuthStore.teacherData.studentsAssessments[className][subjectName][assessmentTitle]
+        userAuthStore.teacherData.studentsAssessments[className][subjectName][newTitle.value].title = newTitle.value
+        delete userAuthStore.teacherData.studentsAssessments[className][subjectName][oldTitle]
         elementsStore.activePage = `TeacherStudentsAssessments,${className},${subjectName},${newTitle.value}`
       }
       else if (editType.value === 'description') {
-        storeAssessmentData.description = newDescription.value
+        userAuthStore.teacherData.studentsAssessments[className][subjectName][assessmentTitle].description = newDescription.value
       }
       else if (editType.value === 'totalScore') {
-        storeAssessmentData.total_score = Number(newTotalScore.value.toFixed(2))
-        if (studentResults) {
-          studentResults.student_results = data
+        userAuthStore.teacherData.studentsAssessments[className][subjectName][assessmentTitle].total_score = Number(newTotalScore.value.toFixed(2))
+        if (Object.keys(userAuthStore.teacherData.studentsResults?.[className]?.[subjectName]?.student_results || {}).length > 0) {
+          userAuthStore.teacherData.studentsResults[className][subjectName].student_results = data
         }
       }
       else if (editType.value === 'date') {
-        storeAssessmentData.assessment_date = newDate.value
+        userAuthStore.teacherData.studentsAssessments[className][subjectName][assessmentTitle].assessment_date = newDate.value
       }
     }
-    closeOverlay(`TeacherStudentsAssessmentEdit${className}${subjectName}${assessmentTitle}`)
+    closeOverlay(`TeacherStudentsAssessmentEditOverlay,${className},${subjectName},${assessmentTitle}`)
     elementsStore.HideLoadingOverlay()
   }
   catch (error) {
@@ -432,20 +424,13 @@ const showOverlay = (element: string) => {
   }
 }
 
-const showEditForm = (type: string, prevValue: any = null, stName: string = '', stId: string = '') => {
+const showEditForm = (type: string, stName: string = '', stId: string = '') => {
   editType.value = type
-  if (type === 'score' || type === 'comment') {
-    studentId.value = stId
-    studentName.value = stName
-    if (type === 'score') {
-      previousScore.value = prevValue
-    } else {
-      previousComment.value = prevValue
-    }
-  }
-  const formOverlay = document.getElementById(`TeacherStudentsAssessmentEdit${className}${subjectName}${assessmentTitle}`)
-  if (formOverlay) {
-    formOverlay.style.display = 'flex'
+  studentId.value = stId
+  studentName.value = stName
+  const overlay = document.getElementById(`TeacherStudentsAssessmentEditOverlay,${className},${subjectName},${assessmentTitle}`)
+  if (overlay) {
+    overlay.style.display = 'flex'
   }
 }
 
@@ -453,15 +438,13 @@ const showEditForm = (type: string, prevValue: any = null, stName: string = '', 
 </script>
 
 <template>
-  <div class="content-wrapper"
-    v-show="elementsStore.activePage === `TeacherStudentsAssessments,${className},${subjectName},${assessmentTitle}`"
-    :class="{ 'is-active-page': elementsStore.activePage === `TeacherStudentsAssessments,${className},${subjectName},${assessmentTitle}` }">
+  <div class="content-wrapper" v-show="elementsStore.activePage === `TeacherStudentsAssessments,${className},${subjectName},${assessmentTitle}`" :class="{ 'is-active-page': elementsStore.activePage === `TeacherStudentsAssessments,${className},${subjectName},${assessmentTitle}` }">
+    
     <!-- upload overlay -->
-    <div :id="`teacherStudentsAssessmentUpload${className}${subjectName}${assessmentTitle}`"
+    <div :id="`teacherStudentsAssessmentUploadOverlay,${className},${subjectName},${assessmentTitle}`"
       class="overlay upload-overlay" v-if="assessmentData.students_without_assessment">
       <form class="overlay-card upload-card">
-        <v-btn
-          @click.prevent="closeOverlay(`teacherStudentsAssessmentUpload${className}${subjectName}${assessmentTitle}`)"
+        <v-btn @click.prevent="closeOverlay(`teacherStudentsAssessmentUploadOverlay,${className},${subjectName},${assessmentTitle}`)"
           color="red" variant="flat" size="small" class="close-btn flex-all">X</v-btn>
         <h2 v-if="formErrorMessage" class="form-error-message" style="color: red">{{ formErrorMessage }}</h2>
         <div class="overlay-card-info-container">
@@ -508,29 +491,20 @@ const showEditForm = (type: string, prevValue: any = null, stName: string = '', 
         </div>
       </form>
     </div>
+
     <!-- edit assessment overlay -->
-    <div :id="`TeacherStudentsAssessmentEdit${className}${subjectName}${assessmentTitle}`"
+    <div :id="`TeacherStudentsAssessmentEditOverlay,${className},${subjectName},${assessmentTitle}`"
       class="overlay edit-overlay">
       <form style="position: relative" class="overlay-card">
         <v-btn
-          @click.prevent="closeOverlay(`TeacherStudentsAssessmentEdit${className}${subjectName}${assessmentTitle}`)"
-          class="close-btn" size="small" variant="flat" color="red">X</v-btn>
-        <h2 v-if="formErrorMessage" class="form-error-message mt-10" style="color: red">{{ formErrorMessage }}</h2>
+          @click.prevent="closeOverlay(`TeacherStudentsAssessmentEditOverlay,${className},${subjectName},${assessmentTitle}`)" class="close-btn" size="small" variant="flat" color="red">
+          X
+        </v-btn>
+        <h2 v-if="formErrorMessage" class="form-error-message" style="color: red">{{ formErrorMessage }}</h2>
         <div class="overlay-card-info-container">
-          <h2 class="info-text" v-if="editType === 'score' || editType === 'comment'">STUDENT: <span
-              class="info-text-value"> {{ studentName }} [{{ studentId }}]</span></h2>
-          <h2 class="info-text" v-if="editType === 'title'">PREVIOUS TITLE: <span class="info-text-value">
-              {{ assessmentTitle }}</span></h2>
-          <h2 class="info-text" v-if="editType === 'description'">PREVIOUS DESCRIPTION: <span class="info-text-value">
-              {{ assessmentData.description }}</span></h2>
-          <h2 class="info-text" v-if="editType === 'totalScore'">PREVIOUS TOTAL SCORE: <span class="info-text-value">
-              {{ Number(assessmentData.total_score) }}</span></h2>
-          <h2 class="info-text" v-if="editType === 'date'">PREVIOUS DATE: <span class="info-text-value">
-              {{ assessmentData.assessment_date }}</span></h2>
-          <h2 class="info-text" v-if="editType === 'score'">PREVIOUS SCORE: <span class="info-text-value">
-              {{ previousScore }}</span></h2>
-          <h2 class="info-text" v-if="editType === 'comment'">PREVIOUS COMMENT: <span class="info-text-value">
-              {{ previousComment }}</span></h2>
+          <h2 class="info-text" v-if="editType === 'score' || editType === 'comment'">
+            STUDENT: <span class="info-text-value"> {{ studentName }} [{{ studentId }}]</span>
+          </h2>
         </div>
         <div class="overlay-card-content-container">
           <v-text-field v-if="editType === 'score'" v-model.number="newScore" type="number" class="input-field"
@@ -548,8 +522,9 @@ const showEditForm = (type: string, prevValue: any = null, stName: string = '', 
             hint="Select a new date" label="NEW DATE" variant="solo-filled" />
         </div>
         <div class="overlay-card-action-btn-container">
-          <v-btn :disabled="isEditFormValid" @click.prevent="editAssessment" type="submit" color="black" class="mt-10"
-            size="small" variant="flat" append-icon="mdi-checkbox-marked-circle">SUBMIT</v-btn>
+          <v-btn :disabled="isEditFormValid" @click.prevent="editAssessment" type="submit" color="black" size="small" variant="flat" append-icon="mdi-checkbox-marked-circle">
+            SUBMIT
+          </v-btn>
         </div>
       </form>
     </div>
@@ -577,7 +552,7 @@ const showEditForm = (type: string, prevValue: any = null, stName: string = '', 
     </div>
     <div class="content-header btn-container">
       <v-btn v-if="assessmentData.students_without_assessment"
-        @click="showOverlay(`teacherStudentsAssessmentUpload${className}${subjectName}${assessmentTitle}`)"
+        @click="showOverlay(`teacherStudentsAssessmentUploadOverlay,${className},${subjectName},${assessmentTitle}`)"
         :size="elementsStore.btnSize1" color="blue" varaint="flat">
         ADD STUDENT(S) ASSESSMENT
       </v-btn>
@@ -587,10 +562,10 @@ const showEditForm = (type: string, prevValue: any = null, stName: string = '', 
         DELETE
       </v-btn>
     </div>
-    <h4 class="no-data" v-if="!assessmentData.students_with_assessment">
+    <h4 class="no-data" v-if="Object.keys(assessmentData.students_with_assessment || {}).length === 0">
       <p>NO DATA</p>
     </h4>
-    <v-table fixed-header class="table" v-if="assessmentData.students_with_assessment">
+    <v-table fixed-header class="table" v-if="Object.keys(assessmentData.students_with_assessment || {}).length > 0">
       <thead>
         <tr>
           <th class="table-head">NAME</th>
@@ -606,13 +581,11 @@ const showEditForm = (type: string, prevValue: any = null, stName: string = '', 
             <v-list-item-subtitle>{{ st.st_id }}</v-list-item-subtitle>
           </td>
           <td class="table-data">
-            <v-btn @click="showEditForm('score', st.score, st.name, st.st_id)" size="small" color="black"
-              variant="flat">{{ st.score }}</v-btn>
+            <v-btn @click="showEditForm('score', st.name, st.st_id)" size="small" color="black" variant="flat">{{ st.score }}</v-btn>
           </td>
-          <td class="table-data st-comment" style="text-transform: none">
+          <td class="table-data st-comment">
             {{ st.comment }}
-            <v-btn @click="showEditForm('comment', st.comment, st.name, st.st_id)" size="x-small"
-              variant="flat" icon="mdi-pencil"></v-btn>
+            <v-btn @click="showEditForm('comment', st.name, st.st_id)" size="x-small" variant="flat" icon="mdi-pencil"></v-btn>
           </td>
         </tr>
       </tbody>
@@ -633,6 +606,9 @@ const showEditForm = (type: string, prevValue: any = null, stName: string = '', 
   height: 65% !important;
 }
 
+.overlay-card-info-container{
+  margin-top: 3em !important;
+}
 .upload-overlay .no-students {
   height: fit-content !important;
 }
@@ -672,7 +648,9 @@ const showEditForm = (type: string, prevValue: any = null, stName: string = '', 
 .edit-overlay .overlay-card-action-btn-container {
   height: 20% !important;
 }
-
+.st-comment {
+  text-transform: none !important;
+}
 .info-text,
 .info-text-value {
   font-size: .75rem !important;

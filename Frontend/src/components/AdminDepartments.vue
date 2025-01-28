@@ -11,10 +11,10 @@ const staffDepartmentSelected = ref('')
 const departmentHODSelected = ref('')
 const departmentTeachers = ref<{user: string; staff_id: string}[]>([])
 const departmentSubjects = ref<string[]>([])
-
 const departments = computed(() => {
   return userAuthStore.adminData.departments
 })
+
 
 const setDepartmentHOD = async () => {
   elementsStore.ShowLoadingOverlay()
@@ -100,6 +100,7 @@ const closeOverlay = (element: string) => {
     overlay.style.display = 'none'
   }
 }
+
 
 
 </script>

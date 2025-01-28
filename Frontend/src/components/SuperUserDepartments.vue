@@ -239,7 +239,7 @@ const showOverlay = (element:string, type_option:string = '', department_index:n
         <div class="overlay-card-info-container">
         </div>
         <div class="overlay-card-content-container">
-          <p class="subject-card" v-for="(subject, index) in subjectOptions" :key=index>{{ subject }}</p>
+          <p class="subject-card" v-for="(subject, index) in subjectOptions" :key=index>{{ subject.split('|')[0] }}( {{ subject.split('|')[1] }} )</p>
         </div>
       </div>
     </div>
@@ -279,10 +279,13 @@ const showOverlay = (element:string, type_option:string = '', department_index:n
           <h4 v-if="previousHod" >PREVIOUS HOD: </h4><v-chip v-if="previousHod">{{ previousHod }}</v-chip>
         </div>
         <div class="overlay-card-content-container">
-          <v-select class="select" :items="userAuthStore.superUserData.staff[schoolIdentifier].map(item => ({'name': item.user, 'value': item.staff_id}))"
-            label="STAFF" v-model="departmentHodSelected" item-title="name" item-value="value" density="comfortable" persistent-hint
-            hint="Select the staff you want to set as HOD of this department" variant="solo-filled" clearable
-          />
+          <v-select class="select" :items="userAuthStore.superUserData.staff[schoolIdentifier].filter(item=> item.departments.includes(userAuthStore.superUserData.departments[schoolIdentifier].find(subItem=> subItem.id === Number(departmentId))?.identifier || '')).map(item => ({'title': item.user, 'value': item.staff_id}))"
+            label="STAFF" v-model="departmentHodSelected" item-title="title" item-value="value" density="comfortable" persistent-hint
+            hint="Select the staff you want to set as HOD of this department" variant="solo-filled" clearable>
+            <template v-slot:item="{ props, item }">
+              <v-list-item v-bind="props" :subtitle="item.raw.value"></v-list-item>
+            </template>
+          </v-select>
         </div>
         <div class="overlay-card-action-btn-container">
           <v-btn @click="setDepartmentHod()" :disabled="!(departmentHodSelected)" :ripple="false"
@@ -347,7 +350,7 @@ const showOverlay = (element:string, type_option:string = '', department_index:n
             <v-chip :size="elementsStore.btnSize1">{{ department.name }}</v-chip>
           </td>
           <td class="table-data">
-            <v-chip :size="elementsStore.btnSize1">{{ department.level }}</v-chip>
+            <v-chip :size="elementsStore.btnSize1">{{ department.level.split('|')[0] }}</v-chip>
           </td>
           <td class="table-data">
             <v-chip :size="elementsStore.btnSize1">{{ department.identifier }}</v-chip>
@@ -361,7 +364,7 @@ const showOverlay = (element:string, type_option:string = '', department_index:n
             </td>
           <td class="table-data">
             <v-chip class="chip-link" v-if="department.hod" @click="showOverlay(`SuperUserSetDepartmentHodOverlay,${schoolIdentifier}`, '', index, department.id.toString(), [], department.hod)" :size="elementsStore.btnSize1">{{ department.hod }}</v-chip>
-            <v-chip class="chip-link" v-if="!department.hod" @click="showOverlay(`SuperUserSetDepartmentHodOverlay,${schoolIdentifier}`, '', index, department.id.toString(), [], '')" :size="elementsStore.btnSize1">SET HOD</v-chip>
+            <v-chip class="chip-link" v-if="!department.hod" @click="showOverlay(`SuperUserSetDepartmentHodOverlay,${schoolIdentifier}`, '', index, department.id.toString(), [], '')" color="blue" :size="elementsStore.btnSize1">SET HOD</v-chip>
             <v-icon v-if="department.hod" icon="mdi-delete" size="x-small" color="red" @click="elementsStore.ShowDeletionOverlay(() => removeHOD(index, department.id.toString()), 'Are you sure you want remove the HOD from this department')"/>
           </td>
           <td class="table-data flex-all" style="display: flex">

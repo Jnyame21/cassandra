@@ -164,17 +164,6 @@ const changeRole = async () => {
                 </v-list-item>
             </v-list-group>
 
-            <!-- <v-list-item @click="changePage('AdminLinkedClases')" class="nav-item nav-link" prepend-icon="mdi-book">
-             LINKED CLASSES
-         </v-list-item>
-
-         
-
-         <v-list-item @click="changePage('AdminSubjectAssignment')" class="nav-item nav-link"
-             prepend-icon="mdi-book">
-             SUBJECT ASSIGNMENT
-         </v-list-item> -->
-
             <v-list-item @click="changePage('Help')" class="nav-item nav-link" prepend-icon="mdi-help">
                 HELP
             </v-list-item>
@@ -184,7 +173,7 @@ const changeRole = async () => {
             </div>
         </v-list>
 
-        <!-- Teacher/Hod -->
+        <!-- Teacher -->
         <v-list class="nav-list-container" v-if="['teacher', 'hod'].includes(userAuthStore.userData['staff_role'].toLowerCase())">
             
             <v-list-item>

@@ -168,7 +168,7 @@ const checkInput = computed(() => {
       <div class="component-wrapper" :class="{ 'is-active-component': elementsStore.activePage.split(',')[0] === 'AdminStudentsClass' }">
         <AdminStudentsClass v-for="(_class, index) in userAuthStore.adminData.classes"
           :key="`${_class['name']}${index}`" :className="_class['name']" :classIndex="index"
-          :subjects="_class['subjects']" :students="_class['students']" :program="_class['program']"
+          :subjects="_class['subjects']" :program="_class['program']"
           :students_year="_class['students_year']" 
         />
       </div>

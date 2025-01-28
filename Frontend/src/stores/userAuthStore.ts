@@ -12,6 +12,7 @@ export interface states {
   isAuthenticated: boolean
   activeTerm: number
   activeAcademicYear: string
+  activeAcademicYearID: number;
   superUserData: {
     schools: {
       name: string;
@@ -121,11 +122,11 @@ export interface states {
       user: string;
       staff_id: string;
       gender: string;
-      levels: string[];
       contact: string;
       nationality: string;
       departments: string[];
       roles: string[];
+      current_role: string;
       img: string;
       dob: string;
       subjects: string[];
@@ -250,6 +251,7 @@ export interface states {
       [className: string]: {
         [subject: string]: {
           [assessmentTitle: string]: {
+            id: number;
             title: string;
             description: string;
             percentage: number;
@@ -297,9 +299,9 @@ export interface states {
     studentsResults: {
       [class_name: string]: {
         [subject_name: string]: {
-          total_assessment_percentage: number
-          exam_percentage: number
-          student_results: {
+          total_assessment_percentage?: number
+          exam_percentage?: number
+          student_results?: {
             [st_id: string]: {
               result: number
               total_assessment_score: number
@@ -330,12 +332,12 @@ export interface states {
       address: string;
     }[] | null
     departmentData: {
-      name: string
-      subjects: string[]
+      name: string;
+      subjects: string[];
       identifier: string;
       id: number;
-      hod: { user: string; staff_id: string } | null
-      teachers: {user: string; staff_id: string}[]
+      hod: { user: string; staff_id: string } | null;
+      teachers: {user: string; staff_id: string}[];
     } | null
   }
   hodData: {
@@ -511,6 +513,7 @@ export const useUserAuthStore = defineStore('userAuthStore', {
       isAuthenticated: false,
       activeTerm: 0,
       activeAcademicYear: '',
+      activeAcademicYearID: 0,
       superUserData: {
         schools: null,
         levels: [],
@@ -615,7 +618,7 @@ export const useUserAuthStore = defineStore('userAuthStore', {
     async getStudentData() {
       await axiosInstance
         .get('student/data', {
-          params: { year: this.activeAcademicYear, term: this.activeTerm },
+          params: { year: this.activeAcademicYearID, term: this.activeTerm },
         })
         .then(response => {
           this.studentData.subjects = response.data['subjects']
@@ -667,50 +670,64 @@ export const useUserAuthStore = defineStore('userAuthStore', {
 
     async getTeacherData() {
       await axiosInstance
-        .get('teacher/data', {
-          params: { year: this.activeAcademicYear, term: this.activeTerm },
-        })
+        .get('teacher/data', {params: { year: this.activeAcademicYearID, term: this.activeTerm },})
         .then(response => {
           this.teacherData.courseWork = response.data['subject_assignments']
           this.teacherData.departmentData = response.data['department_data']
           this.teacherData.staff = response.data['staff']
           this.teacherData.studentsAttendance = response.data['students_attendance']
+          this.teacherData.studentsAssessments = response.data['students_assessments']
+          this.teacherData.studentsExams = response.data['students_exams']
+          this.teacherData.studentsResults = response.data['students_results']
         })
         .catch(() => {
           return Promise.reject()
         })
     },
 
-    async getTeacherStudentsAssessments() {
-      await axiosInstance
-        .get('teacher/assessments', {
-          params: { year: this.activeAcademicYear, term: this.activeTerm },
-        })
-        .then(response => {
-          this.teacherData.studentsAssessments = response.data['assessments']
-        })
-        .catch(() => {
-          return Promise.reject()
-        })
-    },
+    // async getTeacherStudentsAssessments() {
+    //   await axiosInstance
+    //     .get('teacher/assessments', {
+    //       params: { year: this.activeAcademicYearID, term: this.activeTerm },
+    //     })
+    //     .then(response => {
+    //       this.teacherData.studentsAssessments = response.data['assessments']
+    //     })
+    //     .catch(() => {
+    //       return Promise.reject()
+    //     })
+    // },
 
-    async getTeacherStudentsExams() {
-      await axiosInstance
-        .get('teacher/exams', {
-          params: { year: this.activeAcademicYear, term: this.activeTerm },
-        })
-        .then(response => {
-          this.teacherData.studentsExams = response.data['exams_data']
-        })
-        .catch(() => {
-          return Promise.reject()
-        })
-    },
+    // async getTeacherStudentsExams() {
+    //   await axiosInstance
+    //     .get('teacher/exams', {
+    //       params: { year: this.activeAcademicYearID, term: this.activeTerm },
+    //     })
+    //     .then(response => {
+    //       this.teacherData.studentsExams = response.data['exams_data']
+    //     })
+    //     .catch(() => {
+    //       return Promise.reject()
+    //     })
+    // },
+
+    // async getTeacherStudentResults() {
+    //   await axiosInstance
+    //     .get('teacher/students-result', {
+    //       params: { year: this.activeAcademicYearID, term: this.activeTerm },
+    //     })
+    //     .then(response => {
+    //       this.teacherData.studentsResults = response.data
+    //     })
+    //     .catch(() => {
+    //       return Promise.reject()
+    //     })
+    // },
 
     async getHodData() {
       await axiosInstance
         .get('hod/data', {
-          params: { year: this.activeAcademicYear, term: this.activeTerm },
+          params: { year: this.activeAcademicYearID, term: this.activeTerm },
         })
         .then(response => {
           this.hodData.subjectAssignments = response.data['subject_assignments']
@@ -724,7 +741,7 @@ export const useUserAuthStore = defineStore('userAuthStore', {
     async getAdminData() {
       await axiosInstance
         .get('school-admin/data', {
-          params: { year: this.activeAcademicYear, term: this.activeTerm },
+          params: { year: this.activeAcademicYearID, term: this.activeTerm },
         })
         .then(response => {
           const data = response.data
@@ -745,7 +762,7 @@ export const useUserAuthStore = defineStore('userAuthStore', {
     async getHeadData() {
       await axiosInstance
         .get('head/data', {
-          params: { year: this.activeAcademicYear, term: this.activeTerm },
+          params: { year: this.activeAcademicYearID, term: this.activeTerm },
         })
         .then(response => {
           this.headData.staff = response.data['staff']
@@ -774,23 +791,10 @@ export const useUserAuthStore = defineStore('userAuthStore', {
         })
     },
 
-    async getTeacherStudentResults() {
-      await axiosInstance
-        .get('teacher/students-result', {
-          params: { year: this.activeAcademicYear, term: this.activeTerm },
-        })
-        .then(response => {
-          this.teacherData.studentsResults = response.data
-        })
-        .catch(() => {
-          return Promise.reject()
-        })
-    },
-
     async getHodPerformance() {
       await axiosInstance
         .get('hod/students_performance', {
-          params: { year: this.activeAcademicYear },
+          params: { year: this.activeAcademicYearID },
         })
         .then(response => {
           this.hodPerformance = response.data
@@ -803,7 +807,7 @@ export const useUserAuthStore = defineStore('userAuthStore', {
     async getHeadStudentsPerformance() {
       await axiosInstance
         .get('head/students_performance', {
-          params: { year: this.activeAcademicYear },
+          params: { year: this.activeAcademicYearID },
         })
         .then(response => {
           this.headStudentsPerformance = response.data
@@ -821,6 +825,7 @@ export const useUserAuthStore = defineStore('userAuthStore', {
           if (['staff', 'student'].includes(userInfo['role'].toLowerCase())){
             this.activeAcademicYear = userInfo['academic_year']['name']
             this.activeTerm = userInfo['current_term']
+            this.activeAcademicYearID = userInfo['academic_year']['id']
           }
         })
         .catch(e => {

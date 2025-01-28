@@ -95,7 +95,7 @@ const showOverlay = (element: string, teacher_subjects:string[]) => {
       <tbody>
         <tr v-for="(_staff, index) in staff" :key="index">
           <td class="table-data">
-            <v-btn size="x-small" v-if="_staff.staff_id === userAuthStore.userData['staff_id']" color="black">YOU</v-btn>{{ _staff.user }}
+            <v-btn class="mr-1" size="x-small" v-if="_staff.staff_id === userAuthStore.userData['staff_id']" color="black">YOU</v-btn>{{ _staff.user }}
             <v-list-item-subtitle>{{ _staff.staff_id }}</v-list-item-subtitle>
           </td>
           <td class="table-data">

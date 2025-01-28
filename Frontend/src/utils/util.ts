@@ -22,6 +22,10 @@ export const sleep = (ms: number): Promise<void> => {
 
 export const headRoles:string[] = ['head master', 'head mistress', 'head of academics', 'assistant head of academics', 'assistant head master', 'assistant head mistress']
 
+export const academicYearOptions = [
+  '2020/2021', '2021/2022', '2022/2023', '2023/2024', '2024/2025', '2025/2026', '2026/2027', '2027/2028', '2028/2029', '2029/2030', '2030/2031', '2031/2032', '2032/2033', '2033/2034', '2034/2035'
+]
+
 // download a file sent from django using django's FileRsponse 
 export const downloadFile = (responseHeaders:any, responseData:any, defaultFileName:string) => {
     const url = window.URL.createObjectURL(new Blob([responseData]))

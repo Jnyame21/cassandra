@@ -241,7 +241,7 @@ const showOverlay = (element: string, type_option:string='', program_index:numbe
           </div>
           <div class="overlay-card-action-btn-container">
             <v-btn @click="addRemoveSchoolOrSubject()" variant="flat" type="submit" color="black" size="small" append-icon="mdi-checkbox-marked-circle"
-              :disabled="!(addRemoveType.split('S')[-1]==='chool' && programSchoolIdentifer || addRemoveType.split('S')[-1]==='ubject' && programSubjectIdentifer)" :ripple="false">
+              :disabled="!(addRemoveType.split('S')[1]==='chool' && programSchoolIdentifer || addRemoveType.split('S')[1]==='ubject' && programSubjectIdentifer)" :ripple="false">
               SUBMIT
             </v-btn>
           </div>
@@ -261,9 +261,9 @@ const showOverlay = (element: string, type_option:string='', program_index:numbe
         <tr>
           <th class="table-head">ID</th>
           <th class="table-head">NAME</th>
-          <th class="table-head">LEVEL</th>
-          <th class="table-head">SCHOOLS</th>
           <th class="table-head">IDENTIFIER</th>
+          <th class="table-head">SCHOOLS</th>
+          <th class="table-head">LEVEL</th>
           <th class="table-head">SUBJECTS</th>
           <th class="table-head">ACTION</th>
         </tr>
@@ -271,32 +271,32 @@ const showOverlay = (element: string, type_option:string='', program_index:numbe
       <tbody>
         <tr v-for="(program, index) in programs" :key="index">
           <td class="table-data">{{ program.id }}</td>
-            <td class="table-data">
-              <v-chip :size="elementsStore.btnSize1">{{ program.name }}</v-chip>
-            </td>
-            <td class="table-data">
-              <v-chip :size="elementsStore.btnSize1">{{ program.level }}</v-chip>
-            </td>
-            <td class="table-data flex-all">
-              <v-btn @click="showOverlay('SuperUserSchoolsUnderProgramOverlay', '', 0, '', program.schools, [])" variant="flat" size="x-small" color="blue">
-                VIEW SCHOOLS
-              </v-btn>
-              <v-icon class="ml-2" v-if="userAuthStore.superUserData.schools" @click="showOverlay('SuperUserAddRemoveSchoolOrSubjectFromProgramOverlay', 'addSchool', index, program.identifier, userAuthStore.superUserData.schools.map(item=> item.identifier).filter(item=> !program.schools.includes(item)), [])" variant="flat" icon="mdi-plus" color="blue" />
-              <v-icon class="ma-2" v-if="userAuthStore.superUserData.schools" @click="showOverlay('SuperUserAddRemoveSchoolOrSubjectFromProgramOverlay', 'removeSchool', index, program.identifier, program.schools, [])" variant="flat" icon="mdi-minus" color="blue" />
-            </td>
-            <td class="table-data">
-              <v-chip :size="elementsStore.btnSize1">{{ program.identifier }}</v-chip>
-            </td>
-            <td class="table-data flex-all">
-              <v-btn @click="showOverlay('SuperUserSubjectsUnderProgramOverlay', '', 0, '', [], program.subjects)" variant="flat" size="x-small" color="blue">
-                VIEW SUBJECTS
-              </v-btn>
-              <v-icon class="ml-2" v-if="userAuthStore.superUserData.schools" @click="showOverlay('SuperUserAddRemoveSchoolOrSubjectFromProgramOverlay', 'addSubject', index, program.identifier, [], userAuthStore.superUserData.subjects.map(item=> item.identifier).filter(item=> !program.subjects.includes(item)))" variant="flat" icon="mdi-plus" color="blue" />
-              <v-icon class="ma-2" v-if="userAuthStore.superUserData.schools" @click="showOverlay('SuperUserAddRemoveSchoolOrSubjectFromProgramOverlay', 'removeSubject', index, program.identifier, [], program.subjects)" variant="flat" icon="mdi-minus" color="blue" />
-            </td>
-            <td class="table-data">
-              <v-btn class="ma-2" @click="elementsStore.ShowDeletionOverlay(()=>deleteProgram(index, program.identifier), 'Are you sure you want to delete this program. The process cannot be reversed')" variant="flat" icon="mdi-delete" size="x-small" color="red" />
-            </td>
+          <td class="table-data">
+            <v-chip :size="elementsStore.btnSize1">{{ program.name }}</v-chip>
+          </td>
+          <td class="table-data">
+            <v-chip :size="elementsStore.btnSize1">{{ program.identifier }}</v-chip>
+          </td>
+          <td class="table-data flex-all">
+            <v-btn @click="showOverlay('SuperUserSchoolsUnderProgramOverlay', '', 0, '', program.schools, [])" variant="flat" size="x-small" color="blue">
+              VIEW SCHOOLS
+            </v-btn>
+            <v-icon class="ml-2" v-if="userAuthStore.superUserData.schools" @click="showOverlay('SuperUserAddRemoveSchoolOrSubjectFromProgramOverlay', 'addSchool', index, program.identifier, userAuthStore.superUserData.schools.map(item=> item.identifier).filter(item=> !program.schools.includes(item)), [])" variant="flat" icon="mdi-plus" color="blue" />
+            <v-icon class="ma-2" v-if="userAuthStore.superUserData.schools" @click="showOverlay('SuperUserAddRemoveSchoolOrSubjectFromProgramOverlay', 'removeSchool', index, program.identifier, program.schools, [])" variant="flat" icon="mdi-minus" color="blue" />
+          </td>
+          <td class="table-data">
+            <v-chip :size="elementsStore.btnSize1">{{ program.level.split('|')[0] }}</v-chip>
+          </td>
+          <td class="table-data flex-all">
+            <v-btn @click="showOverlay('SuperUserSubjectsUnderProgramOverlay', '', 0, '', [], program.subjects)" variant="flat" size="x-small" color="blue">
+              VIEW SUBJECTS
+            </v-btn>
+            <v-icon class="ml-2" v-if="userAuthStore.superUserData.schools" @click="showOverlay('SuperUserAddRemoveSchoolOrSubjectFromProgramOverlay', 'addSubject', index, program.identifier, [], userAuthStore.superUserData.subjects.map(item=> item.identifier).filter(item=> !program.subjects.includes(item)))" variant="flat" icon="mdi-plus" color="blue" />
+            <v-icon class="ma-2" v-if="userAuthStore.superUserData.schools" @click="showOverlay('SuperUserAddRemoveSchoolOrSubjectFromProgramOverlay', 'removeSubject', index, program.identifier, [], program.subjects)" variant="flat" icon="mdi-minus" color="blue" />
+          </td>
+          <td class="table-data">
+            <v-btn class="ma-2" @click="elementsStore.ShowDeletionOverlay(()=>deleteProgram(index, program.identifier), 'Are you sure you want to delete this program. The process cannot be reversed')" variant="flat" icon="mdi-delete" size="x-small" color="red" />
+          </td>
         </tr>
       </tbody>
     </v-table>

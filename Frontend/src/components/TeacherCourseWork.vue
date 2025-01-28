@@ -60,12 +60,12 @@ const femaleStudents = computed(()=>{
 })
 
 const allAssessments = computed(()=>{
-  return userAuthStore.teacherData.studentsAssessments?.[className] || {}
+  return userAuthStore.teacherData.studentsAssessments[className] || {}
 })
 
-watch(()=>userAuthStore.teacherData?.studentsAssessments?.[className], (newAssessment) => {
+watch(()=>userAuthStore.teacherData.studentsAssessments[className], (newAssessment) => {
   studentAssessmentsData.value = newAssessment || {}
-})
+}, {deep: 2, immediate: true})
 
 const createAssessmentAndExam = async () => {
   formErrorMessage.value = ''
@@ -128,13 +128,13 @@ const createAssessmentAndExam = async () => {
         'total_score': assessmentTotalScore.value,
         'description': assessmentDescription.value,
         'percentage': 0,
+        'id': response.data.id,
         'assessment_date': assessmentDate.value,
         'students_with_assessment': {},
         'students_without_assessment': Object.fromEntries(students.value?.map(item => [item.st_id, {name: item.user, st_id: item.st_id}]) || []) || {},
       }
-      const studentAssessments = userAuthStore.teacherData.studentsAssessments?.[className]?.[subjectSelected.value]
-      if (studentAssessments) {
-        studentAssessments[assessmentTitle.value] = _assessmentData
+      if (userAuthStore.teacherData.studentsAssessments?.[className]?.[subjectSelected.value]) {
+        userAuthStore.teacherData.studentsAssessments[className][subjectSelected.value][assessmentTitle.value] = _assessmentData
       }
       assessmentTitle.value = ''
       assessmentDescription.value = ''
@@ -145,9 +145,8 @@ const createAssessmentAndExam = async () => {
     }
     else if (typeSelected.value === 'exams') {
       const response = await axiosInstance.post('teacher/exams', formData)
-      const studentExams = userAuthStore.teacherData.studentsExams?.[className]?.[subjectSelected.value]
-      if (studentExams) {
-        studentExams.total_score = examsTotalScore.value
+      if (userAuthStore.teacherData.studentsExams?.[className]?.[subjectSelected.value]) {
+        userAuthStore.teacherData.studentsExams[className][subjectSelected.value].total_score = examsTotalScore.value
       }
       
       elementsStore.HideLoadingOverlay()
@@ -190,7 +189,7 @@ const checkStudentAssessmentsExams = () => {
   }
   if (validation) {
     const studentExams = userAuthStore.teacherData.studentsExams?.[className][subjectSelected.value]
-    if (!studentExams.students_without_exams) {
+    if (Object.keys(studentExams.students_without_exams || {}).length > 0) {
       validation = false
       resultGenerationErrorType.value = 'exams'
     }
@@ -212,19 +211,30 @@ const generateResults = async () => {
     }
   }
   let totalAssessmentPercentage = 0
-  let validInput:number = 1
-  const resultsData: any = { 'examsPercentage': examsPercentage.value, 'assessments': [] }
+  let validInput:boolean = true
+  const resultsData: any = { 'examsPercentage': examsPercentage.value, 'assessments': [], 'exams': 'yes'}
   const assessmentData = allAssessments.value?.[subjectSelected.value]
-  if (assessmentData) {
-    Object.values(assessmentData).forEach(item => {
+  if (Object.keys(assessmentData || {}).length > 0) {
+    for (let i=0; i < Object.values(assessmentData).length; i++){
+      const item = Object.values(assessmentData)[i]
       if (item.percentage) {
         totalAssessmentPercentage += item.percentage
       }
       else {
-        validInput = 0
+        validInput = false
+        break;
       }
       resultsData['assessments'].push(item)
-    })
+    }
+  }
+  else {
+    if (Object.keys(userAuthStore.teacherData.studentsExams?.[className]?.[subjectSelected.value].students_with_exams || {}).length === 0) {
+      showErrorMessage(`There are no exams data for ${subjectSelected.value}. Please upload the exams data for the students before proceeding.`)
+      return;
+    }
+  }
+  if (Object.keys(userAuthStore.teacherData.studentsExams?.[className]?.[subjectSelected.value].students_with_exams || {}).length === 0) {
+    resultsData['exams'] = 'no'
   }
   if (!validInput || examsPercentage.value <= 0) {
     showErrorMessage("All the values(percentages) must be greater than 0")
@@ -242,7 +252,7 @@ const generateResults = async () => {
   formData.append('studentsClassName', className)
   formData.append('subject', subjectSelected.value)
   formData.append('resultsData', JSON.stringify(resultsData))
-  formData.append('type', 'createResults')
+  formData.append('type', 'generateResults')
   elementsStore.ShowLoadingOverlay()
   try {
     const response = await axiosInstance.post('teacher/students-result', formData)
@@ -322,18 +332,14 @@ const closeOverlay = (element: string) => {
 </script>
 
 <template>
-  <div class="content-wrapper" v-show="elementsStore.activePage === `TeacherCoursework,${className}`"
-    :class="{ 'is-active-page': elementsStore.activePage === `TeacherCoursework,${className}` }">
+  <div class="content-wrapper" v-show="elementsStore.activePage === `TeacherCoursework,${className}`" :class="{ 'is-active-page': elementsStore.activePage === `TeacherCoursework,${className}` }">
     <div :id="`teacherSubjectsOverlay${className}`" class="overlay" v-if="subjects.length > 0">
       <div class="overlay-card">
         <v-btn @click="closeOverlay(`teacherSubjectsOverlay${className}`)" color="red" size="small"
           variant="flat" class="close-btn">X</v-btn>
         <div class="overlay-card-info-container">
-          <h3 class="mb-5" style="color: green; font-size: .9rem; font-family: monospace">SUBJECT(S) ASSIGNED TO THIS
-            CLASS [{{ subjects.length }}]</h3>
-          <p class="teacher-subject" v-for="(_subject, index) in subjects" :key="index">
-            {{ _subject }}
-          </p>
+          <h3 class="mb-5" style="color: green; font-size: .9rem; font-family: monospace">SUBJECT(S) ASSIGNED TO THIS CLASS [{{ subjects.length }}]</h3>
+          <p class="teacher-subject" v-for="(_subject, index) in subjects" :key="index">{{ _subject }}</p>
         </div>
       </div>
     </div>
@@ -378,8 +384,7 @@ const closeOverlay = (element: string) => {
     </div>
 
     <!-- results Generation overlay -->
-    <div :id="`teacherStudentsResultsCreationOverlay${className}`" class="overlay upload"
-      v-if="students.length > 0">
+    <div :id="`teacherStudentsResultsCreationOverlay${className}`" class="overlay upload" v-if="students.length > 0">
       <div class="overlay-card">
         <v-btn :disabled="loading"
           @click="closeOverlay(`teacherStudentsResultsCreationOverlay${className}`)" color="red"
@@ -390,7 +395,8 @@ const closeOverlay = (element: string) => {
         </div>
         <div class="overlay-card-content-container">
           <v-select class="select" :items="subjects" label="SUBJECT" v-model="subjectSelected" variant="solo-filled"
-            density="comfortable" persistent-hint hint="Select the subject for the results" />
+            density="comfortable" persistent-hint hint="Select the subject for the results" 
+          />
           <div v-for="[_subject, _subject_data] in Object.entries(studentAssessmentsData)" :key="_subject">
             <div v-if="_subject === subjectSelected">
               <v-text-field class="input-field" v-for="(_assessment, ind) in Object.values(_subject_data)" :key="ind"

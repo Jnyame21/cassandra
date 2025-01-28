@@ -205,9 +205,13 @@ const showOverlay = (element: string) => {
       </thead>
       <tbody>
         <tr v-for="(school, index) in schools" :key="index">
-          <td class="table-data">{{ school.name }}</td>
+          <td class="table-data">
+            <v-chip>{{ school.name }}</v-chip>
+          </td>
           <td class="table-data">{{ school.identifier }}</td>
-          <td class="table-data">{{ school.code }}</td>
+          <td class="table-data">
+            <v-chip v-if="school.code">{{ school.code }}</v-chip>
+          </td>
           <td class="table-data">
             <v-checkbox-btn color="blue" v-model="school.staff_id" disabled />
           </td>
@@ -215,14 +219,28 @@ const showOverlay = (element: string) => {
             <img class="profile-img" v-if="school.logo" :src="school.logo" alt="School Logo" width="50" height="50" />
           </td>
           <td class="table-data">{{ school.address }}</td>
-          <td class="table-data">{{ school.region }}</td>
-          <td class="table-data">{{ school.city_town }}</td>
+          <td class="table-data">
+            <v-chip>{{ school.region }}</v-chip>
+          </td>
+          <td class="table-data">
+            <v-chip>{{ school.city_town }}</v-chip>
+          </td>
           <td class="table-data">{{ school.postal_address }}</td>
-          <td class="table-data">{{ school.short_name }}</td>
-          <td class="table-data">{{ school.contact }}</td>
-          <td class="table-data">{{ school.alt_contact }}</td>
-          <td class="table-data">{{ school.email }}</td>
-          <td class="table-data">{{ school.date_created }}</td>
+          <td class="table-data">
+            <v-chip v-if="school.short_name">{{ school.short_name }}</v-chip>
+          </td>
+          <td class="table-data">
+            <v-chip>{{ school.contact }}</v-chip>
+          </td>
+          <td class="table-data">
+            <v-chip v-if="school.alt_contact">{{ school.alt_contact }}</v-chip>
+          </td>
+          <td class="table-data">
+            <v-chip v-if="school.email">{{ school.email }}</v-chip>
+          </td>
+          <td class="table-data">
+            <v-chip>{{ school.date_created }}</v-chip>
+          </td>
           <td class="table-data">
             <v-btn
               @click="elementsStore.ShowDeletionOverlay(() => deleteSchool(index, school.identifier), 'Are you sure you want to delete this school. The process cannot be reversed')"
