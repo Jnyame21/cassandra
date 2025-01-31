@@ -19,6 +19,7 @@ from collections import defaultdict
 from datetime import datetime
 import hashlib
 import math
+from django.db.models import Prefetch
 from decimal import Decimal
 import time
 
@@ -143,8 +144,8 @@ def get_teacher_data(request):
             exams_class_data[_subject.name] = exams_subject_data
             
             # Students Results
-            results_subject_data = defaultdict(dict)
-            all_subject_results_objs = exams_by_class_subject[students_class_name][_subject.name]
+            results_subject_data = {}
+            all_subject_results_objs = results_by_class_subject[students_class_name][_subject.name]
             if len(all_subject_results_objs) > 0:
                 first_result_obj = all_subject_results_objs[0]
                 results_subject_data['total_assessment_percentage'] = first_result_obj.total_assessment_percentage
@@ -163,6 +164,11 @@ def get_teacher_data(request):
                     all_results[result_student.st_id] = student_data
                 results_subject_data['student_results'] = all_results
             
+            else:
+                results_subject_data['total_assessment_percentage'] = 0
+                results_subject_data['exam_percentage'] = 0
+                results_subject_data['student_results'] = {}
+                
             results_class_data[_subject.name] = results_subject_data
             
         # All(assessments, exams, results) data for the class
@@ -297,13 +303,10 @@ def teacher_assessments(request):
             data = [
                 ['STUDENT NAME', 'STUDENT USERNAME', 'SCORE', 'COMMENT']
             ]
-
-        if len(students) == 0:
-            return Response({
-                'message': f"You have already uploaded all the {subject_name}[{assessment_title}] Assessment scores for all students in this class",
-            }, status=400)
             
-        subject_obj = Subject.objects.get(schools=school, level=current_level, name=subject_name)
+        if len(students) == 0:
+            return Response({'message': f"You have already uploaded all the {subject_name}[{assessment_title}] Assessment scores for all students in this class"}, status=400)
+            
         for _st in students:
             row = [_st['name'], _st['st_id'], '']
             data.append(row)
@@ -400,11 +403,10 @@ def teacher_assessments(request):
     elif data['type'] == 'uploadWithFile':
         file = data['file']
         subject_obj = Subject.objects.get(name=subject_name)
-        old_assessment = Assessment.objects.filter(school=school, level=current_level, teacher=teacher, subject=subject_obj, title=assessment_title, academic_year=current_academic_year, academic_term=term).first()
-        description = old_assessment.description
-        total_score = old_assessment.total_score
-        percentage = old_assessment.percentage
-        assessment_date = old_assessment.assessment_date
+        description = data['description']
+        total_score = float(data['totalScore'])
+        percentage = float(data['percentage'])
+        assessment_date = datetime.strptime(data['date'], '%Y-%m-%d').date()
             
         try:
             wb = load_workbook(file)
@@ -435,7 +437,6 @@ def teacher_assessments(request):
                 return Response({'message': f"The scores must be a number. Recheck the score for {row[0]}[{row[1]}] in the file"}, status=400)
             
             if score > total_score:
-                print(total_score)
                 return Response({'message': f"Scores cannot exceed the total score for the assessment. Recheck the score for {row[0]}[{row[1]}] in the file"}, status=400)
             elif score < 0:
                 return Response({'message': f"Scores cannot be negative. Recheck the score for {row[0]}[{row[1]}] in the file"}, status=400)
@@ -476,8 +477,6 @@ def teacher_assessments(request):
                 assessment_to_delete = Assessment.objects.filter(school=school, level=current_level, teacher=teacher, student=None, student_class=students_class, subject=subject_obj, title=assessment_title, academic_year=current_academic_year, academic_term=term).first()
                 if assessment_to_delete:
                     assessment_to_delete.delete()
-            except Assessment.DoesNotExist:
-                transaction.set_rollback(False)
             except IntegrityError:
                 transaction.set_rollback(True)
                 return Response({'message': f"You have already uploaded Assessment for some of the students in the file. Click on get file to get a new updated file"}, status=400)
@@ -492,29 +491,27 @@ def teacher_assessments(request):
             'score': _assessment.score,
             'comment': _assessment.comment,
         } for _assessment in assessments]
-        return Response({'message': "The upload was successful!", 'data': students_data})
+        return Response({'message': "Assessment data uploaded successfully!", 'data': students_data})
 
     elif data['type'] == 'uploadWithoutFile':
-        students_class = Classe.objects.get(school=school, level=current_level, name=st_class_name)
-        subject_obj = Subject.objects.get(name=subject_name)
-        assessment_students = []
         student_ids = json.loads(data['selectedStudents'])
+        students_class = Classe.objects.prefetch_related(Prefetch('students', queryset=Student.objects.filter(st_id__in=student_ids))).get(school=school, level=current_level, name=st_class_name)
+        subject_obj = Subject.objects.get(name=subject_name)
         comment = data['comment']
-        old_assessment = Assessment.objects.filter(school=school, level=current_level, teacher=teacher, student_class=students_class, subject=subject_obj, title=assessment_title, academic_year=current_academic_year, academic_term=term).first()
-        description = old_assessment.description
-        total_score = old_assessment.total_score
-        percentage = old_assessment.percentage
-        assessment_date = old_assessment.assessment_date
+        description = data['description']
+        total_score = float(data['totalScore'])
+        percentage = float(data['percentage'])
+        assessment_date = datetime.strptime(data['date'], '%Y-%m-%d').date()
         
         score = float(data['score'])
         if score > total_score:
             return Response({'message': f"The student(s) score cannot exceed the total score for the assessment!"}, status=400)
         
+        students_objs = {x.st_id: x for x in students_class.students.all()}
+        assessments_to_create = []
         with transaction.atomic():
-            assessments_to_create = []
             for _st_id in student_ids:
-                student = Student.objects.get(school=school, st_id=_st_id)
-                assessment_students.append(student)
+                student = students_objs[_st_id]
                 st_assessment = Assessment(
                     school=school,
                     student=student,
@@ -536,109 +533,97 @@ def teacher_assessments(request):
             
             try:
                 Assessment.objects.bulk_create(assessments_to_create)
-                assessment_to_delete = Assessment.objects.get(school=school, level=current_level, teacher=teacher, student=None, student_class=students_class, subject=subject_obj, title=assessment_title, academic_year=current_academic_year, academic_term=term)
-                assessment_to_delete.delete()
-            except Assessment.DoesNotExist:
-                transaction.set_rollback(False)
+                assessment_to_delete = Assessment.objects.filter(school=school, level=current_level, teacher=teacher, student=None, student_class=students_class, subject=subject_obj, title=assessment_title, academic_year=current_academic_year, academic_term=term).exists()
+                if assessment_to_delete:
+                    assessment_to_delete.delete()
             except Exception:
                 transaction.set_rollback(True)
                 return Response(status=400)
         
-        assessments = Assessment.objects.select_related('student__user').filter(school=school, level=current_level, teacher=teacher, subject=subject_obj, title=assessment_title, student__in=assessment_students, academic_year=current_academic_year, academic_term=term)
+        assessments = Assessment.objects.select_related('student__user').filter(school=school, level=current_level, teacher=teacher, subject=subject_obj, title=assessment_title, student__in=list(students_objs.values()), academic_year=current_academic_year, academic_term=term)
         students_data = [{
             'name': f"{_assessment.student.user.first_name} {_assessment.student.user.last_name}", 
             'st_id': _assessment.student.st_id,
             'score': _assessment.score,
             'comment': _assessment.comment,
         } for _assessment in assessments]
-        return Response({'message': "Operation successful!", 'data': students_data})
+        return Response({'message': "Assessment data uploaded successfully!", 'data': students_data})
 
     elif data['type'] == 'editAssessment':
         students_class = Classe.objects.get(school=school, level=current_level, name=st_class_name)
         subject_obj = Subject.objects.get(name=subject_name)
-        if (data['editType'] == 'title'):
+        
+        if data['editType'] == 'title':
             with transaction.atomic():
                 assessments_to_update = []
                 old_title = assessment_title
                 new_title = data['newTitle']
                 if Assessment.objects.filter(school=school, level=current_level, teacher=teacher, subject=subject_obj, student_class=students_class, title=new_title, academic_year=current_academic_year, academic_term=term).exists():
                     return Response({'message': f"Assessment with title [ {new_title} ] already exists! Use a different title"}, status=400)
-                assessments = list(Assessment.objects.filter(school=school, level=current_level, teacher=teacher, subject=subject_obj, student_class=students_class, title=old_title, academic_year=current_academic_year, academic_term=term))
+                assessments = Assessment.objects.filter(school=school, level=current_level, teacher=teacher, subject=subject_obj, student_class=students_class, title=old_title, academic_year=current_academic_year, academic_term=term)
                 for _assessment in assessments:
                     _assessment.title = new_title
                     assessments_to_update.append(_assessment)
                 try:
                     Assessment.objects.bulk_update(assessments_to_update, ['title'])
+                    return Response(status=200)
                 except Exception:
                     return Response(status=400) 
             
-        elif (data['editType'] == 'description'):
+        elif data['editType'] == 'description':
             with transaction.atomic():
                 assessments_to_update = []
                 new_description = data['newDescription']
-                assessments = list(Assessment.objects.filter(school=school, level=current_level, teacher=teacher, subject=subject_obj, student_class=students_class, title=assessment_title, academic_year=current_academic_year, academic_term=term))
+                assessments = Assessment.objects.filter(school=school, level=current_level, teacher=teacher, subject=subject_obj, student_class=students_class, title=assessment_title, academic_year=current_academic_year, academic_term=term)
                 for _assessment in assessments:
                     _assessment.description = new_description
                     assessments_to_update.append(_assessment)
                 try:
                     Assessment.objects.bulk_update(assessments_to_update, ['description'])
+                    return Response(status=200)
                 except Exception:
                     return Response(status=400) 
                 
-        elif (data['editType'] == 'totalScore'):
+        elif data['editType'] == 'totalScore':
+            existing_results = StudentResult.objects.filter(school=school, level=current_level, subject=subject_obj, student_class=students_class, teacher=teacher, academic_year=current_academic_year, academic_term=term).exists()
+            if existing_results:
+                return Response({'message': f"Results for {subject_name} in this class have already been generated. Please delete the existing results data and try again."}, status=400)
             assessments_to_update = []
-            results_to_update = []
-            new_total_score = Decimal(data['newTotalScore'])
+            new_total_score = float(data['newTotalScore'])
             if new_total_score <= 0:
                 return Response({'message': "The total score of the assessment cannot be negative or zero(0)"}, status=400)
-            assessments = Assessment.objects.select_related('student').filter(school=school, level=current_level, teacher=teacher, subject=subject_obj, student_class=students_class, title=assessment_title, academic_year=current_academic_year, academic_term=term)
-            grading_system = GradingSystem.objects.prefetch_related('ranges').filter(schools=school, level=current_level).first()
+            assessments = Assessment.objects.filter(school=school, level=current_level, teacher=teacher, subject=subject_obj, student_class=students_class, title=assessment_title, academic_year=current_academic_year, academic_term=term)
+            new_total_score = Decimal(data['newTotalScore'])
             for _assessment in assessments:
-                old_total_score = _assessment.total_score
                 if _assessment.score and new_total_score < float(_assessment.score):
                     return Response({'message': "The total score of the assessment cannot be less than a student's score"}, status=400)
                 _assessment.total_score = new_total_score
                 assessments_to_update.append(_assessment)
-                st_result = StudentResult.objects.filter(school=school, level=current_level, teacher=teacher, student=_assessment.student, subject=subject_obj, student_class=students_class, academic_year=current_academic_year, academic_term=term).first()
-                if st_result:
-                    old_assessment_score = (_assessment.score/old_total_score)*_assessment.percentage
-                    new_assessment_score = (_assessment.score/new_total_score)*_assessment.percentage
-                    new_total_assessment_score = (st_result.total_assessment_score + new_assessment_score) - old_assessment_score
-                    new_total_assessment_score = math.ceil(new_total_assessment_score) if new_total_assessment_score - math.floor(new_total_assessment_score) >= 0.5 else math.floor(new_total_assessment_score)
-                    new_result = st_result.exam_score + new_total_assessment_score
-                    student_grade = next((item for item in grading_system.ranges.all() if item.upper_limit >= new_result >= item.lower_limit), None)
-                    st_result.total_assessment_score = new_total_assessment_score
-                    st_result.result = new_result
-                    st_result.grade = student_grade.label
-                    st_result.remark = student_grade.remark
-                    results_to_update.append(st_result)
             with transaction.atomic():
                 try:
                     Assessment.objects.bulk_update(assessments_to_update, ['total_score'])
-                    StudentResult.objects.bulk_update(results_to_update, ['total_assessment_score', 'result', 'grade', 'remark'])
+                    return Response(status=200)
                 except Exception:
                     return Response(status=400) 
-            all_results =  StudentResult.objects.filter(school=school, level=current_level, teacher=teacher, subject=subject_obj, student_class=students_class, academic_year=current_academic_year, academic_term=term).order_by('-result')
-            all_results_data = TeacherGetStudentResultSerializer(all_results, many=True).data
-            return Response(all_results_data)
         
-        elif (data['editType'] == 'date'):
+        elif data['editType'] == 'date':
             assessments_to_update = []
             new_date = data['newDate']
             new_date_object = datetime.strptime(new_date, '%Y-%m-%d').date()
             if (new_date_object > current_academic_year.end_date) or (new_date_object < current_academic_year.start_date):
                 return Response({'message': f"The assessment date must be between the academic year start and end dates. That's {current_academic_year.start_date} and {current_academic_year.end_date}"}, status=400)
-            assessments = list(Assessment.objects.filter(school=school, level=current_level, teacher=teacher, subject=subject_obj, student_class=students_class, title=assessment_title, academic_year=current_academic_year, academic_term=term))
+            assessments = Assessment.objects.filter(school=school, level=current_level, teacher=teacher, subject=subject_obj, student_class=students_class, title=assessment_title, academic_year=current_academic_year, academic_term=term)
             for _assessment in assessments:
                 _assessment.assessment_date = new_date
                 assessments_to_update.append(_assessment)
             with transaction.atomic():
                 try:
                     Assessment.objects.bulk_update(assessments_to_update, ['assessment_date'])
+                    return Response(status=200)
                 except Exception:
                     return Response({'message': 'An unexpected error occurred! try again later'}, status=400)
             
-        elif (data['editType'] == 'comment'):
+        elif data['editType'] == 'comment':
             new_comment = data['newComment']
             student = Student.objects.get(school=school, st_id=data['studentId'])
             with transaction.atomic():
@@ -646,46 +631,29 @@ def teacher_assessments(request):
                     assessment = Assessment.objects.get(school=school, level=current_level, teacher=teacher, subject=subject_obj, student=student, student_class=students_class, title=assessment_title, academic_year=current_academic_year, academic_term=term)
                     assessment.comment = new_comment
                     assessment.save()
+                    return Response(status=200)
                 except Exception:
                     return Response(status=400)     
             
-        elif (data['editType'] == 'score'):
-            new_score = Decimal(data['newScore'])
+        elif data['editType'] == 'score':
+            existing_results = StudentResult.objects.filter(school=school, level=current_level, subject=subject_obj, student_class=students_class, teacher=teacher, academic_year=current_academic_year, academic_term=term).exists()
+            if existing_results:
+                return Response({'message': f"Results for {subject_name} in this class have already been generated. Please delete the existing results data and try again."}, status=400)
+            new_score = float(data['newScore'])
             if new_score < 0:
                 return Response({'message': "The student's score cannot be negative"}, status=400)
             student = Student.objects.get(school=school, st_id=data['studentId'])
             with transaction.atomic():
                 try:
+                    new_score = Decimal(data['newScore'])
                     assessment = Assessment.objects.get(school=school, level=current_level, teacher=teacher, subject=subject_obj, student=student, student_class=students_class, title=assessment_title, academic_year=current_academic_year, academic_term=term)
                     if new_score > float(assessment.total_score):
                         return Response({"message": "The student's score cannot exceed the total assessment score"}, status=400)
-                    old_assessment_score = (assessment.score/assessment.total_score)*assessment.percentage
                     assessment.score = new_score
                     assessment.save()
-                    st_result = StudentResult.objects.get(school=school, level=current_level, teacher=teacher, subject=subject_obj, student=student, student_class=students_class, academic_year=current_academic_year, academic_term=term)
-                    new_assessment_score = (new_score/assessment.total_score)*assessment.percentage
-                    new_total_assessment_score = (st_result.total_assessment_score + new_assessment_score) - old_assessment_score
-                    new_total_assessment_score = math.ceil(new_total_assessment_score) if new_total_assessment_score - math.floor(new_total_assessment_score) >= 0.5 else math.floor(new_total_assessment_score)
-                    grading_system = GradingSystem.objects.filter(schools=school, level=current_level).order_by('lower_limit')
-                    new_result = new_total_assessment_score + st_result.exam_score
-                    student_grade = next((item for item in grading_system if item.upper_limit >= new_result >= item.lower_limit), None)
-                    st_result.total_assessment_score = new_total_assessment_score
-                    st_result.result = new_result
-                    st_result.grade = student_grade.label
-                    st_result.remark = student_grade.remark
-                    st_result.save()
-                    return Response({
-                        'new_total_assessment_score': new_total_assessment_score, 
-                        'new_result': new_result,
-                        'new_grade': student_grade.label,
-                        'new_remark': student_grade.remark,
-                    })
-                except StudentResult.DoesNotExist:
-                    transaction.set_rollback(False)
+                    return Response(status=200)
                 except Exception:
                     return Response(status=400)                
-            
-        return Response()
     
     elif data['type'] == 'deleteAssessment':
         students_class = Classe.objects.get(school=school, level=current_level, name=st_class_name)
@@ -697,12 +665,11 @@ def teacher_assessments(request):
                     return Response({'message': f"Results for {subject_name} in this class have already been generated. Please delete the existing results data and try again."}, status=400)
                 assessments = Assessment.objects.filter(school=school, level=current_level, teacher=teacher, student_class=students_class, subject=subject_obj, title=assessment_title, academic_year=current_academic_year, academic_term=term)
                 assessments.delete()
+                return Response(status=200)
             except Exception:
                 transaction.set_rollback(True)
                 return Response(status=400)
         
-        return Response()
-    
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -728,10 +695,8 @@ def teacher_exams(request):
             ]
 
         if len(students) == 0:
-            return Response({
-                'message': f"You have already uploaded all the {subject_name} Exams scores for all students in this class",
-            }, status=400)
-            
+            return Response({'message': f"You have already uploaded all the {subject_name} Exams scores for all students in this class"}, status=400)
+        
         for _st in students:
             row = [_st['name'], _st['st_id'], '']
             data.append(row)
@@ -741,7 +706,7 @@ def teacher_exams(request):
         ws.title = subject_name
 
         ws.merge_cells('A1:I3')
-        ws['A1'].value = f"SUBJECT: [{subject_name}]  ACADEMIC YEAR: [{year}]  CLASS: [{st_class_name}]  {current_academic_year.period_division.name} {term} EXAMS"
+        ws['A1'].value = f"SUBJECT: [{subject_name}]  ACADEMIC YEAR: [{year}]  CLASS: [{st_class_name}]  {current_academic_year.period_division} {term} EXAMS"
         ws['A1'].font = Font(size=14, bold=True)
         ws['A1'].alignment = Alignment(horizontal='center', vertical='center')
 
@@ -777,26 +742,10 @@ def teacher_exams(request):
 
         ws.protection.password = 'teamjn'
 
-        filename = f"{subject_name.replace(' ', '-')}-{st_class_name}-Exams.xlsx"
+        filename = f"{subject_name.replace(' ', '-')}-{st_class_name}-Exams"
         byte_file = io.BytesIO()
         wb.save(byte_file)
-        file_path = f"{get_school_folder(school)}/staff/{teacher.user.username}/{filename}"
-        if default_storage.exists(file_path):
-            default_storage.delete(file_path)
-
-        saved_file = default_storage.save(file_path, byte_file)
-        if settings.DEBUG:
-            return Response({
-                'filename': filename,
-                'message': 'File generated successfully',
-                'file_path': f"http://localhost:8000{default_storage.url(saved_file)}",
-            })
-        else:
-            return Response({
-                'filename': filename,
-                'message': 'File generated successfully',
-                'file_path': default_storage.url(saved_file),
-            })
+        return send_file('excel', byte_file, filename)
     
     elif data['type'] == 'createExams':
         subject_obj = Subject.objects.get(name=subject_name)
@@ -830,6 +779,7 @@ def teacher_exams(request):
         
     elif data['type'] == 'uploadWithFile':
         file = data['file']
+        exams_total_score = float(data['totalScore'])
         try:
             wb = load_workbook(file)
         except Exception:
@@ -837,7 +787,7 @@ def teacher_exams(request):
         
         ws = wb.active
         ws.protection = False
-        if ws['A1'].value != f"SUBJECT: [{subject_name}]  ACADEMIC YEAR: [{year}]  CLASS: [{st_class_name}]  {current_academic_year.period_division.name} {term} EXAMS":
+        if ws['A1'].value != f"SUBJECT: [{subject_name}]  ACADEMIC YEAR: [{year}]  CLASS: [{st_class_name}]  {current_academic_year.period_division} {term} EXAMS":
             return Response({'message': "Invalid file. Ensure you upload the excel file that you generated"}, status=400)
         
         cleaned_data = []
@@ -850,47 +800,49 @@ def teacher_exams(request):
         valid_rows = [x for x in cleaned_data if x[0]]
         if len(valid_rows) == 0:
             return Response({'message': f"There are no students data in the uploaded file"}, status=400)
+        
+        students_to_create_ids = set()
         for row in valid_rows:
             score = row[2]
             try:
                 float(score)
             except Exception:
                 return Response({'message': f"The scores must be a number. Recheck the score for {row[0]}[{row[1]}] in the file"}, status=400)
-            if score > 100:
-                return Response({'message': f"Scores cannot be more than 100. Recheck the score for {row[0]}[{row[1]}] in the file"}, status=400)
+            if score > exams_total_score:
+                return Response({'message': f"Scores cannot exceed the total score of the exams. Recheck the score for {row[0]}[{row[1]}] in the file"}, status=400)
             elif score < 0:
                 return Response({'message': f"Scores cannot be negative. Recheck the score for {row[0]}[{row[1]}] in the file"}, status=400)
-
-        students_class = Classe.objects.prefetch_related('students').get(school=school, level=level, name=st_class_name)
-        exams_students = []
-        subject_obj = Subject.objects.get(name=subject_name)
+            students_to_create_ids.add(row[1])
+            
+        students_class = Classe.objects.prefetch_related('students').get(school=school, level=current_level, name=st_class_name)
+        students_to_create_objs = {x.st_id: x for x in students_class.students.filter(st_id__in=students_to_create_ids)}
+        subject_obj = Subject.objects.get(schools=school, level=current_level, name=subject_name)
         exams_to_create = []
-        for _student in valid_rows:
-            if students_class.students.filter(level=current_level, st_id=_student[1]).exists():
-                st = Student.objects.get(school=school, level=current_level, st_id=_student[1])
-                exams_students.append(st)
+        for _student_data in valid_rows:
+            st_id = _student_data[1]
+            if st_id in students_to_create_ids:
+                student = students_to_create_objs[st_id]
                 st_exam = Exam(
                     school=school,
-                    student=st,
+                    student=student,
                     subject=subject_obj,
                     teacher=teacher,
                     percentage=0,
                     student_class=students_class,
-                    score=float(_student[2]),
+                    score=float(_student_data[2]),
                     academic_year=current_academic_year,
                     academic_term=term,
                     level=current_level,
                 )
                 exams_to_create.append(st_exam)
             else:
-                return Response({'message': f"Invalid student {_student[0]}[{_student[1]}]. Make sure you don't change anything in the excel file except the scores"}, status=400)
+                return Response({'message': f"Invalid student {_student_data[0]}[{_student_data[1]}]. Make sure you don't change anything in the excel file except the scores"}, status=400)
         with transaction.atomic():
             try:
                 Exam.objects.bulk_create(exams_to_create)
-                exam_create_obj = Exam.objects.get(school=school, level=current_level, teacher=teacher, student=None, subject=subject_obj, student_class=students_class, academic_year=current_academic_year, academic_term=term)
-                exam_create_obj.delete()
-            except Exam.DoesNotExist:
-                transaction.set_rollback(False)
+                exam_create_obj = Exam.objects.filter(school=school, level=current_level, teacher=teacher, student=None, subject=subject_obj, student_class=students_class, academic_year=current_academic_year, academic_term=term).first()
+                if exam_create_obj:
+                    exam_create_obj.delete()
             except IntegrityError:
                 transaction.set_rollback(True)
                 return Response({'message': f"You have already uploaded exams score for some of the students in the file. Click on get file to get an updated file"}, status=400)
@@ -898,22 +850,28 @@ def teacher_exams(request):
                 transaction.set_rollback(True)
                 return Response({'message': f"Invalid data! Ensure you don't delete or change anything in the excel file"}, status=400)
     
-        all_exams = Exam.objects.select_related('student__user').filter(school=school, level=current_level, teacher=teacher, subject=subject_obj, student_class=students_class, student__in=exams_students, academic_year=current_academic_year, academic_term=term)
+        all_exams = Exam.objects.select_related('student__user').filter(school=school, level=current_level, teacher=teacher, subject=subject_obj, student_class=students_class, student__in=list(students_to_create_objs.values()), academic_year=current_academic_year, academic_term=term)
         all_exams_data = [{
             'name': f"{x.student.user.first_name} {x.student.user.last_name}",
             'st_id': x.student.st_id,
             'score': x.score,
         } for x in all_exams]
         
-        return Response({'message': "Operation successful", 'data': all_exams_data})
+        return Response({'message': "The exams data has been uploaded successfully.", 'data': all_exams_data}, status=200)
 
     elif data['type'] == 'uploadWithoutFile':
-        students_class = Classe.objects.get(school=school, level=current_level, name=st_class_name)
-        subject_obj = Subject.objects.get(name=subject_name)
         score = float(data['score'])
-        exams_to_create = []
-        for _st_id in json.loads(data['selectedStudents']):
-            student = Student.objects.get(school=school, level=current_level, st_id=_st_id)
+        exams_total_score = float(data['totalScore'])
+        if score < 0:
+            return Response({'message': "The score cannot be negative"}, status=400)
+        if score > exams_total_score:
+            return Response({'message': "The score must not exceed the total exams score"}, status=400)
+        students_to_create_ids = json.loads(data['selectedStudents'])
+        students_class = Classe.objects.prefetch_related(Prefetch('students', queryset=Student.objects.filter(st_id__in=students_to_create_ids))).get(school=school, level=current_level, name=st_class_name)
+        subject_obj = Subject.objects.get(schools=school, level=current_level, name=subject_name)
+        students_to_create_objs = {x.st_id: x for x in students_class.students.all()}
+        for _st_id in students:
+            student = students_to_create_objs[_st_id]
             st_exam = Exam(
                 school=school,
                 student=student,
@@ -930,48 +888,33 @@ def teacher_exams(request):
         with transaction.atomic():
             try:
                 Exam.objects.bulk_create(exams_to_create)
-                exam_create_obj = Exam.objects.get(school=school, level=current_level, teacher=teacher, student=None, subject=subject_obj, student_class=students_class, academic_year=current_academic_year, academic_term=term)
-                exam_create_obj.delete()
-            except Exam.DoesNotExist:
-                transaction.set_rollback(False)
+                exam_create_obj = Exam.objects.filter(school=school, level=current_level, teacher=teacher, student=None, subject=subject_obj, student_class=students_class, academic_year=current_academic_year, academic_term=term).first()
+                if exam_create_obj:
+                    exam_create_obj.delete()
             except Exception:
                 transaction.set_rollback(True)
                 return Response(status=400)
         
-        return Response({'message': "Operation successful"})
+        return Response({'message': "The exams data has been uploaded successfully."}, status=200)
 
     elif data['type'] == 'editTotalScore':
-        new_total_score = Decimal(data['totalScore'])
         students_class = Classe.objects.get(school=school, level=current_level, name=st_class_name)
-        subject_obj = Subject.objects.get(name=subject_name)
+        subject_obj = Subject.objects.get(schools=school, level=current_level, name=subject_name)
+        if StudentResult.objects.filter(school=school, level=current_level, subject=subject_obj, student_class=students_class, teacher=teacher, academic_year=current_academic_year, academic_term=term).exists():
+            return Response({'message': f"Results for {subject_name} in this class have already been generated. Please delete the existing results data and try again."}, status=400)
+        
         exams_to_update = []
-        results_to_update = []
-        grading_system = GradingSystem.objects.filter(schools=school, level=current_level).order_by('lower_limit')
         exams = Exam.objects.filter(school=school, level=current_level, subject=subject_obj, student_class=students_class, teacher=teacher, academic_year=current_academic_year, academic_term=term)
+        new_total_score = Decimal(data['totalScore'])
         for _exam in exams:
+            if _exam.score > new_total_score:
+                return Response({'message': "The total score of the exams must not be less than a students score"}, status=400)
             _exam.total_score = new_total_score
             exams_to_update.append(_exam)
-            try:
-                st_result = StudentResult.objects.get(school=school, level=current_level, student=_exam.student, subject=subject_obj, student_class=students_class, teacher=teacher, academic_year=current_academic_year, academic_term=term)
-                new_exam_score = (_exam.score/new_total_score)*st_result.exam_percentage
-                new_exam_score = math.ceil(new_exam_score) if new_exam_score - math.floor(new_exam_score) >= 0.5 else math.floor(new_exam_score)
-                new_result = new_exam_score + st_result.total_assessment_score
-                student_grade = next((item for item in grading_system if item.upper_limit >= new_result >= item.lower_limit), None)
-                st_result.exam_score = new_exam_score
-                st_result.result = new_result
-                st_result.grade = student_grade.label
-                st_result.remark = student_grade.remark
-                results_to_update.append(st_result)
-            except StudentResult.DoesNotExist:
-                continue
+            
         with transaction.atomic():
             try:
                 Exam.objects.bulk_update(exams_to_update, ['total_score'])
-                if results_to_update:
-                    StudentResult.objects.bulk_update(results_to_update, ['exam_score', 'result', 'grade', 'remark'])
-                    all_results =  StudentResult.objects.filter(school=school, level=current_level, teacher=teacher, subject=subject_obj, student_class=students_class, academic_year=current_academic_year, academic_term=term).order_by('-result')
-                    all_results_data = TeacherGetStudentResultSerializer(all_results, many=True).data
-                    return Response(all_results_data)
             except Exception:
                 transaction.set_rollback(True)
                 return Response(status=400)
@@ -982,37 +925,24 @@ def teacher_exams(request):
         new_score = Decimal(data['score'])
         with transaction.atomic():
             try:
-                students_class = Classe.objects.get(school=school, level=current_level, name=st_class_name)
-                subject_obj = Subject.objects.get(name=subject_name)
-                student = Student.objects.get(school=school, level=current_level, st_id=data['studentId'])
+                subject_obj = Subject.objects.get(schools=school, level=current_level, name=subject_name)
+                student = Student.objects.select_related('st_class').get(school=school, level=current_level, st_id=data['studentId'])
+                students_class = student.st_class
+                if StudentResult.objects.filter(school=school, level=current_level, subject=subject_obj, student_class=students_class, teacher=teacher, academic_year=current_academic_year, academic_term=term).exists():
+                    return Response({'message': f"Results for {subject_name} in this class have already been generated. Please delete the existing results data and try again."}, status=400)
                 st_exam = Exam.objects.get(school=school, level=current_level, student=student, subject=subject_obj, student_class=students_class, teacher=teacher, academic_year=current_academic_year, academic_term=term)
+                if new_score > st_exam.total_score:
+                    return Response({'message': f"The student's score cannot exceed the total score for the exam"}, status=400)
+                elif new_score < 0:
+                    return Response({'message': f"The student's score cannot be negative"}, status=400)
                 st_exam.score = new_score
                 st_exam.save()
-                st_result = StudentResult.objects.get(school=school, level=current_level, student=student, subject=subject_obj, student_class=students_class, teacher=teacher, academic_year=current_academic_year, academic_term=term)
-                new_exam_score = (new_score/st_exam.total_score)*st_result.exam_percentage
-                new_exam_score = math.ceil(new_exam_score) if new_exam_score - math.floor(new_exam_score) >= 0.5 else math.floor(new_exam_score)
-                grading_system = GradingSystem.objects.filter(schools=school, level=current_level).order_by('lower_limit')
-                new_result = new_exam_score + st_result.total_assessment_score
-                student_grade = next((item for item in grading_system if item.upper_limit >= new_result >= item.lower_limit), None)
-                st_result.exam_score = new_exam_score
-                st_result.result = new_result
-                st_result.grade = student_grade.label
-                st_result.remark = student_grade.remark
-                st_result.save()
-                return Response({
-                    'new_exam_score': new_exam_score, 
-                    'new_result': new_result,
-                    'new_grade': student_grade.label,
-                    'new_remark': student_grade.remark,
-                    })
-            except StudentResult.DoesNotExist:
-                transaction.set_rollback(False)
+                
+                return Response(status=200)
             except Exception:
                 transaction.set_rollback(True)
                 return Response(status=400)
-        
-        return Response()
-    
+            
     elif data['type'] == 'deleteExam':
         with transaction.atomic():
             try:
@@ -1044,17 +974,21 @@ def teacher_students_results(request):
     students_class = Classe.objects.prefetch_related('students').get(school=school, level=current_level, name=data['studentsClassName'])
     
     if data['type'] == 'generateResults':
+        result_data = json.loads(data['resultsData'])
+        if (result_data['exams'] == 'yes' and (float(result_data['totalAssessmentPercentage']) + float(result_data['examsPercentage'])) != 100) or (result_data['exams'] == 'no' and float(result_data['totalAssessmentPercentage']) != 100):
+            return Response({'message': "The total percentage must be 100"}, status=400)
+        
         existing_results = StudentResult.objects.filter(school=school, level=current_level, teacher=teacher, subject=subject_obj, student_class=students_class, academic_year=current_academic_year, academic_term=current_term)
         if existing_results.exists():
             return Response({'message': f"{subject_obj.name} results for this class already exists"}, status=400)
-        result_data = json.loads(data['resultsData'])
-        grading_system = GradingSystem.objects.prefetch_related('ranges').filter(schools=school, level=current_level).first()
+        
+        grading_system = GradingSystem.objects.prefetch_related(Prefetch('ranges', queryset=GradingSystemRange.objects.order_by('lower_limit'))).filter(schools=school, level=current_level).first()
         assessments_to_update = []
         exams_to_update = []
         results_to_create = []
         class_students = students_class.students.all()
         students_exams_data = {}
-        students_assessment_objs = Assessment.objects.select_related('student').get(school=school, level=current_level, teacher=teacher, subject=subject_obj, student_class=students_class, academic_year=current_academic_year, academic_term=current_term)
+        students_assessment_objs = Assessment.objects.select_related('student').filter(school=school, level=current_level, teacher=teacher, subject=subject_obj, student_class=students_class, academic_year=current_academic_year, academic_term=current_term)
         students_assessments_title_data = defaultdict(dict)
         for _assessment in students_assessment_objs:
             students_assessments_title_data[_assessment.student.st_id][_assessment.title] = _assessment
@@ -1067,23 +1001,21 @@ def teacher_students_results(request):
             student_total_assessment_score = 0
             for _title_data in result_data['assessments']:
                 student_assessment = students_assessments_title_data[_student.st_id][_title_data['title']]
-                student_total_assessment_score += ((student_assessment.score/student_assessment.total_score)*_title_data['percentage'])
+                student_total_assessment_score += (float(student_assessment.score/student_assessment.total_score)*float(_title_data['percentage']))
                 student_assessment.percentage = _title_data['percentage']
                 assessments_to_update.append(student_assessment)
-            student_total_assessment_score = math.ceil(student_total_assessment_score) if student_total_assessment_score - math.floor(student_total_assessment_score) >= 0.5 else math.floor(student_total_assessment_score)
             
             student_exam_score = 0
             if result_data['exams'] == 'yes':
                 student_exam = students_exams_data[_student.st_id]
-                student_exam_score = (student_exam.score/student_exam.total_score)*result_data['examsPercentage']
-                student_exam_score = math.ceil(student_exam_score) if student_exam_score - math.floor(student_exam_score) >= 0.5 else math.floor(student_exam_score)
+                student_exam_score = float(student_exam.score/student_exam.total_score)*float(result_data['examsPercentage'])
                 student_exam.percentage = result_data['examsPercentage']
                 exams_to_update.append(student_exam)
                 
             result = student_total_assessment_score + student_exam_score
-            student_grade = next((item for item in grading_system.ranges.all() if item.upper_limit >= result >= item.lower_limit), None)
+            student_grade = next((item for item in grading_system.ranges.all() if item.lower_limit <= result and result <= (float(item.upper_limit) + 0.999)), None)
             if not student_grade:
-                return Response({'message': f"Couldn't find a grade for a student with resuult of {result}"}, status=400)
+                return Response({'message': f"Couldn't find a grade for a student with result of {result}"}, status=400)
             
             student_result = StudentResult(
                 school=school,
@@ -1109,7 +1041,8 @@ def teacher_students_results(request):
                 Exam.objects.bulk_update(exams_to_update, ['percentage'])
                 StudentResult.objects.bulk_create(results_to_create)
             except IntegrityError:
-                transaction.set_rollback(False)
+                transaction.set_rollback(True)
+                return Response(status=400)
             except Exception:
                 transaction.set_rollback(True)
                 return Response(status=400)

@@ -299,9 +299,9 @@ export interface states {
     studentsResults: {
       [class_name: string]: {
         [subject_name: string]: {
-          total_assessment_percentage?: number
-          exam_percentage?: number
-          student_results?: {
+          total_assessment_percentage: number
+          exam_percentage: number
+          student_results: {
             [st_id: string]: {
               result: number
               total_assessment_score: number

@@ -33,7 +33,11 @@ const deleteResults = async () => {
 
   try {
     await axiosInstance.post('teacher/students-result', formData)
-    userAuthStore.teacherData.studentsResults[className][subjectName] = {}
+    userAuthStore.teacherData.studentsResults[className][subjectName] = {
+      'total_assessment_percentage': 0,
+      'exam_percentage': 0,
+      'student_results': {}
+    }
     if (Object.keys(userAuthStore.teacherData.studentsAssessments?.[className]?.[subjectName] || {}).length > 0) {
       Object.values(userAuthStore.teacherData.studentsAssessments[className][subjectName]).forEach(item => {
       item.percentage = 0
@@ -69,16 +73,16 @@ const deleteResults = async () => {
 
 <template>
   <div class="content-wrapper" v-show="elementsStore.activePage === `TeacherStudentsResults,${className},${subjectName}`" :class="{ 'is-active-page': elementsStore.activePage === `TeacherStudentsResults,${className},${subjectName}` }">
-    <NoData message="You have not generated students results yet" v-if="Object.keys(resultData).length === 0"/>
-    <div class="content-header" v-if="Object.keys(resultData).length > 0">
+    <NoData message="You have not generated students results yet" v-if="Object.keys(resultData.student_results).length === 0"/>
+    <div class="content-header" v-if="Object.keys(resultData.student_results).length > 0">
       <span class="content-header-title">{{ className }} {{ subjectName }} STUDENT RESULTS</span>
     </div>
-    <div class="content-header btn-container" v-if="Object.keys(resultData).length > 0">
+    <div class="content-header btn-container" v-if="Object.keys(resultData.student_results).length > 0">
       <v-btn
         @click="elementsStore.ShowDeletionOverlay(() => deleteResults(), `Are you sure you want to delete all the ${subjectName} results data you have uploaded for this class?`)"
         color="red" :size="elementsStore.btnSize1" append-icon="mdi-delete" varaint="flat">DELETE RESULTS</v-btn>
     </div>
-    <v-table fixed-header class="table" v-if="Object.keys(resultData).length > 0">
+    <v-table fixed-header class="table" v-if="Object.keys(resultData.student_results).length > 0">
       <thead>
         <tr>
           <th class="table-head">NAME</th>

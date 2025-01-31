@@ -69,7 +69,7 @@ const fileChange = (event: any) => {
 // Generate an excel file
 const generateFile = async () => {
   formErrorMessage.value = ''
-  if (!assessmentData.value.students_without_assessment) {
+  if (Object.keys(assessmentData.value.students_without_assessment).length === 0) {
     showErrorMessage(`You have already uploaded all the students assessment for the assessment titled [ ${assessmentTitle} ] under ${subjectName}`)
     return;
   }
@@ -118,7 +118,15 @@ const upload = async () => {
   formData.append('studentsClassName', className)
   formData.append('subject', subjectName)
   formData.append('title', assessmentData.value.title)
+  formData.append('percentage', assessmentData.value.percentage.toString())
+  formData.append('totalScore', assessmentData.value.total_score.toString())
+  formData.append('description', assessmentData.value.description)
+  formData.append('date', assessmentData.value.assessment_date)
   if (uploadTypeSelected.value === 'file') {
+    if (Object.keys(assessmentData.value.students_without_assessment).length === 0) {
+      showErrorMessage(`You have already uploaded all the students assessment for the assessment titled [ ${assessmentTitle} ] under ${subjectName}`)
+      return;
+    }
     formData.append('file', fileToUpload.value)
     formData.append('type', 'uploadWithFile')
   }
@@ -191,16 +199,23 @@ const editAssessment = async () => {
   formData.append('title', assessmentData.value.title);
 
   if (editType.value === 'score') {
+    if (Object.keys(userAuthStore.teacherData.studentsResults[className][subjectName].student_results || {}).length > 0) {
+      showErrorMessage(`Results for ${subjectName} in this class have already been generated. Please delete the existing results data and try again.`)
+      return;
+    }
     if (assessmentData.value.total_score >= newScore.value && newScore.value >= 0) {
       formData.append('newScore', newScore.value);
       formData.append('editType', 'score');
       formData.append('studentId', studentId.value);
-    } else {
+    }
+    else {
       if (newScore.value < 0) {
         formErrorMessage.value = "The student's score cannot be negative"
-      } else if (newScore.value > Number(assessmentData.value.total_score)) {
+      } 
+      else if (newScore.value > Number(assessmentData.value.total_score)) {
         formErrorMessage.value = "The student's score cannot be greater than the total assessment score"
-      } else if (newScore.value === previousScore.value) {
+      } 
+      else if (newScore.value === previousScore.value) {
         formErrorMessage.value = "The new student's score must be different from the old students's score"
       }
       clearMessage()
@@ -242,6 +257,10 @@ const editAssessment = async () => {
     formData.append('editType', 'description');
   }
   else if (editType.value === 'totalScore') {
+    if (Object.keys(userAuthStore.teacherData.studentsResults[className][subjectName].student_results || {}).length > 0) {
+      showErrorMessage(`Results for ${subjectName} in this class have already been generated. Please delete the existing results data and try again.`)
+      return;
+    }
     if (newTotalScore.value <= 0) {
       showErrorMessage('The total assessment score cannot be negative or zero(0)')
       return;
@@ -272,16 +291,9 @@ const editAssessment = async () => {
 
   elementsStore.ShowLoadingOverlay()
   try {
-    const response = await axiosInstance.post('teacher/assessments', formData)
-    const data = response.data
+    await axiosInstance.post('teacher/assessments', formData)
     if (editType.value === 'score') {
       userAuthStore.teacherData.studentsAssessments[className][subjectName][assessmentTitle].students_with_assessment[studentId.value].score = Number(newScore.value.toFixed(2))
-      if (userAuthStore.teacherData.studentsResults?.[className]?.[subjectName]?.student_results) {
-        userAuthStore.teacherData.studentsResults[className][subjectName].student_results[studentId.value].result = data['new_result']
-        userAuthStore.teacherData.studentsResults[className][subjectName].student_results[studentId.value].remark = data['new_remark']
-        userAuthStore.teacherData.studentsResults[className][subjectName].student_results[studentId.value].grade = data['new_grade']
-        userAuthStore.teacherData.studentsResults[className][subjectName].student_results[studentId.value].total_assessment_score = data['new_total_assessment_score']
-      }
     }
     else if (editType.value === 'comment') {
       userAuthStore.teacherData.studentsAssessments[className][subjectName][assessmentTitle].students_with_assessment[studentId.value].comment = newComment.value
@@ -299,9 +311,6 @@ const editAssessment = async () => {
       }
       else if (editType.value === 'totalScore') {
         userAuthStore.teacherData.studentsAssessments[className][subjectName][assessmentTitle].total_score = Number(newTotalScore.value.toFixed(2))
-        if (Object.keys(userAuthStore.teacherData.studentsResults?.[className]?.[subjectName]?.student_results || {}).length > 0) {
-          userAuthStore.teacherData.studentsResults[className][subjectName].student_results = data
-        }
       }
       else if (editType.value === 'date') {
         userAuthStore.teacherData.studentsAssessments[className][subjectName][assessmentTitle].assessment_date = newDate.value
@@ -331,6 +340,10 @@ const editAssessment = async () => {
 }
 
 const deleteAssessment = async () => {
+  if (Object.keys(userAuthStore.teacherData.studentsResults[className][subjectName].student_results || {}).length > 0) {
+    elementsStore.ShowOverlay(`Results for ${subjectName} in this class have already been generated. Please delete the existing results data and try again.`, 'red', null, null)
+    return;
+  }
   elementsStore.ShowLoadingOverlay()
   const formData = new FormData()
   formData.append('studentsClassName', className);

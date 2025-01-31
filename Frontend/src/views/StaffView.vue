@@ -248,7 +248,7 @@ const checkInput = computed(() => {
         <div class="component-wrapper"
           v-for="[class_name, class_data] in Object.entries(userAuthStore.teacherData.studentsResults)"
           :key="class_name">
-          <TeacherStudentsResults v-for="subject_name in Object.keys(class_data)" :key="subject_name"
+          <TeacherStudentsResults v-for="subject_name in Object.keys(class_data)" :key="`${class_name},${subject_name}`"
             :className="class_name" :subjectName="subject_name" />
         </div>
       </div>

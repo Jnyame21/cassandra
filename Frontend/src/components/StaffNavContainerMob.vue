@@ -22,6 +22,33 @@ const showOverlay = () => {
     }
 }
 
+const resetStoreData = (staff_role: string) => {
+    if (staff_role === 'teacher') {
+        userAuthStore.teacherData = {
+            courseWork: {},
+            studentsAttendance: {},
+            studentsAssessments: {},
+            studentsExams: {},
+            studentsResults: {},
+            departmentData: null,
+            staff: null,
+        }
+    }
+    else if (staff_role === 'administrator') {
+        userAuthStore.adminData = {
+            academicYears: null,
+            departments: [],
+            heads: null,
+            classes: [],
+            staffRoles: [],
+            staff: null,
+            programs: [],
+            subjects: [],
+            subjectAssignments: [],
+        }
+    }
+}
+
 const changeRole = async () => {
     const formData = new FormData()
     if (roleSelected.value === userAuthStore.userData['current_role']['identifier']) {
@@ -35,10 +62,12 @@ const changeRole = async () => {
         if (userAuthStore.userData['staff_role'].toLowerCase() === 'administrator') {
             elementsStore.activePage = 'AdminStaff'
             await userAuthStore.getAdminData()
+            resetStoreData('teacher')
         }
         else if (userAuthStore.userData['staff_role'].toLowerCase() === 'teacher') {
             elementsStore.activePage = 'TeacherStaff'
             await userAuthStore.getTeacherData()
+            resetStoreData('administrator')
         }
         else if (userAuthStore.userData['staff_role'].toLowerCase() === 'head') {
             elementsStore.activePage = 'HeadOverview'

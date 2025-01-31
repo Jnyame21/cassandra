@@ -234,6 +234,7 @@ body {
   text-align: center;
   overflow: auto !important;
   margin-bottom: 0.5em !important;
+  margin-top: 3em !important;
   padding: 0 0.5em !important;
 }
 .overlay-card-content-container {

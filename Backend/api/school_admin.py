@@ -33,7 +33,7 @@ def school_admin_data(request):
     sch_admin = Staff.objects.select_related('school', 'current_role__level').get(user=request.user)
     school = sch_admin.school
     current_level = sch_admin.current_role.level
-    current_academic_year = AcademicYear.objects.get(school=school, level=current_level, name=request.GET.get('year'))
+    current_academic_year = AcademicYear.objects.get(id=request.GET.get('year'))
     current_term = int(request.GET.get('term'))
     academic_years = AcademicYearSerializer(AcademicYear.objects.filter(school=school, level=current_level).order_by('-start_date'), many=True).data
     student_classes = Classe.objects.select_related('head_teacher__user', 'program').prefetch_related('subjects', 'students__user').filter(school=school, level=current_level).order_by('students_year')

@@ -146,7 +146,13 @@ const createAssessmentAndExam = async () => {
     else if (typeSelected.value === 'exams') {
       const response = await axiosInstance.post('teacher/exams', formData)
       if (userAuthStore.teacherData.studentsExams?.[className]?.[subjectSelected.value]) {
-        userAuthStore.teacherData.studentsExams[className][subjectSelected.value].total_score = examsTotalScore.value
+        const _examsData = {
+        'total_score': examsTotalScore.value,
+        'percentage': 0,
+        'students_with_exams': {},
+        'students_without_exams': Object.fromEntries(students.value?.map(item => [item.st_id, {name: item.user, st_id: item.st_id}]) || []) || {},
+      }
+        userAuthStore.teacherData.studentsExams[className][subjectSelected.value] = _examsData
       }
       
       elementsStore.HideLoadingOverlay()
@@ -181,7 +187,7 @@ const checkStudentAssessmentsExams = () => {
     return Object.values(studentAssessmentsData.value?.[subjectSelected.value] || {})
   })
   for (let i=0; i < studentAssessmentsDataArray.value.length; i++){
-    if (!studentAssessmentsDataArray.value[i].students_with_assessment) {
+    if (Object.keys(studentAssessmentsDataArray.value[i].students_with_assessment || {}).length === 0) {
       validation = false
       resultGenerationErrorType.value = studentAssessmentsDataArray.value[i].title
       break;
@@ -200,6 +206,10 @@ const checkStudentAssessmentsExams = () => {
 const generateResults = async () => {
   formErrorMessage.value = ''
   loading.value = true
+  if (Object.keys(userAuthStore.teacherData.studentsResults[className][subjectSelected.value].student_results || {}).length > 0) {
+    showErrorMessage(`You have already generated the students ${subjectSelected.value} results`)
+    return;
+  }
   const studentAssessmentsExamsValidation = checkStudentAssessmentsExams()
   if (!studentAssessmentsExamsValidation) {
     if (resultGenerationErrorType.value === 'exams') {
@@ -236,11 +246,11 @@ const generateResults = async () => {
   if (Object.keys(userAuthStore.teacherData.studentsExams?.[className]?.[subjectSelected.value].students_with_exams || {}).length === 0) {
     resultsData['exams'] = 'no'
   }
-  if (!validInput || examsPercentage.value <= 0) {
-    showErrorMessage("All the values(percentages) must be greater than 0")
+  if (!validInput) {
+    showErrorMessage("The assessments percentages must be greater than 0")
     return;
   }
-  else if ((totalAssessmentPercentage + examsPercentage.value) !== 100) {
+  else if (userAuthStore.teacherData.studentsExams[className][subjectSelected.value].total_score === 0 && totalAssessmentPercentage !== 100 || totalAssessmentPercentage + examsPercentage.value !== 100) {
     showErrorMessage("The total percentage must be 100.")
     return;
   }
@@ -257,25 +267,23 @@ const generateResults = async () => {
   try {
     const response = await axiosInstance.post('teacher/students-result', formData)
     const studentAssessments = userAuthStore.teacherData.studentsAssessments?.[className]?.[subjectSelected.value]
-    if (studentAssessments) {
+    if (Object.keys(studentAssessments || {}).length > 0) {
       Object.values(studentAssessmentsData.value[subjectSelected.value]).forEach(item =>{
         studentAssessments[item.title].percentage = item.percentage
       })
     }
-    const studentExams = userAuthStore.teacherData.studentsExams?.[className]?.[subjectSelected.value]
-    if (studentExams) {
-      studentExams.percentage = examsPercentage.value
+    if (userAuthStore.teacherData.studentsExams?.[className]?.[subjectSelected.value]?.total_score) {
+      userAuthStore.teacherData.studentsExams[className][subjectSelected.value].percentage = examsPercentage.value
     }
-    const studentResults = userAuthStore.teacherData.studentsResults?.[className]?.[subjectSelected.value]
-    if (studentResults) {
-      studentResults.exam_percentage = response.data['exam_percentage']
-      studentResults.total_assessment_percentage = response.data['total_assessment_percentage']
-      studentResults.student_results = response.data['student_results']
+    if (userAuthStore.teacherData.studentsResults?.[className]?.[subjectSelected.value]) {
+      userAuthStore.teacherData.studentsResults[className][subjectSelected.value].exam_percentage = response.data['exam_percentage']
+      userAuthStore.teacherData.studentsResults[className][subjectSelected.value].total_assessment_percentage = response.data['total_assessment_percentage']
+      userAuthStore.teacherData.studentsResults[className][subjectSelected.value].student_results = response.data['student_results']
     }
     subjectSelected.value = ''
     examsPercentage.value = 0
     elementsStore.HideLoadingOverlay()
-    elementsStore.ShowOverlay('Operation Successful', 'green', null, null)
+    elementsStore.ShowOverlay('Results generated successfully', 'green', null, null)
   }
   catch (error) {
     elementsStore.HideLoadingOverlay()
@@ -297,6 +305,13 @@ const generateResults = async () => {
   }
 }
 
+const isResultGenerationFormValid = computed(()=>{
+  if (Object.keys(allAssessments.value[subjectSelected.value] || {}).length > 0){
+    return !(examsPercentage.value === 0 || examsPercentage.value);
+  }
+  return !(examsPercentage.value);
+})
+
 const isAssessmentExamsFormValid = computed(() => {
   if (typeSelected.value === 'assessments') {
     return !(subjectSelected.value && assessmentTitle.value && assessmentTotalScore.value && assessmentDate.value)
@@ -309,10 +324,6 @@ const isAssessmentExamsFormValid = computed(() => {
   }
 })
 
-const isResultsFormValid = computed(() => {
-  return !(examsPercentage.value)
-})
-
 const showOverlay = (element: string) => {
   const overlay = document.getElementById(element)
   if (overlay) {
@@ -322,6 +333,7 @@ const showOverlay = (element: string) => {
 
 const closeOverlay = (element: string) => {
   subjectSelected.value = ''
+  examsPercentage.value = 0
   const overlay = document.getElementById(element)
   if (overlay) {
     overlay.style.display = 'none'
@@ -405,12 +417,12 @@ const closeOverlay = (element: string) => {
                 hint="Enter the percentage you want this assessment to contribute to the overall results" />
             </div>
           </div>
-          <v-text-field v-if="subjectSelected" class="input-field" v-model.number="examsPercentage"
+          <v-text-field v-if="subjectSelected && userAuthStore.teacherData.studentsExams[className][subjectSelected]?.total_score !== 0" class="input-field" v-model.number="examsPercentage"
             label="EXAMS PERCENTAGE" placeholder="Eg. 30" density="comfortable" type="number" variant="solo-filled"
             persistent-hint hint="Enter the percentage you want the exams to contribute to the overall results" />
         </div>
         <div class="overlay-card-action-btn-container">
-          <v-btn @click="generateResults" :loading="loading" :disabled="isResultsFormValid" :ripple="false"
+          <v-btn @click="generateResults" :loading="loading" :disabled="isResultGenerationFormValid" :ripple="false"
             variant="flat" type="submit" color="black" size="small"
             append-icon="mdi-checkbox-marked-circle">SUBMIT</v-btn>
         </div>
