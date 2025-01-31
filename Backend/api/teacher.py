@@ -18,6 +18,7 @@ import json
 from collections import defaultdict
 from datetime import datetime
 import hashlib
+import inflect
 import math
 from django.db.models import Prefetch
 from decimal import Decimal
@@ -129,8 +130,8 @@ def get_teacher_data(request):
                         students_with_exams.add(exams_student.st_id)
             
                 for _student in class_students:
-                    if _student not in students_with_exams:
-                        st_id = _student.st_id
+                    st_id = _student.st_id
+                    if st_id not in students_with_exams:
                         student_data = {
                             'name': f"{_student.user.first_name} {_student.user.last_name}",
                             'st_id': st_id,
@@ -139,7 +140,6 @@ def get_teacher_data(request):
             else:
                 exams_subject_data['percentage'] = 0
                 exams_subject_data['total_score'] = 0
-                exams_subject_data['student_results'] = {}
                 
             exams_class_data[_subject.name] = exams_subject_data
             
@@ -159,7 +159,8 @@ def get_teacher_data(request):
                         'exam_score': _result.exam_score,
                         'student': {'name': f"{_result.student.user.first_name} {_result.student.user.last_name}", 'st_id': result_student.st_id},
                         'remark': _result.remark,
-                        'grade': _result.grade
+                        'grade': _result.grade,
+                        'position': _result.position,
                     }
                     all_results[result_student.st_id] = student_data
                 results_subject_data['student_results'] = all_results
@@ -210,72 +211,43 @@ def teacher_students_attendance(request):
     current_academic_year = AcademicYear.objects.get(school=school, level=current_level, name=data['year'])
     current_term = int(data['term'])
     if data['type'] == 'create':
-        students = data['absentStudents'].split(',')
-        try:
-            existing_attendance = StudentAttendance.objects.get(
+        student_ids = data['absentStudents'].split(',')
+        student_objs = students_class.students.all()
+        if StudentAttendance.objects.filter(school=school, level=current_level, date=data['date'], teacher=teacher, students_class=students_class, academic_year=current_academic_year, academic_term=current_term).exists():
+            return Response({'message': f"You have already uploaded attendance for this date [ {data['date']} ]"}, status=400)
+
+        with transaction.atomic():
+            attendance = StudentAttendance.objects.create(
                 school=school,
-                level=teacher.level,
-                date=data['date'],
+                level=current_level,
                 teacher=teacher,
-                students_class=students_class,
-                academic_year=current_academic_year,
-                academic_term=current_term,
-            )
-            return Response({
-                'message': f"You have already uploaded attendance for this date [ {data['date']} ]",
-            }, status=400)
-
-        except StudentAttendance.DoesNotExist:
-            with transaction.atomic():
-                attendance = StudentAttendance.objects.create(
-                    school=school,
-                    level=teacher.level,
-                    teacher=teacher,
-                    date=data['date'],
-                    students_class=students_class,
-                    academic_year=current_academic_year,
-                    academic_term=int(data['term']),
-                )
-                    
-                for st in students_class.students.all():
-                    if st.st_id not in students:
-                        attendance.students_present.add(st)
-                    else:
-                        attendance.students_absent.add(st)
-
-                attendance.save()
-
-            new_attendance = StudentsAttendanceSerializer(StudentAttendance.objects.get(
-                school=school,
-                level=teacher.level,
-                academic_year=current_academic_year,
-                academic_term=current_term,
                 date=data['date'],
                 students_class=students_class,
-                teacher=teacher
-            )).data
+                academic_year=current_academic_year,
+                academic_term=int(data['term']),
+            )
+                
+            for st in student_objs:
+                if st.st_id not in student_ids:
+                    attendance.students_present.add(st)
+                else:
+                    attendance.students_absent.add(st)
 
-            return Response(new_attendance)
+        attendance_obj = StudentAttendance.objects.prefetch_related('students_absent', 'students_present').get(school=school, level=current_level, academic_year=current_academic_year, academic_term=current_term, date=data['date'], students_class=students_class, teacher=teacher)
+        attendance_data = StudentsAttendanceSerializer(attendance_obj).data
+        return Response(attendance_data, status=200)
 
     elif data['type'] == 'delete':
         try:
             students_class = Classe.objects.get(school=school, level=teacher.level, name=data['className'])
             with transaction.atomic():
-                student_attendance = StudentAttendance.objects.get(
-                    school=school,
-                    level=current_level,
-                    academic_year=current_academic_year,
-                    academic_term=current_term,
-                    students_class=students_class,
-                    teacher=teacher,
-                    date=data['date'],
-                )
+                student_attendance = StudentAttendance.objects.get(school=school, level=current_level, academic_year=current_academic_year, academic_term=current_term, students_class=students_class, teacher=teacher, date=data['date'])
                 student_attendance.delete()
 
-            return Response()
+            return Response(status=200)
 
         except StudentAttendance.DoesNotExist:
-            return Response(status=400)
+            return Response({'message': 'Attendance data not found'}, status=400)
 
 
 @api_view(['POST'])
@@ -386,6 +358,7 @@ def teacher_assessments(request):
                     level=current_level, 
                     teacher=teacher, 
                     subject=subject_obj, 
+                    percentage=0,
                     student_class=students_class,
                     title=assessment_title,
                     description=description,
@@ -504,6 +477,8 @@ def teacher_assessments(request):
         assessment_date = datetime.strptime(data['date'], '%Y-%m-%d').date()
         
         score = float(data['score'])
+        if score < 0:
+            return Response({'message': f"The student(s) score cannot be negative!"}, status=400)
         if score > total_score:
             return Response({'message': f"The student(s) score cannot exceed the total score for the assessment!"}, status=400)
         
@@ -828,6 +803,7 @@ def teacher_exams(request):
                     subject=subject_obj,
                     teacher=teacher,
                     percentage=0,
+                    total_score=exams_total_score,
                     student_class=students_class,
                     score=float(_student_data[2]),
                     academic_year=current_academic_year,
@@ -880,6 +856,7 @@ def teacher_exams(request):
                 student_class=students_class,
                 score=score,
                 percentage=0,
+                total_score=exams_total_score,
                 academic_year=current_academic_year,
                 academic_term=term,
                 level=current_level,
@@ -900,6 +877,9 @@ def teacher_exams(request):
     elif data['type'] == 'editTotalScore':
         students_class = Classe.objects.get(school=school, level=current_level, name=st_class_name)
         subject_obj = Subject.objects.get(schools=school, level=current_level, name=subject_name)
+        new_total_score = float(data['totalScore'])
+        if new_total_score <= 0:
+            return Response({'message': "The total score of the exams must be greater than zero(0)"}, status=400)
         if StudentResult.objects.filter(school=school, level=current_level, subject=subject_obj, student_class=students_class, teacher=teacher, academic_year=current_academic_year, academic_term=term).exists():
             return Response({'message': f"Results for {subject_name} in this class have already been generated. Please delete the existing results data and try again."}, status=400)
         
@@ -953,7 +933,6 @@ def teacher_exams(request):
                     return Response({'message': f"Results for {subject_name} in this class have already been generated. Please delete the existing results data and try again."}, status=400)
                 exams = Exam.objects.filter(school=school, level=current_level, subject=subject_obj, student_class=students_class, teacher=teacher, academic_year=current_academic_year, academic_term=term)
                 exams.delete()
-                
             except Exception:
                 transaction.set_rollback(True)
                 return Response(status=400)
@@ -1029,31 +1008,48 @@ def teacher_students_results(request):
                 total_assessment_percentage=result_data['totalAssessmentPercentage'],
                 total_assessment_score=student_total_assessment_score,
                 result=result,
+                released=False,
+                position='',
                 remark=student_grade.remark,
                 grade=student_grade.label,
                 academic_year = current_academic_year,
                 academic_term=current_term,
             )
             results_to_create.append(student_result)
+        
+        p = inflect.engine()
+        created_results = None
         with transaction.atomic():
             try:
                 Assessment.objects.bulk_update(assessments_to_update, ['percentage'])
                 Exam.objects.bulk_update(exams_to_update, ['percentage'])
                 StudentResult.objects.bulk_create(results_to_create)
-            except IntegrityError:
-                transaction.set_rollback(True)
-                return Response(status=400)
+                created_results = StudentResult.objects.select_related('student').filter(school=school, level=current_level, teacher=teacher, subject=subject_obj, student_class=students_class, academic_year=current_academic_year, academic_term=current_term).order_by('-result')
+                rank = 1
+                previous_score = 0
+                position_map = {}
+                for index, _result in enumerate(created_results, start=1):
+                    result = float(_result.result)
+                    if result != previous_score:
+                        rank = index
+                    
+                    previous_score = result
+                    position_map[_result.id] = rank
+                
+                for _student_result in created_results:
+                    _student_result.position = p.ordinal(position_map[_student_result.id])
+                StudentResult.objects.bulk_update(created_results, ['position'])
+                    
             except Exception:
                 transaction.set_rollback(True)
                 return Response(status=400)
             
         subject_data = {}
-        results_subject_objs = StudentResult.objects.select_related('student__user').filter(school=school, level=current_level, teacher=teacher, subject=subject_obj, student_class=students_class, academic_year=current_academic_year, academic_term=current_term).order_by('-result')
-        first_result_obj = results_subject_objs.first()
+        first_result_obj = created_results.first()
         subject_data['total_assessment_percentage'] = first_result_obj.total_assessment_percentage
         subject_data['exam_percentage'] = first_result_obj.exam_percentage
         all_results = {}
-        for _result in results_subject_objs:
+        for _result in created_results:
             result_student = _result.student
             student_data = {
                 'result': _result.result,
@@ -1061,7 +1057,8 @@ def teacher_students_results(request):
                 'exam_score': _result.exam_score,
                 'student': {'name': f"{_result.student.user.first_name} {_result.student.user.last_name}", 'st_id': result_student.st_id},
                 'remark': _result.remark,
-                'grade': _result.grade
+                'grade': _result.grade,
+                'position': _result.position,
             }
             all_results[result_student.st_id] = student_data
         subject_data['student_results'] = all_results
@@ -1071,7 +1068,15 @@ def teacher_students_results(request):
     elif data['type'] == 'deleteResults':
         with transaction.atomic():
             results = StudentResult.objects.filter(school=school, level=current_level, teacher=teacher, subject=subject_obj, student_class=students_class, academic_year=current_academic_year, academic_term=current_term)
+            if results.first().released:
+                return Response({'message': f"Results have already been released. Contact your school administrator if you still want to delete the students results data"}, status=400)
             results.delete()
+            assessments = Assessment.objects.filter(school=school, level=current_level, teacher=teacher, subject=subject_obj, student_class=students_class, academic_year=current_academic_year, academic_term=current_term)
+            if assessments.exists():
+                assessments.update(percentage=0)
+            exams = Exam.objects.filter(school=school, level=current_level, teacher=teacher, subject=subject_obj, student_class=students_class, academic_year=current_academic_year, academic_term=current_term)
+            if exams.exists():
+                exams.update(percentage=0)
         
         return Response()
 

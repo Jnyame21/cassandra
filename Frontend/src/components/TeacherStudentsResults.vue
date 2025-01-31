@@ -89,6 +89,7 @@ const deleteResults = async () => {
           <th class="table-head">ASSESSMENTS({{ resultData.total_assessment_percentage }}%)</th>
           <th class="table-head">EXAMS({{ resultData.exam_percentage }}%)</th>
           <th class="table-head">TOTAL</th>
+          <th class="table-head">POSITION</th>
           <th class="table-head">GRADE</th>
         </tr>
       </thead>
@@ -111,6 +112,11 @@ const deleteResults = async () => {
           <td class="table-data">
             <v-btn size="small" variant="flat" color="black">
               {{ Number(st.result) }}
+            </v-btn>
+          </td>
+          <td class="table-data">
+            <v-btn size="small" variant="flat" color="black">
+              {{ st.position }}
             </v-btn>
           </td>
           <td class="table-data">

@@ -303,15 +303,16 @@ export interface states {
           exam_percentage: number
           student_results: {
             [st_id: string]: {
-              result: number
-              total_assessment_score: number
-              exam_score: number
+              result: number;
+              total_assessment_score: number;
+              exam_score: number;
               student: {
                 name: string
                 st_id: string
-              }
-              remark: string
-              grade: string
+              };
+              remark: string;
+              grade: string;
+              position: string;
             }
           }
         }
@@ -395,6 +396,7 @@ export interface states {
       program: string | null
       subjects: string[]
       linked_class: string
+      results_released: boolean;
     }[]
     staffRoles: string[]
     staff:{

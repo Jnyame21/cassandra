@@ -28,5 +28,6 @@ admin.site.register(LinkedClasse)
 admin.site.register(GraduatedClasse)
 admin.site.register(StaffRole)
 admin.site.register(GradingSystemRange)
+admin.site.register(ReleasedResult)
 
 

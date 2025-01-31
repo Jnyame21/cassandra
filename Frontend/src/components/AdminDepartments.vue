@@ -129,7 +129,7 @@ const closeOverlay = (element: string) => {
         </v-btn>
         <div class="overlay-card-info-container"></div>
         <div class="overlay-card-content-container">
-          <p class="subject-card" v-for="(subjects, index) in departmentSubjects" :key=index>{{subjects}}</p>
+          <p class="subject-card" v-for="(subject, index) in departmentSubjects" :key=index>{{subject.split('|')[0]}} ({{subject.split('|')[1]}})</p>
         </div>
       </div>
     </div>

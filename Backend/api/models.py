@@ -80,7 +80,7 @@ def delete_file(sender, instance, **kwargs):
 
 class School(models.Model):
     name = models.CharField(max_length=100, verbose_name="School Name", blank=False, unique=False, null=False)
-    identifier = models.CharField(max_length=100, verbose_name="School Identifier", blank=False, unique=False, null=False, default="")
+    identifier = models.CharField(max_length=100, verbose_name="School Identifier", blank=False, unique=False, null=False, default="", db_index=True)
     code = models.CharField(max_length=10, verbose_name="School Code", blank=True, null=True, default="")
     logo = models.ImageField(verbose_name='School Logo', upload_to=school_image_path, blank=True, null=True, max_length=255)
     address = models.CharField(max_length=500, verbose_name="School Address", blank=False, default="")
@@ -101,9 +101,9 @@ class School(models.Model):
 class GradingSystemRange(models.Model):
     label = models.CharField(max_length=10, verbose_name="Label", blank=False, null=True)
     upper_limit = models.DecimalField(verbose_name="Upper Limit", max_digits=5, decimal_places=2)
-    lower_limit = models.DecimalField(verbose_name="Lower Limit", max_digits=5, decimal_places=2)
+    lower_limit = models.DecimalField(verbose_name="Lower Limit", max_digits=5, decimal_places=2, db_index=True)
     remark = models.CharField(max_length=50, verbose_name="Remark", blank=False, null=True)
-    identifier = models.CharField(max_length=100, verbose_name="Grading sytem range identifier", blank=False, null=False, default="")
+    identifier = models.CharField(max_length=100, verbose_name="Grading sytem range identifier", blank=False, null=False, default="", db_index=True)
     
     def __str__(self) -> str:
         return self.identifier
@@ -118,11 +118,11 @@ class GradingSystem(models.Model):
 class EducationalLevel(models.Model):
     schools = models.ManyToManyField(School, verbose_name="Schools", blank=True)
     name = models.CharField(max_length=50, verbose_name="Level name", blank=False, null=True)
-    identifier = models.CharField(max_length=100, verbose_name="Level identifier", blank=False, null=False, default="")
+    identifier = models.CharField(max_length=100, verbose_name="Level identifier", blank=False, null=False, default="", db_index=True)
     years_to_complete = models.IntegerField(verbose_name="Years to complete this level", default=0)
     has_departments = models.BooleanField(verbose_name="Does the level has departments?", default=False)
     has_programs = models.BooleanField(verbose_name="Does the level has programs?", default=False)
-    students_id = models.BooleanField(verbose_name="Does the level give student ID numbers?", default=False,)
+    students_id = models.BooleanField(verbose_name="Does the level give student ID numbers?", default=False, db_index=True)
     students_index_no = models.BooleanField(verbose_name="Does the level give student Index numbers?", default=False)
     
     def __str__(self) -> str:
@@ -131,7 +131,7 @@ class EducationalLevel(models.Model):
 
 class AcademicYear(models.Model):
     school = models.ForeignKey(School, verbose_name="School", blank=False, on_delete=models.SET_NULL, null=True)
-    name = models.CharField(max_length=20, verbose_name="Name", blank=False)
+    name = models.CharField(max_length=20, verbose_name="Name", blank=False, db_index=True)
     level = models.ForeignKey(EducationalLevel, verbose_name="Level", on_delete=models.SET_NULL, null=True)
     start_date = models.DateField(verbose_name='Start Date')
     end_date = models.DateField(verbose_name='End Date')
@@ -152,7 +152,7 @@ class AcademicYear(models.Model):
 class Program(models.Model):
     name = models.CharField(max_length=100, verbose_name='Program Name')
     schools = models.ManyToManyField(School, verbose_name="Schools", blank=True)
-    identifier = models.CharField(max_length=100, verbose_name="Program identifier", blank=False, null=False, default="")
+    identifier = models.CharField(max_length=100, verbose_name="Program identifier", blank=False, null=False, default="", db_index=True)
     subjects = models.ManyToManyField('Subject', verbose_name='Subjects', blank=True)
     level = models.ForeignKey(EducationalLevel, verbose_name="Level", blank=True, on_delete=models.SET_NULL, null=True)
 
@@ -163,7 +163,7 @@ class Program(models.Model):
 class Subject(models.Model):
     schools = models.ManyToManyField(School, verbose_name="Schools", blank=True)
     name = models.CharField(max_length=100, verbose_name='Subject Name', blank=False, unique=True)
-    identifier = models.CharField(max_length=100, verbose_name="Subject identifier", blank=False, null=False, default="")
+    identifier = models.CharField(max_length=100, verbose_name="Subject identifier", blank=False, null=False, default="", db_index=True)
     level = models.ForeignKey(EducationalLevel, verbose_name="Level", blank=True, on_delete=models.SET_NULL, null=True)
 
     def __str__(self):
@@ -178,9 +178,9 @@ class Student(models.Model):
     programs = models.ManyToManyField(Program, related_name='programs', verbose_name='Programs', blank=True)
     current_program = models.ForeignKey(Program, related_name='current_program', verbose_name='Current Program', on_delete=models.SET_NULL, null=True, blank=True)
     st_class = models.ForeignKey('Classe', related_name='st_class', verbose_name='Class', null=True, on_delete=models.SET_NULL, blank=True)
-    current_year = models.IntegerField(verbose_name='Current Year', default=1)
+    current_year = models.IntegerField(verbose_name='Current Year', default=1, db_index=True)
     date_enrolled = models.DateField(verbose_name='Enrollment Date', blank=False, default=timezone.now)
-    st_id = models.CharField(max_length=50, verbose_name="Student ID.", blank=False, null=True)
+    st_id = models.CharField(max_length=50, verbose_name="Student ID.", blank=False, null=True, db_index=True)
     index_no = models.CharField(max_length=20, verbose_name="Index No.", default='none')
     img = models.ImageField(verbose_name='Profile Image', upload_to=students_file_path, blank=True, null=True, max_length=255)
     academic_years = models.ManyToManyField(AcademicYear, related_name='academic_years', verbose_name='Academic Years', blank=True)
@@ -214,7 +214,7 @@ class Student(models.Model):
 class StaffRole(models.Model):
     schools = models.ManyToManyField(School, verbose_name="Schools", blank=True)
     name = models.CharField(max_length=100, verbose_name='Role Name', blank=False)
-    identifier = models.CharField(max_length=100, verbose_name="Staff Role identifier", blank=False, null=False, default="")
+    identifier = models.CharField(max_length=100, verbose_name="Staff Role identifier", blank=False, null=False, default="", db_index=True)
     level = models.ForeignKey(EducationalLevel, verbose_name="Level", blank=False, on_delete=models.SET_NULL, null=True)
 
     def __str__(self):
@@ -225,7 +225,7 @@ class Staff(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, null=True)
     school = models.ForeignKey(School, verbose_name="School", blank=False, on_delete=models.SET_NULL, null=True)
     img = models.ImageField(verbose_name="Profile Image", upload_to=staff_file_path, blank=True, null=True, max_length=255)
-    staff_id = models.CharField(max_length=50, verbose_name='Staff ID', blank=False, null=True)
+    staff_id = models.CharField(max_length=50, verbose_name='Staff ID', blank=False, null=True, db_index=True)
     signature = models.ImageField(verbose_name="Staff signature", upload_to=staff_file_path, blank=True, null=True, max_length=255)
     roles = models.ManyToManyField(StaffRole, related_name='staff_roles', verbose_name='Roles', blank=False)
     current_role = models.ForeignKey(StaffRole, verbose_name='Role', blank=False, on_delete=models.SET_NULL, null=True)
@@ -243,7 +243,7 @@ class Staff(models.Model):
     email = models.EmailField( max_length=254, blank=True, null=True, verbose_name="Email Address", default='')
     region = models.CharField(verbose_name='Region', max_length=50, default='')
     nationality = models.CharField(verbose_name='Nationality', max_length=50, default='')
-    is_active = models.BooleanField(verbose_name='Staff is Active', default=True)
+    is_active = models.BooleanField(verbose_name='Staff is Active', default=True, db_index=True)
     date_created = models.DateField(verbose_name='Date Created', max_length=20, default=timezone.now)
 
     def __str__(self):
@@ -256,7 +256,7 @@ class Staff(models.Model):
 class Department(models.Model):
     school = models.ForeignKey(School, verbose_name="School", blank=False, on_delete=models.SET_NULL, null=True)
     name = models.CharField(max_length=100, verbose_name='Department Name', blank=False)
-    identifier = models.CharField(max_length=100, verbose_name="Department identifier", blank=False, null=False, default="")
+    identifier = models.CharField(max_length=100, verbose_name="Department identifier", blank=False, null=False, default="", db_index=True)
     teachers = models.ManyToManyField(Staff, related_name='department_teachers', verbose_name='Teachers', blank=True)
     hod = models.ForeignKey(Staff, verbose_name='HOD', related_name='department_hod', on_delete=models.SET_NULL, null=True, blank=True)
     subjects = models.ManyToManyField(Subject, verbose_name='Subjects', blank=True)
@@ -271,7 +271,7 @@ class Classe(models.Model):
     name = models.CharField(max_length=50, verbose_name='Class Name')
     identifier = models.CharField(max_length=100, verbose_name="Class identifier", blank=False, null=False, default="")
     level = models.ForeignKey(EducationalLevel, verbose_name="Level", blank=False, on_delete=models.SET_NULL, null=True)
-    students_year = models.IntegerField(verbose_name='Students Year', default=1)
+    students_year = models.IntegerField(verbose_name='Students Year', default=1, db_index=True)
     students = models.ManyToManyField(Student, verbose_name='Students', blank=True)
     program = models.ForeignKey(Program, verbose_name='Students Program', on_delete=models.SET_NULL, null=True, blank=True)
     head_teacher = models.ForeignKey(Staff, verbose_name='Head Teacher', on_delete=models.SET_NULL, null=True, blank=True)
@@ -321,7 +321,7 @@ class SubjectAssignment(models.Model):
     teacher = models.ForeignKey(Staff, on_delete=models.SET_NULL, verbose_name='Taught by', null=True)
     students_class = models.ForeignKey(Classe, on_delete=models.SET_NULL, verbose_name='Students Class', null=True)
     academic_year = models.ForeignKey(AcademicYear, on_delete=models.SET_NULL, verbose_name='Academic Year', null=True)
-    academic_term = models.IntegerField(verbose_name='Academic Term', default=1)
+    academic_term = models.IntegerField(verbose_name='Academic Term', default=1, db_index=True)
     date_created = models.DateField(verbose_name='Date Created', max_length=20, default=timezone.now)
 
     def __str__(self):
@@ -339,14 +339,14 @@ class Assessment(models.Model):
     student_class = models.ForeignKey(Classe, verbose_name='Student Class', on_delete=models.SET_NULL, null=True, blank=False)
     academic_year = models.ForeignKey(AcademicYear, verbose_name='Academic Year', on_delete=models.SET_NULL, null=True, blank=False)
     teacher = models.ForeignKey(Staff, verbose_name="Uploaded By", on_delete=models.SET_NULL, null=True, blank=True)
-    academic_term = models.IntegerField(verbose_name='Term', blank=False, null=False)
-    score = models.DecimalField(verbose_name="Student's Score", max_digits=6, decimal_places=2, blank=True, null=True)
+    academic_term = models.IntegerField(verbose_name='Term', blank=False, null=False, db_index=True)
+    score = models.DecimalField(verbose_name="Student's Score", max_digits=6, decimal_places=2, blank=True, null=True, db_index=True)
     total_score = models.DecimalField(verbose_name="Total Assessment Score", max_digits=6, decimal_places=2, blank=False, null=False)
-    percentage = models.DecimalField(verbose_name="Assessment Percentage", max_digits=5, decimal_places=2, default=0)
-    title = models.CharField(verbose_name="Title Of Assessment", max_length=50, blank=False, null=False, default='title')
-    description = models.CharField(verbose_name="Assessment description", max_length=100, blank=True, default='')
-    comment = models.CharField(verbose_name="Comment", max_length=100, blank=True, default='')
-    assessment_date = models.DateField(verbose_name='Date the assessment was conducted', default=timezone.now)
+    percentage = models.DecimalField(verbose_name="Assessment Percentage", max_digits=5, decimal_places=2)
+    title = models.CharField(verbose_name="Title Of Assessment", max_length=50, blank=False, null=False, db_index=True)
+    description = models.CharField(verbose_name="Assessment description", max_length=100, blank=True)
+    comment = models.CharField(verbose_name="Comment", max_length=100, blank=True)
+    assessment_date = models.DateField(verbose_name='Date the assessment was conducted')
     created_at = models.DateField(verbose_name='Date Created', auto_now_add=True, null=True)
     updated_at = models.DateField(verbose_name='Date Created', auto_now=True, null=True)
     
@@ -364,10 +364,10 @@ class Exam(models.Model):
     subject = models.ForeignKey(Subject, verbose_name='Subject', on_delete=models.SET_NULL, null=True)
     student_class = models.ForeignKey(Classe, verbose_name='Student Class', on_delete=models.SET_NULL, null=True)
     academic_year = models.ForeignKey(AcademicYear, verbose_name='Academic Year', on_delete=models.SET_NULL, null=True)
-    academic_term = models.IntegerField(verbose_name='Term', blank=False)
-    score = models.DecimalField(verbose_name="Student's Score", max_digits=5, decimal_places=2)
+    academic_term = models.IntegerField(verbose_name='Term', blank=False, db_index=True)
+    score = models.DecimalField(verbose_name="Student's Score", max_digits=5, decimal_places=2, db_index=True)
     teacher = models.ForeignKey(Staff, verbose_name="Uploaded By", on_delete=models.SET_NULL, null=True)
-    total_score = models.DecimalField(verbose_name="Total Exams Score", max_digits=6, decimal_places=2, default=0)
+    total_score = models.DecimalField(verbose_name="Total Exams Score", max_digits=6, decimal_places=2)
     percentage = models.DecimalField(verbose_name="Exam Percentage", max_digits=5, decimal_places=2)
     date_created = models.DateField(verbose_name='Date Created', max_length=20, default=timezone.now)
     
@@ -386,15 +386,15 @@ class StudentResult(models.Model):
     subject = models.ForeignKey(Subject, verbose_name='Subject', on_delete=models.SET_NULL, null=True)
     student_class = models.ForeignKey(Classe, verbose_name='Student Class', on_delete=models.SET_NULL, null=True)
     academic_year = models.ForeignKey(AcademicYear, verbose_name='Academic Year', on_delete=models.SET_NULL, null=True)
-    academic_term = models.IntegerField(verbose_name='Term', blank=False)
+    academic_term = models.IntegerField(verbose_name='Term', blank=False, db_index=True)
     exam_percentage = models.DecimalField(verbose_name="Percentage Of Exams", max_digits=5, decimal_places=2, blank=False, null=True)
     exam_score = models.DecimalField(verbose_name="Students's Exam Score", max_digits=5, decimal_places=2, blank=False, null=True)
     total_assessment_percentage = models.DecimalField(verbose_name="Percentage Of Assessments", max_digits=5, decimal_places=2, blank=False, null=True)
     total_assessment_score = models.DecimalField(verbose_name="Total Students's Assessment Score", max_digits=5, decimal_places=2, blank=False, null=True)
-    result = models.DecimalField(verbose_name="Result", max_digits=5, decimal_places=2, blank=False, null=True)
+    result = models.DecimalField(verbose_name="Result", max_digits=5, decimal_places=2, blank=False, null=True, db_index=True)
     grade = models.CharField(max_length=10, verbose_name="Student's Grade", blank=False, null=True)
-    position = models.CharField(max_length=5, verbose_name="Student's Position", blank=True, default='')
-    released = models.BooleanField(verbose_name="Result Released?", default=False)
+    position = models.CharField(max_length=50, verbose_name="Student's Position", blank=True)
+    released = models.BooleanField(verbose_name="Result Released?")
     remark = models.CharField(max_length=20, verbose_name="Remark", blank=False, null=True)
     created_at = models.DateField(verbose_name='Date Created', max_length=20, default=timezone.now)
     updated_at = models.DateField(verbose_name='Date Created', auto_now=True, null=True)
@@ -412,7 +412,7 @@ class StudentAttendance(models.Model):
     students_present = models.ManyToManyField(Student, related_name='students_present', verbose_name='Students Present', blank=True)
     students_absent = models.ManyToManyField(Student, related_name='students_absent', verbose_name='Students Absent', blank=True)
     academic_year = models.ForeignKey(AcademicYear, verbose_name='Academic Year', on_delete=models.SET_NULL, null=True)
-    academic_term = models.IntegerField(verbose_name='Term', blank=False)
+    academic_term = models.IntegerField(verbose_name='Term', blank=False, db_index=True)
     students_class = models.ForeignKey('Classe', verbose_name='Students Class', on_delete=models.SET_NULL, null=True)
     date = models.DateField(verbose_name="Attendance Date", default=timezone.now)
     teacher = models.ForeignKey(Staff, verbose_name="Uploaded By", on_delete=models.SET_NULL, null=True)
@@ -424,6 +424,19 @@ class StudentAttendance(models.Model):
         unique_together = ('level', 'academic_year', 'academic_term', 'teacher', 'date', 'students_class')
 
 
+class ReleasedResult(models.Model):
+    school = models.ForeignKey(School, verbose_name="School", blank=False, on_delete=models.SET_NULL, null=True)
+    level = models.ForeignKey(EducationalLevel, verbose_name="School", blank=False, on_delete=models.SET_NULL, null=True)
+    academic_year = models.ForeignKey(AcademicYear, verbose_name='Academic Year', on_delete=models.SET_NULL, null=True)
+    academic_term = models.IntegerField(verbose_name='Term', blank=False, db_index=True)
+    students_class = models.ForeignKey('Classe', verbose_name='Students Class', on_delete=models.SET_NULL, null=True)
+    date = models.DateField(verbose_name="Results Released Date", default=timezone.now)
+    released_by = models.ForeignKey(Staff, verbose_name="Released By", on_delete=models.SET_NULL, null=True)
+
+    class Meta:
+        unique_together = ('level', 'academic_year', 'academic_term', 'released_by', 'students_class')
+        
+        
 # class Notification(models.Model):
 #     content = models.CharField(max_length=500, verbose_name='Message', blank=False)
 #     from_head = models.ForeignKey(Head, related_name='from_head', verbose_name='From Head', on_delete=models.SET_NULL, null=True, blank=True)
@@ -473,5 +486,5 @@ class StudentAttendance(models.Model):
 
 #     def __str__(self):
 #         return self.name  
-    
-    
+
+

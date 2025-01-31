@@ -164,7 +164,7 @@ const upload = async () => {
 
 const deleteExam = async () => {
   if (Object.keys(userAuthStore.teacherData.studentsResults[className][subjectName].student_results || {}).length > 0) {
-    elementsStore.ShowOverlay(`You have already generated the students' ${subjectName} results for this class. You cannot delete the exam data`, 'red', null, null)
+    elementsStore.ShowOverlay(`You have already generated the students' ${subjectName} results for this class. You cannot delete the exams data`, 'red', null, null)
     return;
   }
   elementsStore.ShowLoadingOverlay()
@@ -279,10 +279,11 @@ const editExam = async () => {
 const isUploadFormValid = computed(() => {
   if (uploadTypeSelected.value === 'file') {
     return !(fileToUpload.value)
-  } else if (uploadTypeSelected.value === 'noFile') {
+  } 
+  else if (uploadTypeSelected.value === 'noFile') {
     return !(selectedStudents.value.length > 0 && studentScore.value)
   }
-  return false
+  return true;
 })
 
 const closeOverlay = (element: string) => {

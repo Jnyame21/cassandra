@@ -901,9 +901,8 @@ class ResultSerializerOne(serializers.ModelSerializer):
 
 # Students Attendance
 class StudentsAttendanceSerializer(serializers.ModelSerializer):
-    # students_class = serializers.SerializerMethodField()
-    students_present = StudentSerializerThree(many=True)
-    students_absent = StudentSerializerThree(many=True)
+    students_present = StudentUserIdSerializer(many=True)
+    students_absent = StudentUserIdSerializer(many=True)
 
     class Meta:
         model = StudentAttendance
@@ -912,6 +911,18 @@ class StudentsAttendanceSerializer(serializers.ModelSerializer):
     # def get_students_class(self, obj):
     #     return obj.students_class.name
 
+
+# Students Attendance
+# class ReleaseResultsSerializer(serializers.ModelSerializer):
+#     school = StudentUserIdSerializer(many=True)
+#     students_absent = StudentUserIdSerializer(many=True)
+
+#     class Meta:
+#         model = ReleasedResult
+#         fields = ('students_class', 'date', '')
+
+    # def get_students_class(self, obj):
+    #     return obj.students_class.name
 
 
 # class NotificationSerializer(serializers.ModelSerializer):
