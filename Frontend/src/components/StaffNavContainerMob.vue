@@ -36,7 +36,7 @@ const resetStoreData = (staff_role: string) => {
     }
     else if (staff_role === 'administrator') {
         userAuthStore.adminData = {
-            academicYears: null,
+            academicYears: [],
             departments: [],
             heads: null,
             classes: [],
@@ -45,6 +45,7 @@ const resetStoreData = (staff_role: string) => {
             programs: [],
             subjects: [],
             subjectAssignments: [],
+            releasedResults: [],
         }
     }
 }
@@ -121,28 +122,28 @@ const changeRole = async () => {
                     CURRENT ROLE
                 </v-list-item-title>
                 <v-list-item-subtitle style="color: yellow; font-weight: bold; font-size:.7rem">
-                    {{ userAuthStore.userData['staff_role'].toUpperCase() }}
+                    {{ userAuthStore.userData['current_role']['level']['name'].toUpperCase() }} {{ userAuthStore.userData['staff_role'].toUpperCase() }}
                 </v-list-item-subtitle>
             </v-list-item>
 
             <v-list-item @click="changePage('AdminStaff')" class="nav-item nav-link"
-                prepend-icon="mdi-account-multiple">
+                prepend-icon="mdi-account-group">
                 STAFF
             </v-list-item>
 
             <v-list-item v-if="userAuthStore.userData['current_role']['level']['has_departments']" @click="changePage('AdminDepartments')" class="nav-item nav-link"
-                prepend-icon="mdi-account-multiple">
+                prepend-icon="mdi-office-building">
                 DEPARTMENTS
             </v-list-item>
 
-            <v-list-item class="nav-item nav-link" prepend-icon="mdi-calendar"
+            <v-list-item class="nav-item nav-link" prepend-icon="mdi-calendar-clock"
                 @click="changePage('AdminAcademicYears')">
                 ACADEMIC YEARS
             </v-list-item>
 
             <v-list-group>
                 <template v-slot:activator="{ props }">
-                    <v-list-item v-bind="props" prepend-icon="mdi-book-outline" class="nav-item">
+                    <v-list-item v-bind="props" prepend-icon="mdi-google-classroom" class="nav-item">
                         CLASSES
                     </v-list-item>
                 </template>
@@ -155,8 +156,13 @@ const changeRole = async () => {
 
             <v-list-item @click="changePage('AdminSubjectAssignment')"
                 v-if="userAuthStore.userData['current_role']['level']['has_departments']" class="nav-item nav-link"
-                prepend-icon="mdi-book">
+                prepend-icon="mdi-book-multiple">
                 SUBJECT ASSIGNMENTS
+            </v-list-item>
+
+            <v-list-item @click="changePage('AdminReleasedResults')" class="nav-item nav-link"
+                prepend-icon="mdi-chart-bar">
+                RELEASED RESULTS
             </v-list-item>
 
             <v-list-item @click="changePage('Help')" class="nav-item nav-link" prepend-icon="mdi-help">
@@ -221,19 +227,19 @@ const changeRole = async () => {
                     CURRENT ROLE
                 </v-list-item-title>
                 <v-list-item-subtitle style="color: yellow; font-weight: bold; font-size:.7rem">
-                    {{ userAuthStore.userData['staff_role'].toUpperCase() }}
+                    {{ userAuthStore.userData['current_role']['level']['name'].toUpperCase() }} {{ userAuthStore.userData['staff_role'].toUpperCase() }}
                 </v-list-item-subtitle>
             </v-list-item>
             
             <v-list-item @click="changePage('TeacherStaff')" class="nav-item nav-link"
-                prepend-icon="mdi-account-multiple">
+                prepend-icon="mdi-account-group">
                 STAFF
             </v-list-item>
 
             <v-list-group>
                 <template v-slot:activator="{ props }">
-                    <v-list-item v-bind="props" prepend-icon="mdi-account-group-outline" class="nav-item">
-                        MY CLASS
+                    <v-list-item v-bind="props" prepend-icon="mdi-google-classroom" class="nav-item">
+                        MY CLASS(S)
                     </v-list-item>
                 </template>
                 <v-list-item class="nav-title nav-link"

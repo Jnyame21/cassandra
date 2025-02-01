@@ -33,7 +33,7 @@ def school_admin_data(request):
     sch_admin = Staff.objects.select_related('school', 'current_role__level').get(user=request.user)
     school = sch_admin.school
     current_level = sch_admin.current_role.level
-    current_academic_year = AcademicYear.objects.get(id=request.GET.get('year'))
+    current_academic_year = AcademicYear.objects.get(id=int(request.GET.get('year')))
     current_term = int(request.GET.get('term'))
     academic_years = AcademicYearSerializer(AcademicYear.objects.filter(school=school, level=current_level).order_by('-start_date'), many=True).data
     student_classes = Classe.objects.select_related('head_teacher__user', 'program').prefetch_related('subjects', 'students__user').filter(school=school, level=current_level).order_by('students_year')
@@ -52,6 +52,9 @@ def school_admin_data(request):
     staff = StaffSerializerOne(Staff.objects.select_related('user').prefetch_related('roles', 'departments', 'subjects').filter(school=school).order_by('-date_created'), many=True).data
     subjects = [x.identifier for x in Subject.objects.filter(schools=school, level=current_level)]
 
+    released_results_objs = ReleasedResult.objects.select_related('students_class', 'academic_year', 'released_by__user').filter(school=school, level=current_level).order_by('-date')
+    released_results_data = ReleasedResultsSerializer(released_results_objs, many=True).data
+    
     return Response({
         'classes': student_classes_data,
         'departments': departments,
@@ -61,6 +64,7 @@ def school_admin_data(request):
         'programs': programs,
         'academic_years': academic_years,
         'subject_assignments': subject_assignments_data,
+        'released_results': released_results_data,
     }, status=200)
         
 
@@ -1524,3 +1528,48 @@ def school_admin_subject_assignment(request):
                 return Response(status=400)
 
 
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def release_results(request):
+    data = request.data
+    sch_admin = Staff.objects.select_related('current_role__level', 'school').get(user=request.user)
+    current_level = sch_admin.current_role.level
+    school = sch_admin.school
+    
+    if data['type'] == 'upload':
+        students_class = Classe.objects.prefetch_related('subjects').get(school=school, level=current_level, name=data['studentsClassName'])
+        class_subjects = students_class.subjects.all()
+        academic_year = AcademicYear.objects.get(school=school, level=current_level, name=data['year'])
+        term = int(data['term'])
+        existing_released_results = ReleasedResult.objects.filter(school=school, level=current_level, academic_year=academic_year, academic_term=term).exists()
+        if existing_released_results:
+            return Response({'message': f"You have already released the {students_class.name} students results"}, status=400)
+        
+        results_subjects_names = set(StudentResult.objects.filter(school=school, level=current_level, subject__in=class_subjects).values_list('subject__name', flat=True))
+        for subject in class_subjects:
+            if subject.name not in results_subjects_names:
+                return Response({'message': f"There are no results for the subject '{subject.name}'. Ensure there are results for all the subjects in this class."}, status=400)
+        
+        with transaction.atomic():
+            released_result_obj = ReleasedResult.objects.create(
+                school=school,
+                level=current_level,
+                academic_year=academic_year,
+                academic_term=term,
+                released_by=sch_admin,
+                students_class=students_class,
+            )
+        
+        release_results_data = ReleasedResultsSerializer(released_result_obj).data
+        return Response(release_results_data, status=200)
+
+    elif data['type'] == 'delete':
+        current_academic_year = AcademicYear.objects.get(id=int(data['year']))
+        released_result = ReleasedResult.objects.select_related('academic_year').get(id=int(data['id']))
+        if released_result.academic_year != current_academic_year:
+            return Response({'message': f"You don't have permission to rollback this released results"}, status=400)
+        
+        released_result.delete()
+        return Response(status=200)
+ 
+ 

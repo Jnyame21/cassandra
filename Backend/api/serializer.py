@@ -126,7 +126,7 @@ class AcademicYearSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = AcademicYear
-        fields = '__all__'
+        fields = ["name", 'id', "start_date", "end_date", 'level', "term_1_end_date", "term_2_start_date", "term_2_end_date", "term_3_start_date", "term_3_end_date", "period_division", "no_divisions", "students_graduation_date"]
         
     def get_level(self, obj):
         return obj.level.identifier if obj.level else None
@@ -912,18 +912,24 @@ class StudentsAttendanceSerializer(serializers.ModelSerializer):
     #     return obj.students_class.name
 
 
-# Students Attendance
-# class ReleaseResultsSerializer(serializers.ModelSerializer):
-#     school = StudentUserIdSerializer(many=True)
-#     students_absent = StudentUserIdSerializer(many=True)
+# ReleasedResult
+class ReleasedResultsSerializer(serializers.ModelSerializer):
+    students_class = serializers.SerializerMethodField()
+    academic_year = serializers.SerializerMethodField()
+    released_by = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = ReleasedResult
+        fields = ('students_class', 'date', 'academic_year', 'academic_term', 'released_by', 'id')
 
-#     class Meta:
-#         model = ReleasedResult
-#         fields = ('students_class', 'date', '')
+    def get_students_class(self, obj):
+        return obj.students_class.name
 
-    # def get_students_class(self, obj):
-    #     return obj.students_class.name
-
+    def get_academic_year(self, obj):
+        return obj.academic_year.name
+    
+    def get_released_by(self, obj):
+        return f'{obj.released_by.title}. {obj.released_by.user.get_full_name()}'
 
 # class NotificationSerializer(serializers.ModelSerializer):
 #     from_head = HeadNotificationSerializer()

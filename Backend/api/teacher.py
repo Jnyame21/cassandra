@@ -1008,7 +1008,6 @@ def teacher_students_results(request):
                 total_assessment_percentage=result_data['totalAssessmentPercentage'],
                 total_assessment_score=student_total_assessment_score,
                 result=result,
-                released=False,
                 position='',
                 remark=student_grade.remark,
                 grade=student_grade.label,

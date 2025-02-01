@@ -26,7 +26,7 @@ document.addEventListener('click', (event: MouseEvent)=>{
         <SchoolProfile/>
         
         <v-card-title class="drawer-head">SCHOOL INFORMATION</v-card-title>
-        <v-list-item class="drawer-item" prepend-icon="mdi-school">
+        <v-list-item class="drawer-item" prepend-icon="mdi-school-outline">
           <v-list-item-title class="drawer-title">
             SHORT NAME
           </v-list-item-title>
@@ -53,7 +53,7 @@ document.addEventListener('click', (event: MouseEvent)=>{
           </v-list-item-subtitle>
         </v-list-item>
 
-        <v-list-item class="drawer-item" prepend-icon="mdi-phone">
+        <v-list-item class="drawer-item" prepend-icon="mdi-phone-outline">
           <v-list-item-title class="drawer-title">
             PHONE NUMBER 
           </v-list-item-title>
@@ -62,7 +62,7 @@ document.addEventListener('click', (event: MouseEvent)=>{
           </v-list-item-subtitle>
         </v-list-item>
 
-        <v-list-item class="drawer-item" prepend-icon="mdi-home">
+        <v-list-item class="drawer-item" prepend-icon="mdi-home-outline">
           <v-list-item-title class="drawer-title">
             ADDRESS 
           </v-list-item-title>
@@ -71,7 +71,7 @@ document.addEventListener('click', (event: MouseEvent)=>{
           </v-list-item-subtitle>
         </v-list-item>
 
-        <v-list-item class="drawer-item" prepend-icon="mdi-email">
+        <v-list-item class="drawer-item" prepend-icon="mdi-email-outline">
           <v-list-item-title class="drawer-title">
             EMAIL 
           </v-list-item-title>
@@ -81,7 +81,7 @@ document.addEventListener('click', (event: MouseEvent)=>{
         </v-list-item>
 
         <v-card-title class="drawer-head">STAFF INFORMATION</v-card-title>
-        <v-list-item class="drawer-item" prepend-icon="mdi-account">
+        <v-list-item class="drawer-item" prepend-icon="mdi-account-circle-outline">
           <v-list-item-title class="drawer-title">
             USERNAME
           </v-list-item-title>
@@ -108,16 +108,7 @@ document.addEventListener('click', (event: MouseEvent)=>{
           </v-list-item-subtitle>
         </v-list-item>
 
-        <v-list-item class="drawer-item" v-if="userAuthStore.userData['school']['has_departments'] && ['teacher', 'hod'].includes(userAuthStore.userData['staff_role'].toLowerCase())" prepend-icon="mdi-book-open-outline">
-          <v-list-item-title class="drawer-title">
-            DEPARTMENT
-          </v-list-item-title>
-          <v-list-item-subtitle class="drawer-subtitle">
-            {{ userAuthStore.userData['department'] }}
-          </v-list-item-subtitle>
-        </v-list-item>
-
-        <v-list-item class="drawer-item" prepend-icon="mdi-account-outline">
+        <v-list-item class="drawer-item" prepend-icon="mdi-briefcase-clock">
           <v-list-item-title class="drawer-title">
             DATE EMPLOYED
           </v-list-item-title>

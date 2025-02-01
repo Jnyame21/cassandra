@@ -394,7 +394,6 @@ class StudentResult(models.Model):
     result = models.DecimalField(verbose_name="Result", max_digits=5, decimal_places=2, blank=False, null=True, db_index=True)
     grade = models.CharField(max_length=10, verbose_name="Student's Grade", blank=False, null=True)
     position = models.CharField(max_length=50, verbose_name="Student's Position", blank=True)
-    released = models.BooleanField(verbose_name="Result Released?")
     remark = models.CharField(max_length=20, verbose_name="Remark", blank=False, null=True)
     created_at = models.DateField(verbose_name='Date Created', max_length=20, default=timezone.now)
     updated_at = models.DateField(verbose_name='Date Created', auto_now=True, null=True)
@@ -430,7 +429,7 @@ class ReleasedResult(models.Model):
     academic_year = models.ForeignKey(AcademicYear, verbose_name='Academic Year', on_delete=models.SET_NULL, null=True)
     academic_term = models.IntegerField(verbose_name='Term', blank=False, db_index=True)
     students_class = models.ForeignKey('Classe', verbose_name='Students Class', on_delete=models.SET_NULL, null=True)
-    date = models.DateField(verbose_name="Results Released Date", default=timezone.now)
+    date = models.DateField(verbose_name="Results Released Date", default=timezone.now, db_index=True)
     released_by = models.ForeignKey(Staff, verbose_name="Released By", on_delete=models.SET_NULL, null=True)
 
     class Meta:

@@ -66,10 +66,10 @@ urlpatterns = [
     path('school-admin/students', school_admin_students),
     path('school-admin/staff', school_admin_staff),
     path('school-admin/subject-assignment', school_admin_subject_assignment),
-    
+    path('school-admin/released_results', release_results),
     path('query', query),
-
 ]
+
 if settings.DEBUG:
     urlpatterns += path('silk/', include('silk.urls', namespace='silk')),
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

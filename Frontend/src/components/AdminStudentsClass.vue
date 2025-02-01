@@ -794,7 +794,7 @@ const closeOverlay = (element: string) => {
       <thead>
         <tr>
           <th class="table-head">NAME</th>
-          <th class="table-head" v-if="userAuthStore.userData['school']['index_no']">INDEX NO</th>
+          <th class="table-head" v-if="userAuthStore.userData['current_role']['level']['index_no']">INDEX NO</th>
           <th class="table-head">GENDER</th>
           <th class="table-head">DATE OF BIRTH</th>
           <th class="table-head">DATE ENROLLED</th>

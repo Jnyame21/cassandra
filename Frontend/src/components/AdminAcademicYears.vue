@@ -264,17 +264,14 @@ const closeOverlay = (element: string) => {
       </thead>
       <tbody>
         <tr v-for="(_year, index) in userAuthStore.adminData.academicYears" :key="index">
-          <td class="table-data">{{ _year['name'] }}</td>
-          <td class="table-data">{{ _year['start_date'] }}</td>
-          <td class="table-data">{{ _year['end_date'] }}</td>
-          <td class="table-data">{{ _year['term_1_end_date'] }}</td>
-          <td class="table-data">{{ _year['term_2_start_date'] }}</td>
-          <td class="table-data">{{ _year['term_2_end_date'] }}</td>
-          <td class="table-data" v-if="userAuthStore.userData['academic_year']['no_divisions'] === 3">{{ _year['term_3_start_date']
-            }}
-          </td>
-          <td class="table-data" v-if="userAuthStore.userData['academic_year']['no_divisions'] === 3">{{ _year['term_3_end_date'] }}
-          </td>
+          <td class="table-data">{{ _year.name }}</td>
+          <td class="table-data">{{ _year.start_date }}</td>
+          <td class="table-data">{{ _year.end_date }}</td>
+          <td class="table-data">{{ _year.term_1_end_date }}</td>
+          <td class="table-data">{{ _year.term_2_start_date }}</td>
+          <td class="table-data">{{ _year.term_2_end_date }}</td>
+          <td class="table-data" v-if="userAuthStore.userData['academic_year']['no_divisions'] === 3 && _year.term_3_start_date">{{ _year.term_3_start_date }}</td>
+          <td class="table-data" v-if="userAuthStore.userData['academic_year']['no_divisions'] === 3 && _year.term_3_end_date">{{ _year.term_3_end_date }}</td>
         </tr>
       </tbody>
     </v-table>

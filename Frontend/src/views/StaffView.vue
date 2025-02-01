@@ -25,6 +25,7 @@ import HeadOverview from '@/components/HeadOverview.vue';
 import HeadStaff from '@/components/HeadStaff.vue';
 import HeadStudents from '@/components/HeadStudents.vue';
 import AdminDepartments from '@/components/AdminDepartments.vue';
+import AdminReleasedResults from '@/components/AdminReleasedResults.vue';
 
 useHead({
   meta: [
@@ -159,12 +160,15 @@ const checkInput = computed(() => {
       <div class="component-wrapper" :class="{ 'is-active-component': elementsStore.activePage === 'AdminStaff' }">
         <AdminStaff />
       </div>
+
       <div class="component-wrapper" :class="{ 'is-active-component': elementsStore.activePage === 'AdminDepartments' }">
         <AdminDepartments />
       </div>
+
       <div class="component-wrapper" :class="{ 'is-active-component': elementsStore.activePage === 'AdminAcademicYears' }">
         <AdminAcademicYears />
       </div>
+
       <div class="component-wrapper" :class="{ 'is-active-component': elementsStore.activePage.split(',')[0] === 'AdminStudentsClass' }">
         <AdminStudentsClass v-for="(_class, index) in userAuthStore.adminData.classes"
           :key="`${_class['name']}${index}`" :className="_class['name']" :classIndex="index"
@@ -172,12 +176,19 @@ const checkInput = computed(() => {
           :students_year="_class['students_year']" 
         />
       </div>
+
       <div class="component-wrapper" v-if="userAuthStore.userData['current_role']['level']['has_departments']" :class="{ 'is-active-component': elementsStore.activePage === 'AdminSubjectAssignment' }">
         <AdminSubjectAssignment />
       </div>
+
+      <div class="component-wrapper" :class="{ 'is-active-component': elementsStore.activePage === 'AdminReleasedResults' }">
+        <AdminReleasedResults />
+      </div>
+
       <div class="component-wrapper" :class="{ 'is-active-component': elementsStore.activePage === 'Help' }">
         <HelpForm v-show="elementsStore.activePage === 'Help'" />
       </div>
+
     </div>
 
     <!-- Head -->

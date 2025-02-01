@@ -350,10 +350,24 @@ export interface states {
     }[]
   }
   adminData: {
-    academicYears: any[] | null
+    academicYears: {
+      name: string;
+      id: number;
+      level: string;
+      start_date: string;
+      end_date: string;
+      term_1_end_date: string;
+      term_2_start_date: string;
+      term_2_end_date: string;
+      term_3_start_date: string | null;
+      term_3_end_date: string | null;
+      period_division: string;
+      no_divisions: number;
+      students_graduation_date: string | null;
+    }[]
     departments: {
       name: string
-      id: number
+      id: number;
       identifier: string
       hod: { user: string; staff_id: string } | null
       subjects: string[]
@@ -396,7 +410,6 @@ export interface states {
       program: string | null
       subjects: string[]
       linked_class: string
-      results_released: boolean;
     }[]
     staffRoles: string[]
     staff:{
@@ -420,6 +433,14 @@ export interface states {
     }[]| null
     programs: string[]
     subjects: string[]
+    releasedResults: {
+      id: number;
+      students_class: string;
+      academic_year: string;
+      academic_term: number;
+      released_by: string;
+      date: string;
+    }[]
   }
   headData: {
     staff: {
@@ -554,7 +575,7 @@ export const useUserAuthStore = defineStore('userAuthStore', {
         subjectAssignments: [],
       },
       adminData: {
-        academicYears: null,
+        academicYears: [],
         departments: [],
         heads: null,
         classes: [],
@@ -563,6 +584,7 @@ export const useUserAuthStore = defineStore('userAuthStore', {
         programs: [],
         subjects: [],
         subjectAssignments: [],
+        releasedResults: [],
       },
       headData: {
         staff: null,
@@ -687,45 +709,6 @@ export const useUserAuthStore = defineStore('userAuthStore', {
         })
     },
 
-    // async getTeacherStudentsAssessments() {
-    //   await axiosInstance
-    //     .get('teacher/assessments', {
-    //       params: { year: this.activeAcademicYearID, term: this.activeTerm },
-    //     })
-    //     .then(response => {
-    //       this.teacherData.studentsAssessments = response.data['assessments']
-    //     })
-    //     .catch(() => {
-    //       return Promise.reject()
-    //     })
-    // },
-
-    // async getTeacherStudentsExams() {
-    //   await axiosInstance
-    //     .get('teacher/exams', {
-    //       params: { year: this.activeAcademicYearID, term: this.activeTerm },
-    //     })
-    //     .then(response => {
-    //       this.teacherData.studentsExams = response.data['exams_data']
-    //     })
-    //     .catch(() => {
-    //       return Promise.reject()
-    //     })
-    // },
-
-    // async getTeacherStudentResults() {
-    //   await axiosInstance
-    //     .get('teacher/students-result', {
-    //       params: { year: this.activeAcademicYearID, term: this.activeTerm },
-    //     })
-    //     .then(response => {
-    //       this.teacherData.studentsResults = response.data
-    //     })
-    //     .catch(() => {
-    //       return Promise.reject()
-    //     })
-    // },
-
     async getHodData() {
       await axiosInstance
         .get('hod/data', {
@@ -755,6 +738,7 @@ export const useUserAuthStore = defineStore('userAuthStore', {
           this.adminData.staffRoles = data['staff_roles']
           this.adminData.subjects = data['subjects']
           this.adminData.subjectAssignments = data['subject_assignments']
+          this.adminData.releasedResults = data['released_results']
         })
         .catch(() => {
           return Promise.reject()

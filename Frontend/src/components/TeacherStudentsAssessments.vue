@@ -714,4 +714,6 @@ const showEditForm = (type: string, stName: string = '', stId: string = '') => {
     font-size: 1rem !important;
   }
 }
+
+
 </style>
