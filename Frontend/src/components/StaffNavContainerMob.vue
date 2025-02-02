@@ -126,18 +126,15 @@ const changeRole = async () => {
                 </v-list-item-subtitle>
             </v-list-item>
 
-            <v-list-item @click="changePage('AdminStaff')" class="nav-item nav-link"
-                prepend-icon="mdi-account-group">
+            <v-list-item @click="changePage('AdminStaff')" class="nav-item nav-link" prepend-icon="mdi-account-group">
                 STAFF
             </v-list-item>
 
-            <v-list-item v-if="userAuthStore.userData['current_role']['level']['has_departments']" @click="changePage('AdminDepartments')" class="nav-item nav-link"
-                prepend-icon="mdi-office-building">
+            <v-list-item v-if="userAuthStore.userData['current_role']['level']['has_departments']" @click="changePage('AdminDepartments')" class="nav-item nav-link" prepend-icon="mdi-office-building">
                 DEPARTMENTS
             </v-list-item>
 
-            <v-list-item class="nav-item nav-link" prepend-icon="mdi-calendar-clock"
-                @click="changePage('AdminAcademicYears')">
+            <v-list-item class="nav-item nav-link" prepend-icon="mdi-calendar-clock" @click="changePage('AdminAcademicYears')">
                 ACADEMIC YEARS
             </v-list-item>
 
@@ -154,14 +151,11 @@ const changeRole = async () => {
                 </v-list-item>
             </v-list-group>
 
-            <v-list-item @click="changePage('AdminSubjectAssignment')"
-                v-if="userAuthStore.userData['current_role']['level']['has_departments']" class="nav-item nav-link"
-                prepend-icon="mdi-book-multiple">
+            <v-list-item @click="changePage('AdminSubjectAssignment')" v-if="!userAuthStore.userData['current_role']['level']['has_departments']" class="nav-item nav-link" prepend-icon="mdi-book-multiple">
                 SUBJECT ASSIGNMENTS
             </v-list-item>
 
-            <v-list-item @click="changePage('AdminReleasedResults')" class="nav-item nav-link"
-                prepend-icon="mdi-chart-bar">
+            <v-list-item @click="changePage('AdminReleasedResults')" class="nav-item nav-link" prepend-icon="mdi-chart-bar">
                 RELEASED RESULTS
             </v-list-item>
 
@@ -231,9 +225,13 @@ const changeRole = async () => {
                 </v-list-item-subtitle>
             </v-list-item>
             
-            <v-list-item @click="changePage('TeacherStaff')" class="nav-item nav-link"
-                prepend-icon="mdi-account-group">
+            <v-list-item @click="changePage('TeacherStaff')" class="nav-item nav-link" prepend-icon="mdi-account-group">
                 STAFF
+            </v-list-item>
+
+            <v-list-item v-if="userAuthStore.userData['staff_role'].toLowerCase() === 'teacher' && userAuthStore.userData['current_role']['level']['has_departments']" class="nav-item nav-link" prepend-icon="mdi-account-group"
+              @click="changePage('TeacherDepartment')">
+              MY DEPARTMENT
             </v-list-item>
 
             <v-list-group>

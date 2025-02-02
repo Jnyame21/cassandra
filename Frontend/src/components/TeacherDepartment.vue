@@ -4,32 +4,83 @@ import { computed, ref } from 'vue';
 import axiosInstance from '@/utils/axiosInstance';
 import { useUserAuthStore } from '@/stores/userAuthStore';
 import { useElementsStore } from '@/stores/elementsStore';
+import NoData from './NoData.vue';
 
 const userAuthStore = useUserAuthStore()
 const elementsStore = useElementsStore()
-const staffDepartmentSelected = ref('')
-const departmentHODSelected = ref('')
-const departmentTeachers = ref<{user: string; staff_id: string}[]>([])
-const departmentSubjects = ref<string[]>([])
+const formErrorMessage = ref('')
+const subjectsSelected = ref<string[]>([])
+const teacherSelectedId = ref('')
+const classSelectedName = ref('')
 
-const departments = computed(() => {
-  return userAuthStore.adminData.departments
+const departmentData = computed(()=>{
+  return userAuthStore.teacherData.departmentData
 })
 
-const setDepartmentHOD = async () => {
+const subjectAssignments = computed(()=>{
+  return userAuthStore.hodData.subjectAssignments
+})
+
+const studentsClasses = computed(()=>{
+  return userAuthStore.hodData.studentClasses
+})
+
+const uploadSubjectAssignment = async () => {
   elementsStore.ShowLoadingOverlay()
   const formData = new FormData()
-  formData.append('type', 'setDepartmentHOD')
-  formData.append('departmentHOD', departmentHODSelected.value)
-  formData.append('departmentIdentifier', staffDepartmentSelected.value)
+  formData.append('type', 'upload')
+  formData.append('studentsClassName', classSelectedName.value);
+  formData.append('subjects', JSON.stringify(subjectsSelected.value));
+  formData.append('teacherId', teacherSelectedId.value);
+  formData.append('year', userAuthStore.activeAcademicYearID.toString());
+  formData.append('term', userAuthStore.activeTerm.toString());
 
   try {
-    const response = await axiosInstance.post('school-admin/staff', formData)
-    const departmentItem = userAuthStore.adminData.departments.find(item => item.identifier === staffDepartmentSelected.value)
-    if (departmentItem) {
-      departmentItem.hod = response.data
+    const response = await axiosInstance.post('hod/subject-assignment', formData)
+    if (teacherSelectedId.value === userAuthStore.userData['staff_id']){
+      await userAuthStore.getTeacherData()
     }
-    closeOverlay('AdminSetDepartmentHODOverlay')
+    userAuthStore.hodData.subjectAssignments.push(response.data)
+    subjectsSelected.value = []
+    classSelectedName.value = ''
+    teacherSelectedId.value = ''
+    elementsStore.HideLoadingOverlay()
+    elementsStore.ShowOverlay('Operation successful!', 'green', null, null)
+  }
+  catch (error) {
+    elementsStore.HideLoadingOverlay()
+    if (error instanceof AxiosError) {
+      if (error.response) {
+        if (error.response.status === 400 && error.response.data.message) {
+          elementsStore.ShowOverlay(error.response.data.message, 'red', null, null)
+        } else {
+          elementsStore.ShowOverlay('Oops! something went wrong. Try again later', 'red', null, null)
+        }
+      }
+      else if (!error.response && (error.code === 'ECONNABORTED' || !navigator.onLine)) {
+        elementsStore.ShowOverlay('A network error occurred! Please check you internet connection', 'red', null, null)
+      }
+      else {
+        elementsStore.ShowOverlay('An unexpected error occurred!', 'red', null, null)
+      }
+    }
+  }
+}
+
+const deleteSubjectAssignment = async (index: number, assignment_id: number) => {
+  elementsStore.ShowLoadingOverlay()
+  const formData = new FormData()
+  formData.append('type', 'delete')
+  formData.append('id', assignment_id.toString());
+  formData.append('year', userAuthStore.activeAcademicYearID.toString());
+  formData.append('term', userAuthStore.activeTerm.toString());
+
+  try {
+    await axiosInstance.post('hod/subject-assignment', formData)
+    if (userAuthStore.hodData.subjectAssignments[index].teacher.staff_id === userAuthStore.userData['staff_id']){
+      await userAuthStore.getTeacherData()
+    }
+    userAuthStore.hodData.subjectAssignments.splice(index, 1)
     elementsStore.HideLoadingOverlay()
   }
   catch (error) {
@@ -52,40 +103,10 @@ const setDepartmentHOD = async () => {
   }
 }
 
-const removeDepartmentHOD = async (department_index:number, department_id:number) => {
-  elementsStore.ShowLoadingOverlay()
-  const formData = new FormData()
-  formData.append('type', 'removeDepartmentHOD')
-  formData.append('departmentId', department_id.toString())
-
-  try {
-    await axiosInstance.post('school-admin/staff', formData)
-    userAuthStore.adminData.departments[department_index].hod = null
-    elementsStore.HideLoadingOverlay()
-  }
-  catch (error) {
-    elementsStore.HideLoadingOverlay()
-    if (error instanceof AxiosError) {
-      if (error.response) {
-        if (error.response.status === 400 && error.response.data.message) {
-          elementsStore.ShowOverlay(error.response.data.message, 'red', null, null)
-        } else {
-          elementsStore.ShowOverlay('Oops! something went wrong. Try again later', 'red', null, null)
-        }
-      }
-      else if (!error.response && (error.code === 'ECONNABORTED' || !navigator.onLine)) {
-        elementsStore.ShowOverlay('A network error occurred! Please check you internet connection', 'red', null, null)
-      }
-      else {
-        elementsStore.ShowOverlay('An unexpected error occurred!', 'red', null, null)
-      }
-    }
-  }
-}
-
-const showOverlay = (element: string, department_teacher:{user: string; staff_id: string}[], department_subjects:string[]) => {
-  departmentTeachers.value = department_teacher
-  departmentSubjects.value = department_subjects
+const showOverlay = (element: string) => {
+  classSelectedName.value = ''
+  subjectsSelected.value = []
+  teacherSelectedId.value = ''
   const overlay = document.getElementById(element)
   if (overlay) {
     overlay.style.display = 'flex'
@@ -93,8 +114,6 @@ const showOverlay = (element: string, department_teacher:{user: string; staff_id
 }
 
 const closeOverlay = (element: string) => {
-  staffDepartmentSelected.value = ''
-  departmentHODSelected.value = ''
   const overlay = document.getElementById(element)
   if (overlay) {
     overlay.style.display = 'none'
@@ -105,94 +124,127 @@ const closeOverlay = (element: string) => {
 </script>
 
 <template>
-  <div class="content-wrapper" v-show="elementsStore.activePage === `AdminDepartments`" :class="{ 'is-active-page': elementsStore.activePage === `AdminDepartments` }">
-
-    <!-- department teacher overlay -->
-    <div id="AdminDepartmentTeachersOverlay" class="overlay upload">
-      <div class="overlay-card">
-        <v-btn @click="closeOverlay('AdminDepartmentTeachersOverlay')" color="red" size="small" variant="flat" class="close-btn">
-          X
-        </v-btn>
-        <div class="overlay-card-info-container"></div>
-        <div class="overlay-card-content-container">
-          <p class="subject-card" v-for="(teacher, index) in departmentTeachers" :key=index>{{teacher.user}}[ {{ teacher.staff_id }} ]</p>
-        </div>
-      </div>
-    </div>
+  <div class="content-wrapper" v-show="elementsStore.activePage === `TeacherDepartment`" :class="{ 'is-active-page': elementsStore.activePage === `TeacherDepartment` }">
 
     <!-- department subjects overlay -->
-    <div id="AdminDepartmentSubjectsOverlay" class="overlay upload">
+    <div id="TeacherDepartmentSubjectsOverlay" class="overlay upload">
       <div class="overlay-card">
-        <v-btn @click="closeOverlay('AdminDepartmentSubjectsOverlay')" color="red" size="small" variant="flat" class="close-btn">
+        <v-btn @click="closeOverlay('TeacherDepartmentSubjectsOverlay')" color="red" size="small" variant="flat" class="close-btn">
           X
         </v-btn>
         <div class="overlay-card-info-container"></div>
         <div class="overlay-card-content-container">
-          <p class="subject-card" v-for="(subjects, index) in departmentSubjects" :key=index>{{subjects}}</p>
+          <p class="subject-card" v-for="(subjects, index) in departmentData?.subjects" :key=index>{{subjects}}</p>
         </div>
       </div>
     </div>
 
-    <!-- set department hod overlay -->
-    <div id="AdminSetDepartmentHODOverlay" class="overlay">
-      <div class="overlay-card edit-overlay">
-        <v-btn @click="closeOverlay('AdminSetDepartmentHODOverlay')" color="red" size="small" variant="flat" class="close-btn">
+    <!-- all subject assignment overlay -->
+    <div id="TeacherAllSubjectAssignmentOverlay" v-if="departmentData && departmentData.hod?.staff_id === userAuthStore.userData['staff_id']" class="overlay all-assignments">
+      <div class="overlay-card">
+        <v-btn @click="closeOverlay('TeacherAllSubjectAssignmentOverlay')" color="red" size="small" variant="flat" class="close-btn">
           X
         </v-btn>
-        <div class="overlay-card-info-container mb-10">
-        </div>
+        <div class="overlay-card-info-container"></div>
         <div class="overlay-card-content-container">
-          <v-select class="select"
-            :items="userAuthStore.adminData.departments" label="DEPARTMENT" v-model="staffDepartmentSelected" @update:model-value="() => departmentHODSelected = ''"
-            variant="solo-filled" item-title="name" item-value="identifier" density="comfortable" persistent-hint hint="Select the department" clearable
-          />
-          <v-select class="select"
-            :items="userAuthStore.adminData.staff?.filter(item=> item.departments.includes(staffDepartmentSelected)).map(item => ({ 'title': item.user, 'value': item.staff_id }))" label="STAFF"
-            v-model="departmentHODSelected" variant="solo-filled" item-title="title" item-value="value" density="comfortable" persistent-hint hint="Select the staff you want to set as the HOD" clearable >
+          <NoData v-if="subjectAssignments.length === 0"/>
+        </div>
+        <div class="overlay-card-content-conatiner">
+          <v-table fixed-header class="table" v-if="subjectAssignments.length > 0">
+            <thead>
+              <tr>
+                <th class="table-head">TEACHER</th>
+                <th class="table-head">CLASS</th>
+                <th class="table-head">SUBJECT(S)</th>
+                <th class="table-head">ACTION</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(_assign, index) in subjectAssignments" :key="index">
+                <td class="table-data">
+                  {{ _assign.teacher.user }}
+                  <v-list-item-subtitle>{{ _assign.teacher.staff_id }}</v-list-item-subtitle>
+                </td>
+                <td class="table-data">
+                  {{ _assign.students_class }}
+                </td>
+                <td class="table-data">
+                  <p v-for="(_subject, ind) in _assign.subjects" :key="ind">{{ _subject }}</p>
+                </td>
+                <td class="table-data">
+                  <v-btn
+                    @click="elementsStore.ShowDeletionOverlay(() => deleteSubjectAssignment(index, _assign.id), 'Are you sure you want to delete this subject assignment?')"
+                    variant="flat" icon="mdi-delete" size="x-small" color="red" 
+                  />
+                </td>
+              </tr>
+            </tbody>
+          </v-table>
+        </div>
+      </div>
+    </div>
+
+    <!-- subject assignment upload overlay -->
+    <div id="TeacherSubjectAssignmentUploadOverlay" v-if="departmentData && departmentData.hod?.staff_id === userAuthStore.userData['staff_id']" class="overlay">
+      <div class="overlay-card">
+        <v-btn @click="closeOverlay('TeacherSubjectAssignmentUploadOverlay')" color="red" size="small" variant="flat" class="close-btn">
+          X
+        </v-btn>
+        <p class="form-error-message" v-if="formErrorMessage" style="color: red">{{ formErrorMessage }}</p>
+        <div class="overlay-card-info-container"></div>
+        <div class="overlay-card-content-container">
+          <v-select clearable chips v-model="teacherSelectedId" class="select" label="TEACHER"
+            :items="departmentData.teachers" item-title="user" item-value="staff_id" variant="solo-filled"
+            density="comfortable" persistent-hint hint="Select the teacher who will teach the subject(s)">
             <template v-slot:item="{ props, item }">
-              <v-list-item v-bind="props" :subtitle="item.raw.value"></v-list-item>
+              <v-list-item v-bind="props" :subtitle="item.raw.staff_id"></v-list-item>
             </template>
           </v-select>
+          <v-select class="select" :items="studentsClasses" label="CLASS" v-model="classSelectedName" variant="solo-filled"
+            density="comfortable" persistent-hint hint="Select the class you want the teacher to teach"
+          />
+          <v-select class="select" :items="departmentData.subjects" label="SUBJECT(S)" v-model="subjectsSelected"
+            multiple chips variant="solo-filled" density="comfortable" persistent-hint hint="Select the subject(s) you want the teaacher to teacher" 
+            />
         </div>
         <div class="overlay-card-action-btn-container">
-          <v-btn @click="setDepartmentHOD()" :disabled="!(departmentHODSelected && staffDepartmentSelected)" :ripple="false" variant="flat"
-            type="submit" color="black" size="small" append-icon="mdi-checkbox-marked-circle">
+          <v-btn @click="uploadSubjectAssignment"
+            :disabled="!(teacherSelectedId && subjectsSelected.length > 0 && classSelectedName)" :ripple="false"
+            variant="flat" type="submit" color="black" size="small" append-icon="mdi-checkbox-marked-circle">
             SUBMIT
           </v-btn>
         </div>
       </div>
     </div>
-    <div class="content-header">
-      <v-btn v-if="userAuthStore.userData['current_role']['level']['has_departments']" @click="showOverlay('AdminSetDepartmentHODOverlay', [], [])" color="blue" :size="elementsStore.btnSize1">
-        SET DEPARTMENT HOD
+
+    <div class="content-header" v-if="departmentData">
+      <h4 class="content-header-title">{{ departmentData.name }} DEPARTMENT</h4>
+    </div>
+    <div class="content-header" v-if="departmentData">
+      <h4 class="mr-2">HOD: <v-chip v-if="!departmentData.hod">NONE</v-chip> <v-chip v-if="departmentData.hod">{{ departmentData.hod.user }} [ {{ departmentData.hod.staff_id }} ]</v-chip></h4>
+    </div>
+    <div class="content-header btn-container" v-if="departmentData">
+      <v-btn class="ml-2" @click="showOverlay('TeacherDepartmentSubjectsOverlay')" color="blue" :size="elementsStore.btnSize1">
+        DEPARTMENT SUBJECTS
+      </v-btn>
+      <v-btn class="ml-2" v-if="departmentData && departmentData.hod?.staff_id === userAuthStore.userData['staff_id']" @click="showOverlay('TeacherSubjectAssignmentUploadOverlay')" color="blue" :size="elementsStore.btnSize1">
+        ASSIGN SUBJECT(S)
+      </v-btn>
+      <v-btn class="ml-2" v-if="departmentData && departmentData.hod?.staff_id === userAuthStore.userData['staff_id']" @click="showOverlay('TeacherAllSubjectAssignmentOverlay')" color="blue" :size="elementsStore.btnSize1">
+        SUBJECT ASSIGNMENTS
       </v-btn>
     </div>
-    <v-table fixed-header class="table">
+    <v-table fixed-header class="table" v-if="departmentData">
       <thead>
         <tr>
-          <th class="table-head">NAME</th>
-          <th class="table-head">HOD</th>
           <th class="table-head">TEACHERS</th>
-          <th class="table-head">SUBJECTS</th>
         </tr>
       </thead>
       <tbody>
-        <tr v-for="(_department, index) in departments" :key="index">
+        <tr v-for="(teacher, index) in departmentData.teachers" :key="index">
           <td class="table-data">
-            {{ _department.name }}
-          </td>
-          <td class="table-data">
-            <v-chip v-if="_department.hod">{{ _department.hod.user }}[ {{ _department.hod.staff_id }} ] </v-chip><v-icon v-if="_department.hod" @click="elementsStore.ShowDeletionOverlay(()=>removeDepartmentHOD(index, _department.id), 'Are you sure you want to remove the HOD of the selected department?')" icon="mdi-delete" color="red" size="small" />
-          </td>
-          <td class="table-data">
-            <v-btn @click="showOverlay('AdminDepartmentTeachersOverlay', _department.teachers, _department.subjects)" color="blue" :size="elementsStore.btnSize1">
-              VIEW TEACHERS
-            </v-btn>
-          </td>
-          <td class="table-data">
-            <v-btn @click="showOverlay('AdminDepartmentSubjectsOverlay', _department.teachers, _department.subjects)" color="blue" :size="elementsStore.btnSize1">
-              VIEW SUBJECTS
-            </v-btn>
+            {{ teacher.user }}
+            <v-list-item-subtitle>{{ teacher.staff_id }}</v-list-item-subtitle>
           </td>
         </tr>
       </tbody>
@@ -206,11 +258,15 @@ const closeOverlay = (element: string) => {
 .overlay-card-info-container {
   margin-top: 3em !important;
 }
-
 .overlay-card {
   max-width: 600px !important;
 }
-
+.btn-container{
+  height: 15% !important;
+}
+.all-assignments .overlay-card{
+  max-width: 700px !important;
+}
 
 
 </style>

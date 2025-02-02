@@ -108,7 +108,7 @@ document.addEventListener('click', (event: MouseEvent)=>{
           </v-list-item-subtitle>
         </v-list-item>
 
-        <v-list-item class="drawer-item" prepend-icon="mdi-briefcase-clock">
+        <v-list-item class="drawer-item" prepend-icon="mdi-briefcase-clock-outline">
           <v-list-item-title class="drawer-title">
             DATE EMPLOYED
           </v-list-item-title>
@@ -125,7 +125,7 @@ document.addEventListener('click', (event: MouseEvent)=>{
         </v-list-item>
 
         <v-card-title class="drawer-head">ACADEMIC CALENDAR</v-card-title>
-        <v-list-item class="drawer-item" prepend-icon="mdi-calendar">
+        <v-list-item class="drawer-item" prepend-icon="mdi-calendar-outline">
           <v-list-item-title class="drawer-title">
             ACADEMIC YEAR START DATE
           </v-list-item-title>
@@ -134,7 +134,7 @@ document.addEventListener('click', (event: MouseEvent)=>{
           </v-list-item-subtitle>
         </v-list-item>
 
-        <v-list-item class="drawer-item" prepend-icon="mdi-calendar">
+        <v-list-item class="drawer-item" prepend-icon="mdi-calendar-outline">
           <v-list-item-title class="drawer-title">
             1st {{ userAuthStore.userData['academic_year']['period_division'] }} END DATE
           </v-list-item-title>
@@ -143,7 +143,7 @@ document.addEventListener('click', (event: MouseEvent)=>{
           </v-list-item-subtitle>
         </v-list-item>
 
-        <v-list-item class="drawer-item" prepend-icon="mdi-calendar">
+        <v-list-item class="drawer-item" prepend-icon="mdi-calendar-outline">
           <v-list-item-title class="drawer-title">
             2nd {{ userAuthStore.userData['academic_year']['period_division'] }} START DATE
           </v-list-item-title>
@@ -152,7 +152,7 @@ document.addEventListener('click', (event: MouseEvent)=>{
           </v-list-item-subtitle>
         </v-list-item>
 
-        <v-list-item class="drawer-item" prepend-icon="mdi-calendar">
+        <v-list-item class="drawer-item" prepend-icon="mdi-calendar-outline">
           <v-list-item-title class="drawer-title">
             2nd {{ userAuthStore.userData['academic_year']['period_division'] }} END DATE
           </v-list-item-title>
@@ -161,7 +161,7 @@ document.addEventListener('click', (event: MouseEvent)=>{
           </v-list-item-subtitle>
         </v-list-item>
 
-        <v-list-item class="drawer-item" v-if="userAuthStore.userData['academic_year']['no_of_divisions'] > 2 " prepend-icon="mdi-calendar">
+        <v-list-item class="drawer-item" v-if="userAuthStore.userData['academic_year']['no_of_divisions'] > 2 " prepend-icon="mdi-calendar-outline">
           <v-list-item-title class="drawer-title">
             3rd {{ userAuthStore.userData['academic_year']['period_division'] }} START DATE
           </v-list-item-title>
@@ -170,7 +170,7 @@ document.addEventListener('click', (event: MouseEvent)=>{
           </v-list-item-subtitle>
         </v-list-item>
 
-        <v-list-item class="drawer-item" v-if="userAuthStore.userData['academic_year']['no_of_divisions'] > 2 " prepend-icon="mdi-calendar">
+        <v-list-item class="drawer-item" v-if="userAuthStore.userData['academic_year']['no_of_divisions'] > 2 " prepend-icon="mdi-calendar-outline">
           <v-list-item-title class="drawer-title">
             3rd {{ userAuthStore.userData['academic_year']['period_division'] }} END DATE
           </v-list-item-title>
@@ -179,7 +179,7 @@ document.addEventListener('click', (event: MouseEvent)=>{
           </v-list-item-subtitle>
         </v-list-item>
 
-        <v-list-item class="drawer-item" prepend-icon="mdi-calendar">
+        <v-list-item class="drawer-item" prepend-icon="mdi-calendar-outline">
           <v-list-item-title class="drawer-title">
             ACADEMIC YEAR END DATE
           </v-list-item-title>
@@ -189,7 +189,7 @@ document.addEventListener('click', (event: MouseEvent)=>{
         </v-list-item>
         
         <v-card-title class="drawer-head">PERSONAL INFORMATION</v-card-title>
-        <v-list-item class="drawer-item" prepend-icon="mdi-account-outline">
+        <v-list-item class="drawer-item" prepend-icon="mdi-badge-account">
           <v-list-item-title class="drawer-title">
             TITLE
           </v-list-item-title>
@@ -207,7 +207,7 @@ document.addEventListener('click', (event: MouseEvent)=>{
           </v-list-item-subtitle>
         </v-list-item>
 
-        <v-list-item class="drawer-item" prepend-icon="mdi-account">
+        <v-list-item class="drawer-item" prepend-icon="mdi-account-outline">
           <v-list-item-title class="drawer-title">
             LAST NAME
           </v-list-item-title>
@@ -241,7 +241,7 @@ document.addEventListener('click', (event: MouseEvent)=>{
           </v-list-item-subtitle>
         </v-list-item>
 
-        <v-list-item class="drawer-item" prepend-icon="mdi-calendar-outline">
+        <v-list-item class="drawer-item" prepend-icon="mdi-calendar-account">
           <v-list-item-title class="drawer-title">
             DATE OF BIRTH
           </v-list-item-title>
@@ -250,7 +250,7 @@ document.addEventListener('click', (event: MouseEvent)=>{
           </v-list-item-subtitle>
         </v-list-item>
 
-        <v-list-item class="drawer-item" prepend-icon="mdi-calendar-outline">
+        <v-list-item class="drawer-item" prepend-icon="mdi-hand-heart">
           <v-list-item-title class="drawer-title">
             RELIGION
           </v-list-item-title>
@@ -259,7 +259,7 @@ document.addEventListener('click', (event: MouseEvent)=>{
           </v-list-item-subtitle>
         </v-list-item>
 
-        <v-list-item class="drawer-item" prepend-icon="mdi-phone">
+        <v-list-item class="drawer-item" prepend-icon="mdi-phone-outline">
           <v-list-item-title class="drawer-title">
             PHONE NUMBER
           </v-list-item-title>
@@ -268,7 +268,7 @@ document.addEventListener('click', (event: MouseEvent)=>{
           </v-list-item-subtitle>
         </v-list-item>
 
-        <v-list-item class="drawer-item" prepend-icon="mdi-phone">
+        <v-list-item class="drawer-item" prepend-icon="mdi-phone-outline">
           <v-list-item-title class="drawer-title">
             SECOND PHONE NUMBER
           </v-list-item-title>
@@ -277,7 +277,7 @@ document.addEventListener('click', (event: MouseEvent)=>{
           </v-list-item-subtitle>
         </v-list-item>
         
-        <v-list-item class="drawer-item" prepend-icon="mdi-map-marker">
+        <v-list-item class="drawer-item" prepend-icon="mdi-map-marker-outline">
           <v-list-item-title class="drawer-title">
             HOME CITY/TOWN
           </v-list-item-title>
@@ -295,7 +295,7 @@ document.addEventListener('click', (event: MouseEvent)=>{
           </v-list-item-subtitle>
         </v-list-item>
 
-        <v-list-item class="drawer-item" prepend-icon="mdi-flag-variant">
+        <v-list-item class="drawer-item" prepend-icon="mdi-flag-variant-outline">
           <v-list-item-title class="drawer-title">
             NATIONALITY
           </v-list-item-title>

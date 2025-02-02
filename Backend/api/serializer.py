@@ -598,11 +598,23 @@ class DepartmentNameSubjectsSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Department
-        fields = ('name', 'subjects')
+        fields = ('name', 'subjects', )
     
     def get_subjects(self, obj):
         return [subject.name for subject in obj.subjects.all()]
     
+
+class DepartmentSerializerOne(serializers.ModelSerializer):
+    subjects = serializers.SerializerMethodField()
+    teachers = StaffUserIdSerializer(many=True)
+    hod = StaffUserIdSerializer()
+    
+    class Meta:
+        model = Department
+        fields = ('name', 'subjects', 'teachers', 'id', 'hod')
+    
+    def get_subjects(self, obj):
+        return [subject.name for subject in obj.subjects.all()]
     
 class DepartmentNameHODSubjectsSerializer(serializers.ModelSerializer):
     subjects = serializers.SerializerMethodField()
@@ -740,7 +752,7 @@ class SubjectAssignmentSerializer(serializers.ModelSerializer):
 class SubjectAssignmentSerializerOne(serializers.ModelSerializer):
     students_class = serializers.SerializerMethodField()
     subjects = serializers.SerializerMethodField()
-    teacher = serializers.SerializerMethodField()
+    teacher = StaffUserIdSerializer()
 
     class Meta:
         model = SubjectAssignment
@@ -748,12 +760,6 @@ class SubjectAssignmentSerializerOne(serializers.ModelSerializer):
         
     def get_students_class(self, obj):
         return obj.students_class.name
-    
-    def get_teacher(self, obj):
-        return {
-            'user': f"{obj.teacher.title} {obj.teacher.user.get_full_name()}",
-            'staff_id': obj.teacher.staff_id
-        }
     
     def get_subjects(self, obj):
         return [subject.name for subject in obj.subjects.all()]

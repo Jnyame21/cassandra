@@ -5,13 +5,11 @@ from django.conf import settings
 from django.urls import path, include 
 
 from api.student import get_student_data, student_transcript
-# from api.head import get_head_data
-# from api.hod import hod_data, hod_subject_assignment
 from api.teacher import get_teacher_data, teacher_assessments, teacher_exams, teacher_students_results, teacher_students_attendance
-# from api.school_admin import school_admin_data, school_admin_academic_years, school_admin_linked_class, school_admin_staff, school_admin_students, school_admin_subject_assignment
 from api.views import UserAuthView, keep_server_running, root, user_help, get_user_data, change_staff_role
 from api.superuser import *
 from api.school_admin import *
+from api.hod import *
 from api.query import query
 
 
@@ -52,9 +50,8 @@ urlpatterns = [
     path('teacher/students/attendance', teacher_students_attendance),
     
     # HOD
-    # path('hod/data', hod_data),
-    # # path('hod/students_performance', hod_students_performance),
-    # path('hod/subject-assignment', hod_subject_assignment),
+    # path('hod/students_performance', hod_students_performance),
+    path('hod/subject-assignment', hod_subject_assignment),
 
     # Head
     # path('head/data', get_head_data),

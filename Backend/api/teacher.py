@@ -33,12 +33,7 @@ def get_teacher_data(request):
     current_level = teacher.current_role.level
     current_term = int(request.GET.get('term'))
     current_academic_year = AcademicYear.objects.get(id=int(request.GET.get('year')))
-    department_data = None
     staff = StaffSerializerTwo(Staff.objects.select_related('user').prefetch_related('departments', 'subjects', 'roles').filter(school=school), many=True).data
-    department = Department.objects.prefetch_related('subjects').filter(school=school, level=current_level, teachers=teacher).first()
-    if department:
-        department_data = DepartmentNameSubjectsSerializer(department).data
-    
     subject_assignments_objs = SubjectAssignment.objects.prefetch_related('subjects', 'students_class__students__user').filter(school=school, level=current_level, teacher=teacher, academic_year=current_academic_year, academic_term=current_term)
     subject_assignments_data = {}
     all_students_assessments_data = {}
@@ -177,18 +172,34 @@ def get_teacher_data(request):
         all_students_exams_data[students_class_name] = exams_class_data
         all_students_results_data[students_class_name] = results_class_data
             
-            
-    head_classes = Classe.objects.prefetch_related('students__user').filter(school=school, level=current_level, head_teacher=teacher).order_by('-students_year')
+    
+    students_class_objs = Classe.objects.select_related('head_teacher').prefetch_related('students__user').filter(school=school, level=current_level).order_by('-students_year')
+    students_class_names = []
+    head_classes = []
+    for _class in students_class_objs:
+        if _class.head_teacher == teacher:
+            head_classes.append(_class)
+        students_class_names.append(_class.name)
+        
     atttendance_data = defaultdict(dict)
-    if head_classes.exists():
-        for _class in head_classes:
-            students_class_name = _class.name
-            students = StudentUserIdSerializer(_class.students.all())
-            attendance_objs = StudentAttendance.objects.prefetch_related('students_present__user', 'students_absent__user').filter(school=school, level=current_level, students_class=_class, academic_year=current_academic_year, academic_term=current_term).order_by('-date')
-            attendances = StudentsAttendanceSerializer(attendance_objs, many=True).data
-            atttendance_data[students_class_name]['students'] = students
-            atttendance_data[students_class_name]['attendances'] = attendances
-            
+    for _class in head_classes:
+        students_class_name = _class.name
+        students = StudentUserIdSerializer(_class.students.all())
+        attendance_objs = StudentAttendance.objects.prefetch_related('students_present__user', 'students_absent__user').filter(school=school, level=current_level, students_class=_class, academic_year=current_academic_year, academic_term=current_term).order_by('-date')
+        attendances = StudentsAttendanceSerializer(attendance_objs, many=True).data
+        atttendance_data[students_class_name]['students'] = students
+        atttendance_data[students_class_name]['attendances'] = attendances
+    
+    # HOD
+    department_data = None
+    hod_subject_assignments_data = []
+    department = Department.objects.select_related('hod').prefetch_related('subjects', 'teachers__user').filter(school=school, level=current_level, teachers=teacher).first()
+    if department:
+        department_data = DepartmentSerializerOne(department).data
+        if department.hod == teacher:
+            hod_subject_assignments = SubjectAssignment.objects.select_related('students_class', 'teacher__user').prefetch_related('subjects').filter(school=school, level=current_level, assigned_by=teacher, academic_year=current_academic_year, academic_term=current_term)
+            hod_subject_assignments_data = SubjectAssignmentSerializerOne(hod_subject_assignments, many=True).data
+    
     return Response({
         'subject_assignments': subject_assignments_data,
         'department_data': department_data,
@@ -197,6 +208,8 @@ def get_teacher_data(request):
         'students_assessments': all_students_assessments_data,
         'students_exams': all_students_exams_data,
         'students_results': all_students_results_data,
+        'hod_subject_assignments': hod_subject_assignments_data,
+        'hod_student_classes': students_class_names,
     })
     
     
@@ -1066,9 +1079,11 @@ def teacher_students_results(request):
     
     elif data['type'] == 'deleteResults':
         with transaction.atomic():
-            results = StudentResult.objects.filter(school=school, level=current_level, teacher=teacher, subject=subject_obj, student_class=students_class, academic_year=current_academic_year, academic_term=current_term)
-            if results.first().released:
+            released_results = ReleasedResult.objects.filter(school=school, level=current_level, students_class=students_class, academic_year=current_academic_year, academic_term=current_term).exists()
+            if released_results:
                 return Response({'message': f"Results have already been released. Contact your school administrator if you still want to delete the students results data"}, status=400)
+            
+            results = StudentResult.objects.filter(school=school, level=current_level, teacher=teacher, subject=subject_obj, student_class=students_class, academic_year=current_academic_year, academic_term=current_term)
             results.delete()
             assessments = Assessment.objects.filter(school=school, level=current_level, teacher=teacher, subject=subject_obj, student_class=students_class, academic_year=current_academic_year, academic_term=current_term)
             if assessments.exists():

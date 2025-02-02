@@ -335,7 +335,6 @@ export interface states {
     departmentData: {
       name: string;
       subjects: string[];
-      identifier: string;
       id: number;
       hod: { user: string; staff_id: string } | null;
       teachers: {user: string; staff_id: string}[];
@@ -345,8 +344,9 @@ export interface states {
     studentClasses: string[]
     subjectAssignments: {
       students_class: string
-      teacher: { user: string; staff_id: string }
-      subjects: string[]
+      id: number;
+      teacher: { user: string; staff_id: string };
+      subjects: string[];
     }[]
   }
   adminData: {
@@ -703,6 +703,8 @@ export const useUserAuthStore = defineStore('userAuthStore', {
           this.teacherData.studentsAssessments = response.data['students_assessments']
           this.teacherData.studentsExams = response.data['students_exams']
           this.teacherData.studentsResults = response.data['students_results']
+          this.hodData.subjectAssignments = response.data['hod_subject_assignments']
+          this.hodData.studentClasses = response.data['hod_student_classes']
         })
         .catch(() => {
           return Promise.reject()

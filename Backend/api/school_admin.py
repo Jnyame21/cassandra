@@ -1507,17 +1507,18 @@ def school_admin_subject_assignment(request):
         return Response(subject_assignments_data, status=200)
 
     elif data['type'] == 'delete':
-        subject_assignment = SubjectAssignment.objects.prefetch_related('subjects').select_related('teacher__user').get(school=school, id=data['id'])
+        subject_assignment = SubjectAssignment.objects.select_related('teacher__user', 'students_class').prefetch_related('subjects').get(school=school, id=data['id'])
         assignment_subjects = subject_assignment.subjects.all()
         assignment_teacher = subject_assignment.teacher
+        students_class = subject_assignment.students_class
         for _subj in assignment_subjects:
-            existing_exams = Exam.objects.filter(school=school, teacher=assignment_teacher, subject=_subj, academic_year=current_academic_year, academic_term=current_term).first()
+            existing_exams = Exam.objects.filter(school=school, student_class=students_class, teacher=assignment_teacher, subject=_subj, academic_year=current_academic_year, academic_term=current_term).first()
             if existing_exams:
-                return Response({'message': f"{assignment_teacher.title} {assignment_teacher.user.get_full_name()} has already uploaded {_subj.name} exams data for students for the {current_academic_year.name} {current_academic_year.period_division} {current_term}. If you still want to delete this subject assignment, please ask him/her to delete the exams data and try again."}, status=400)
+                return Response({'message': f"{assignment_teacher.title} {assignment_teacher.user.get_full_name()} has already uploaded {_subj.name} exams data for students for the {current_academic_year.name} {current_academic_year.period_division} {current_term}."}, status=400)
             
-            existing_assessments = Assessment.objects.filter(school=school, teacher=assignment_teacher, subject=_subj, academic_year=current_academic_year, academic_term=current_term).first()
+            existing_assessments = Assessment.objects.filter(school=school, student_class=students_class, teacher=assignment_teacher, subject=_subj, academic_year=current_academic_year, academic_term=current_term).first()
             if existing_assessments:
-                return Response({'message': f"{assignment_teacher.title} {assignment_teacher.user.get_full_name()} has already uploaded {_subj.name} assessment data for students for the {current_academic_year.name} {current_academic_year.period_division} {current_term}. If you still want to delete this subject assignment, please ask him/her to delete the assessment data and try again."}, status=400)
+                return Response({'message': f"{assignment_teacher.title} {assignment_teacher.user.get_full_name()} has already uploaded {_subj.name} assessment data for students for the {current_academic_year.name} {current_academic_year.period_division} {current_term}."}, status=400)
             
         with transaction.atomic():
             try:

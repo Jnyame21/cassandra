@@ -1,114 +1,89 @@
-# # Django
-# from django.db import IntegrityError, transaction
+# Django
+from django.db import IntegrityError, transaction
 
 
-# # Django Restframework
-# from rest_framework.decorators import api_view, permission_classes
-# from rest_framework.response import Response
-# from rest_framework.permissions import IsAuthenticated
-# from api.models import *
-# from api.serializer import *
+# Django Restframework
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from api.models import *
+from api.serializer import *
 # from api.utils import *
-# import json
+import json
 
 
-# @api_view(['GET', 'POST'])
-# @permission_classes([IsAuthenticated])
-# def hod_data(request):
-#     staff = request.user.staff
-#     school = staff.school
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def hod_subject_assignment(request):
+    data = request.data
+    hod = Staff.objects.select_related('current_role__level', 'school').get(user=request.user)
+    current_level = hod.current_role.level
+    school = hod.school
+    current_academic_year = AcademicYear.objects.get(id=int(data['year']))
+    current_term = int(data['term'])
     
-#     if request.method == 'GET':
-#         current_academic_year = AcademicYear.objects.get(school=school, name=request.GET.get('year'))
-#         current_term = int(request.GET.get('term'))
-#         department = Department.objects.prefetch_related('subjects').get(school=school, teachers=staff)
-#         studentClasses = Classe.objects.filter(school=school, subjects__in=department.subjects.all()).distinct()
-#         student_classes_data = [x.name for x in studentClasses]
-        
-#         subject_assignments = SubjectAssignment.objects.select_related('teacher', 'students_class').prefetch_related('subjects').filter(school=school, assigned_by=staff, academic_year=current_academic_year, academic_term=current_term)
-#         subject_assignments_data = SubjectAssignmentSerializerOne(subject_assignments, many=True).data
-        
-#         return Response({
-#             'student_classes': student_classes_data,
-#             'subject_assignments': subject_assignments_data,
-#         })
-    
+    if data['type'] == 'upload':
+        students_class = Classe.objects.prefetch_related('subjects').get(school=school, level=current_level, name=data['studentsClassName'])
+        teacher = Staff.objects.prefetch_related('subjects').select_related('user').get(school=school, staff_id=data['teacherId'])
+        subjects = json.loads(data['subjects'])
+        subjects_obj = Subject.objects.filter(schools=school, level=current_level, name__in=subjects).distinct()
+        teacher_subjects = teacher.subjects.all()
+        students_class_subjects = students_class.subjects.all()
+        existing_subject_assignments = SubjectAssignment.objects.select_related('teacher__user').prefetch_related('subjects').filter(school=school, students_class=students_class, subjects__in=subjects_obj, academic_year=current_academic_year, academic_term=current_term).distinct()
+        for _subject in subjects_obj:
+            if _subject not in teacher_subjects:
+                return Response({'message': f"{teacher.title} {teacher.user.get_full_name()} doesn't teach {_subject.name}"}, status=400)
+            elif _subject not in students_class_subjects:
+                return Response({'message': f"The {students_class.name} class doesn't study {_subject.name}."}, status=400)
+            for _assign in existing_subject_assignments:
+                existing_subject_assignments_subjects = _assign.subjects.all()
+                if _subject in existing_subject_assignments_subjects:
+                    return Response({'message': f"{_assign.teacher.title} {_assign.teacher.user.get_full_name()} is already teaching the {students_class.name} {_subject.name}"}, status=400)
 
+        with transaction.atomic():
+            try:
+                assignment_obj = SubjectAssignment.objects.create(
+                    school=school,
+                    assigned_by=hod,
+                    students_class=students_class,
+                    teacher=teacher,
+                    level=current_level,
+                    academic_year=current_academic_year,
+                    academic_term=current_term,
+                )
+                assignment_obj.subjects.set(subjects_obj)
+            except IntegrityError:
+                transaction.set_rollback(True)
+                return Response({'message': f"{teacher.title} {teacher.user.first_name} {teacher.user.last_name} is already teaching the {students_class.name}."}, status=400)
+            except Exception:
+                transaction.set_rollback(True)
+                return Response(status=400)
 
-# @api_view(['POST'])
-# @permission_classes([IsAuthenticated])
-# def hod_subject_assignment(request):
-#     staff = request.user.staff
-#     school = staff.school
- 
-#     if request.method == 'POST':
-#         current_academic_year = AcademicYear.objects.get(school=school, name=request.data['year'])
-#         current_term = int(request.data['term'])
-#         students_class = Classe.objects.prefetch_related('subjects').get(school=school, name=request.data['studentsClassName'])
-#         teacher = Staff.objects.prefetch_related('subjects').select_related('user').get(school=school, staff_id=request.data['teacher'])
-#         if request.data['type'] == 'upload':
-#             subjects = json.loads(request.data['subjects'])
-#             subjects_obj = Subject.objects.filter(name__in=subjects).distinct()
-#             students_class_subjects = students_class.subjects.all()
-#             teacher_subjects = teacher.subjects.all()
-#             existing_subject_assignments = SubjectAssignment.objects.select_related('teacher__user').prefetch_related('subjects').filter(school=school, students_class=students_class, academic_year=current_academic_year, academic_term=current_term)
-#             for _subject in subjects_obj:
-#                 if _subject not in teacher_subjects:
-#                     return Response({'message': f"{teacher.title} {teacher.user.get_full_name()} doesn't teach {_subject.name}"}, status=400)
-#                 elif _subject not in students_class_subjects:
-#                     return Response({'message': f"{students_class.name} doesn't study {_subject.name}"}, status=400)
-#                 for _assign in existing_subject_assignments:
-#                     existing_subject_assignments_subjects = _assign.subjects.all()
-#                     if _subject in existing_subject_assignments_subjects:
-#                         return Response({'message': f"{_assign.teacher.title} {_assign.teacher.user.get_full_name()} is already teaching the {students_class.name} {_subject.name}"}, status=400)
-                    
-#             with transaction.atomic():
-#                 try:
-#                     assignment_obj = SubjectAssignment.objects.create(
-#                         school=school,
-#                         assigned_by=staff,
-#                         students_class=students_class,
-#                         teacher=teacher,
-#                         academic_year=current_academic_year,
-#                         academic_term=current_term,
-#                     )
-#                     assignment_obj.subjects.set(subjects_obj)
-#                     assignment_obj.save()
-#                 except IntegrityError:
-#                     transaction.set_rollback(True)
-#                     return Response({'message': f"{teacher.title} {teacher.user.first_name} {teacher.user.last_name} is already teaching the {students_class.name} class {[_sub.name for _sub in teacher_subjects]}"}, status=400)
-#                 except Exception:
-#                     transaction.set_rollback(True)
-#                     return Response(status=400)
+        subject_assignment = SubjectAssignment.objects.prefetch_related('subjects').select_related('teacher__user', 'students_class').get(id=assignment_obj.id)
+        subject_assignments_data = SubjectAssignmentSerializerOne(subject_assignment).data
+        return Response(subject_assignments_data, status=200)
+
+    elif data['type'] == 'delete':
+        subject_assignment = SubjectAssignment.objects.select_related('teacher__user', 'students_class').prefetch_related('subjects').get(id=data['id'])
+        assignment_subjects = subject_assignment.subjects.all()
+        assignment_teacher = subject_assignment.teacher
+        students_class = subject_assignment.students_class
+        for _subj in assignment_subjects:
+            existing_exams = Exam.objects.filter(school=school, student_class=students_class, teacher=assignment_teacher, subject=_subj, academic_year=current_academic_year, academic_term=current_term).first()
+            if existing_exams:
+                return Response({'message': f"{assignment_teacher.title} {assignment_teacher.user.get_full_name()} has already uploaded {_subj.name} exams data for students for the {current_academic_year.name} {current_academic_year.period_division} {current_term}."}, status=400)
             
-#             subject_assignment = SubjectAssignment.objects.get(school=school, assigned_by=staff, students_class=students_class, teacher=teacher, academic_year=current_academic_year, academic_term=current_term)
-#             subject_assignments_data = SubjectAssignmentSerializerOne(subject_assignment).data
-#             return Response(subject_assignments_data)
-        
-#         elif request.data['type'] == 'delete':
-#             with transaction.atomic():  
-#                 try:
-#                     existing_exams = Exam.objects.filter(school=school, student_class=students_class, academic_year=current_academic_year, academic_term=current_term).first()
-#                     if existing_exams:
-#                         return Response({'message': f"{existing_exams.teacher.user.get_full_name()} has already uploaded exams data for students in the selected class [{students_class.name}]. If you still want to delete this subject assignment, please ask him/her to delete the exams data and try again."}, status=400)
-#                     existing_assessments = Assessment.objects.select_related('teacher__user').filter(school=school, student_class=students_class, academic_year=current_academic_year, academic_term=current_term).first()
-#                     if existing_assessments:
-#                         return Response({'message': f"{existing_assessments.teacher.user.get_full_name()} has already uploaded assessment data for students in the selected class [{students_class.name}]. If you still want to delete this subject assignment, please ask him/her to delete them and try again."}, status=400)
-                    
-#                     assignment_obj = SubjectAssignment.objects.get(
-#                         school=school,
-#                         assigned_by=staff,
-#                         students_class=students_class,
-#                         teacher=teacher,
-#                         academic_year=current_academic_year,
-#                         academic_term=current_term,
-#                     )
-#                     assignment_obj.delete()
-#                 except Exception:
-#                     transaction.set_rollback(True)
-#                     return Response(status=400)
+            existing_assessments = Assessment.objects.filter(school=school, student_class=students_class, teacher=assignment_teacher, subject=_subj, academic_year=current_academic_year, academic_term=current_term).first()
+            if existing_assessments:
+                return Response({'message': f"{assignment_teacher.title} {assignment_teacher.user.get_full_name()} has already uploaded {_subj.name} assessment data for students for the {current_academic_year.name} {current_academic_year.period_division} {current_term}."}, status=400)
             
-#             return Response()
+        with transaction.atomic():
+            try:
+                subject_assignment.delete()
+                return Response(status=200)
+            except Exception:
+                transaction.set_rollback(True)
+                return Response(status=400)
         
         
 # @api_view(['GET'])

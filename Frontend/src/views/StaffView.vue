@@ -26,6 +26,7 @@ import HeadStaff from '@/components/HeadStaff.vue';
 import HeadStudents from '@/components/HeadStudents.vue';
 import AdminDepartments from '@/components/AdminDepartments.vue';
 import AdminReleasedResults from '@/components/AdminReleasedResults.vue';
+import TeacherDepartment from '@/components/TeacherDepartment.vue';
 
 useHead({
   meta: [
@@ -177,7 +178,7 @@ const checkInput = computed(() => {
         />
       </div>
 
-      <div class="component-wrapper" v-if="userAuthStore.userData['current_role']['level']['has_departments']" :class="{ 'is-active-component': elementsStore.activePage === 'AdminSubjectAssignment' }">
+      <div class="component-wrapper" v-if="!userAuthStore.userData['current_role']['level']['has_departments']" :class="{ 'is-active-component': elementsStore.activePage === 'AdminSubjectAssignment' }">
         <AdminSubjectAssignment />
       </div>
 
@@ -216,14 +217,19 @@ const checkInput = computed(() => {
     <!-- Teacher/Hod -->
     <div class="pages-container" v-if="['teacher', 'hod'].includes(userAuthStore.userData['staff_role'].toLowerCase())">
 
-      <div class="component-wrapper" v-if="Object.keys(userAuthStore.teacherData.courseWork).length > 0"
-        :class="{ 'is-active-component': elementsStore.activePage.split(',')[0] === 'TeacherCoursework' }">
-        <TeacherCourseWork v-for="class_name in Object.keys(userAuthStore.teacherData.courseWork)" :key="class_name"
-          :className="class_name" />
+      <div class="component-wrapper" v-if="Object.keys(userAuthStore.teacherData.courseWork).length > 0" :class="{ 'is-active-component': elementsStore.activePage.split(',')[0] === 'TeacherCoursework' }">
+        <TeacherCourseWork v-for="class_name in Object.keys(userAuthStore.teacherData.courseWork)" 
+          :key="class_name" 
+          :className="class_name"
+        />
       </div>
 
       <div class="component-wrapper" :class="{ 'is-active-component': elementsStore.activePage === 'TeacherStaff' }">
         <TeacherStaff />
+      </div>
+
+      <div class="component-wrapper" :class="{ 'is-active-component': elementsStore.activePage === 'TeacherDepartment' }">
+        <TeacherDepartment />
       </div>
 
       <div class="component-wrapper" v-if="Object.keys(userAuthStore.teacherData.studentsAttendance).length > 0"
@@ -267,6 +273,7 @@ const checkInput = computed(() => {
       <div class="component-wrapper" :class="{ 'is-active-component': elementsStore.activePage === 'Help' }">
         <HelpForm v-show="elementsStore.activePage === 'Help'" />
       </div>
+
     </div>
   </main>
   <TheFooter v-if="userAuthStore.userData" />

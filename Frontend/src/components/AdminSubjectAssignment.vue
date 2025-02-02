@@ -141,7 +141,7 @@ const showOverlay = (element: string) => {
           <div v-for="(_class, index) in studentClasses" :key="index">
             <v-select class="select" v-if="_class.name === classSelected" :items="_class.subjects" label="SUBJECT(S)" v-model="subjectsSelected"
             multiple chips variant="solo-filled" density="comfortable" persistent-hint
-            hint="Select the subject(s) you want the teaacher to teacher" 
+            hint="Select the subject(s) you want the teacher to teacher" 
             />
           </div>
         </div>
