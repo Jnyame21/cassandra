@@ -24,7 +24,7 @@ from django.db.models import Prefetch
 from decimal import Decimal
 import time
 
-# TEACHER
+# TEACHER 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_teacher_data(request):
@@ -184,16 +184,15 @@ def get_teacher_data(request):
     atttendance_data = defaultdict(dict)
     for _class in head_classes:
         students_class_name = _class.name
-        students = StudentUserIdSerializer(_class.students.all())
+        students = StudentUserIdSerializer(_class.students.all(), many=True).data
         attendance_objs = StudentAttendance.objects.prefetch_related('students_present__user', 'students_absent__user').filter(school=school, level=current_level, students_class=_class, academic_year=current_academic_year, academic_term=current_term).order_by('-date')
         attendances = StudentsAttendanceSerializer(attendance_objs, many=True).data
         atttendance_data[students_class_name]['students'] = students
         atttendance_data[students_class_name]['attendances'] = attendances
     
-    # HOD
     department_data = None
     hod_subject_assignments_data = []
-    department = Department.objects.select_related('hod').prefetch_related('subjects', 'teachers__user').filter(school=school, level=current_level, teachers=teacher).first()
+    department = Department.objects.select_related('hod__user').prefetch_related('subjects', 'teachers__user').filter(school=school, level=current_level, teachers=teacher).first()
     if department:
         department_data = DepartmentSerializerOne(department).data
         if department.hod == teacher:
@@ -223,6 +222,7 @@ def teacher_students_attendance(request):
     students_class = Classe.objects.prefetch_related('students').get(school=school, level=current_level, name=data['className'])
     current_academic_year = AcademicYear.objects.get(school=school, level=current_level, name=data['year'])
     current_term = int(data['term'])
+    
     if data['type'] == 'create':
         student_ids = data['absentStudents'].split(',')
         student_objs = students_class.students.all()
@@ -246,16 +246,19 @@ def teacher_students_attendance(request):
                 else:
                     attendance.students_absent.add(st)
 
-        attendance_obj = StudentAttendance.objects.prefetch_related('students_absent', 'students_present').get(school=school, level=current_level, academic_year=current_academic_year, academic_term=current_term, date=data['date'], students_class=students_class, teacher=teacher)
+        attendance_obj = StudentAttendance.objects.prefetch_related('students_absent__user', 'students_present__user').get(school=school, level=current_level, academic_year=current_academic_year, academic_term=current_term, date=data['date'], students_class=students_class, teacher=teacher)
         attendance_data = StudentsAttendanceSerializer(attendance_obj).data
         return Response(attendance_data, status=200)
 
     elif data['type'] == 'delete':
         try:
-            students_class = Classe.objects.get(school=school, level=teacher.level, name=data['className'])
+            attendance_id = int(data['id'])
+            attendance = StudentAttendance.objects.select_related('academic_year').get(id=attendance_id)
+            if attendance.academic_year != current_academic_year and attendance.academic_term != current_term:
+                return Response({'message': f"You don't have permission to delete this attendance"}, status=400)
+            
             with transaction.atomic():
-                student_attendance = StudentAttendance.objects.get(school=school, level=current_level, academic_year=current_academic_year, academic_term=current_term, students_class=students_class, teacher=teacher, date=data['date'])
-                student_attendance.delete()
+                attendance.delete()
 
             return Response(status=200)
 
@@ -521,7 +524,7 @@ def teacher_assessments(request):
             
             try:
                 Assessment.objects.bulk_create(assessments_to_create)
-                assessment_to_delete = Assessment.objects.filter(school=school, level=current_level, teacher=teacher, student=None, student_class=students_class, subject=subject_obj, title=assessment_title, academic_year=current_academic_year, academic_term=term).exists()
+                assessment_to_delete = Assessment.objects.filter(school=school, level=current_level, teacher=teacher, student=None, student_class=students_class, subject=subject_obj, title=assessment_title, academic_year=current_academic_year, academic_term=term).first()
                 if assessment_to_delete:
                     assessment_to_delete.delete()
             except Exception:
@@ -859,7 +862,8 @@ def teacher_exams(request):
         students_class = Classe.objects.prefetch_related(Prefetch('students', queryset=Student.objects.filter(st_id__in=students_to_create_ids))).get(school=school, level=current_level, name=st_class_name)
         subject_obj = Subject.objects.get(schools=school, level=current_level, name=subject_name)
         students_to_create_objs = {x.st_id: x for x in students_class.students.all()}
-        for _st_id in students:
+        exams_to_create = []
+        for _st_id in students_to_create_ids:
             student = students_to_create_objs[_st_id]
             st_exam = Exam(
                 school=school,
@@ -885,7 +889,14 @@ def teacher_exams(request):
                 transaction.set_rollback(True)
                 return Response(status=400)
         
-        return Response({'message': "The exams data has been uploaded successfully."}, status=200)
+        all_exams = Exam.objects.select_related('student__user').filter(school=school, level=current_level, teacher=teacher, subject=subject_obj, student_class=students_class, student__in=list(students_to_create_objs.values()), academic_year=current_academic_year, academic_term=term)
+        all_exams_data = [{
+            'name': f"{x.student.user.first_name} {x.student.user.last_name}",
+            'st_id': x.student.st_id,
+            'score': x.score,
+        } for x in all_exams]
+        
+        return Response({'message': "The exams data has been uploaded successfully.", 'data': all_exams_data}, status=200)
 
     elif data['type'] == 'editTotalScore':
         students_class = Classe.objects.get(school=school, level=current_level, name=st_class_name)

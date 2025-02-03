@@ -113,8 +113,9 @@ const upload = async () => {
     if (studentScore.value < 0) {
       showErrorMessage("The students' exams score cannot be negative")
       return;
-    } else if (studentScore.value > 100) {
-      showErrorMessage("The students' score must not exceed 100")
+    } 
+    else if (Number(studentScore.value) > Number(examsData.value.total_score)) {
+      showErrorMessage("The students' score must not exceed the total score of the exams")
       return;
     }
     formData.append('selectedStudents', JSON.stringify(selectedStudents.value))
@@ -130,7 +131,6 @@ const upload = async () => {
       userAuthStore.teacherData.studentsExams[className][subjectName].students_with_exams[student_id] = st
       delete userAuthStore.teacherData.studentsExams[className][subjectName].students_without_exams[student_id]
     })
-
     selectedStudents.value = []
     studentScore.value = null
     fileToUpload.value = null
@@ -291,6 +291,7 @@ const closeOverlay = (element: string) => {
   formErrorMessage.value = ''
   studentId.value = ''
   studentName.value = ''
+  selectedStudents.value = []
   previousScore.value = null
   uploadTypeSelected.value = ''
   const overlay = document.getElementById(element)

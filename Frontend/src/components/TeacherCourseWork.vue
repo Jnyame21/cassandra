@@ -75,21 +75,25 @@ const createAssessmentAndExam = async () => {
     if (assessmentTotalScore.value <= 0) {
       showErrorMessage('The total score of the assessment cannot be negative or zero(0)')
       return;
-    } else if (assessmentTotalScore.value >= 10000) {
+    } 
+    else if (assessmentTotalScore.value >= 10000) {
       showErrorMessage('The total score of the assessment must be less than 10000')
       return;
-    } else if (assessmentDescription.value.length > 100) {
+    } 
+    else if (assessmentDescription.value.length > 100) {
       showErrorMessage("The maximum characters for the description must not exceed 100")
       return;
-    } else if (assessmentTitle.value.length > 50) {
+    } 
+    else if (assessmentTitle.value.length > 50) {
       showErrorMessage("The maximum characters for the title must not exceed 50")
       return;
-    } else if (new Date(assessmentDate.value) < academicYearStartDate || new Date(assessmentDate.value) > academicYearEndDate) {
+    } 
+    else if (new Date(assessmentDate.value) < academicYearStartDate || new Date(assessmentDate.value) > academicYearEndDate) {
       showErrorMessage(`The assessment date must be between the academic year start date and end date, which are ${academicYearStartDate.toDateString()} and ${academicYearEndDate.toDateString()} respectively.`)
       return;
     }
-    if (allAssessments.value?.[className]) {
-      const assessmentSubjectData = Object.values(allAssessments.value[className])
+    if (allAssessments.value) {
+      const assessmentSubjectData = Object.values(allAssessments.value[subjectSelected.value])
       for (let i=0; i < assessmentSubjectData.length; i++){
         if (assessmentSubjectData[i].title === assessmentTitle.value) {
           showErrorMessage(`Assessment with title '${assessmentTitle.value}' already exists! Use a different title`)

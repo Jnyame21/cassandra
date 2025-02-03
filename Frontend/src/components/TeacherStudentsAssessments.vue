@@ -160,7 +160,12 @@ const upload = async () => {
     studentScore.value = null
     comment.value = ''
     fileToUpload.value = null
-    closeOverlay(`teacherStudentsAssessmentUploadOverlay,${className},${subjectName},${assessmentTitle}`)
+    if (uploadTypeSelected.value === 'file'){
+      closeOverlay(`teacherStudentsAssessmentUploadOverlay,${className},${subjectName},${assessmentTitle}`)
+    }
+    else{
+      elementsStore.ShowOverlay('Assessment data uploaded successfully!', 'green', null, null)
+    }
     elementsStore.HideLoadingOverlay()
   }
   catch (error) {

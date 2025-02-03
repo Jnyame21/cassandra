@@ -40,7 +40,10 @@ const uploadSubjectAssignment = async () => {
     if (teacherSelectedId.value === userAuthStore.userData['staff_id']){
       await userAuthStore.getTeacherData()
     }
-    userAuthStore.hodData.subjectAssignments.push(response.data)
+    else{
+      userAuthStore.hodData.subjectAssignments.push(response.data)
+    }
+    
     subjectsSelected.value = []
     classSelectedName.value = ''
     teacherSelectedId.value = ''

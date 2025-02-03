@@ -19,6 +19,7 @@ const selectedStudents: any = ref([])
 const academicYearStartDate = new Date(userAuthStore.userData['academic_year']['start_date'])
 const academicYearEndDate = new Date(userAuthStore.userData['academic_year']['end_date'])
 const academic_year = userAuthStore.activeAcademicYear
+
 const chartData = ref({
   labels: currentLabels.value,
   datasets: [
@@ -30,6 +31,7 @@ const chartData = ref({
     },
   ],
 })
+
 const chartOptions = ref({
   responsive: true,
 })
@@ -50,8 +52,6 @@ const attendances = ref(getAttendanceData(academicYearStartDate, academicYearEnd
 const attendanceData = computed(()=>{
   return userAuthStore.teacherData.studentsAttendance[className].attendances
 })
-
-const storeStudentAttendance = userAuthStore.teacherData.studentsAttendance[className].attendances
 
 const changeAnalysis = (type: string, month: string = '', week: string = '') => {
   currentLabels.value = []
@@ -185,8 +185,8 @@ const uploadAttendance = async () => {
 
   try {
     const response = await axiosInstance.post('teacher/students/attendance', formData)
-    storeStudentAttendance.unshift(response.data)
-    storeStudentAttendance.sort((a: any, b: any) => {
+    userAuthStore.teacherData.studentsAttendance[className].attendances.unshift(response.data)
+    userAuthStore.teacherData.studentsAttendance[className].attendances.sort((a: any, b: any) => {
       const dateA = new Date(a.date).getTime();
       const dateB = new Date(b.date).getTime();
       return dateB - dateA;
@@ -216,17 +216,17 @@ const uploadAttendance = async () => {
   }
 }
 
-const deleteAttendance = async (index: number, date: string) => {
+const deleteAttendance = async (index: number, attendance_id: number) => {
   const formData = new FormData
   formData.append('className', className)
   formData.append('year', userAuthStore.activeAcademicYear)
-  formData.append('date', date)
+  formData.append('id', attendance_id.toString())
   formData.append('type', 'delete')
   formData.append('term', userAuthStore.activeTerm.toString())
   elementsStore.ShowLoadingOverlay()
   try {
     await axiosInstance.post('teacher/students/attendance', formData)
-    storeStudentAttendance.splice(index, 1)
+    userAuthStore.teacherData.studentsAttendance[className].attendances.splice(index, 1)
     elementsStore.HideLoadingOverlay()
   }
   catch (error) {
@@ -273,36 +273,40 @@ const checkInput = computed(() => {
 </script>
 
 <template>
-  <div class="content-wrapper"
-    v-show="elementsStore.activePage === `TeacherStudentsAttendance,${className}`"
-    :class="{ 'is-active-page': elementsStore.activePage === `TeacherStudentsAttendance,${className}` }">
+  <div class="content-wrapper" v-show="elementsStore.activePage === `TeacherStudentsAttendance,${className}`" :class="{ 'is-active-page': elementsStore.activePage === `TeacherStudentsAttendance,${className}` }">
+    
     <!-- Attendance overlay -->
     <div :id="`studentAttendanceOverlay${className}`" class="overlay" v-if="students.length > 0">
       <div class="overlay-card attendance-upload">
-        <v-btn @click="hidOverlay(`studentAttendanceOverlay${className}`)" color="red" size="small"
-          class="close-btn" variant="flat">X</v-btn>
+        <v-btn @click="hidOverlay(`studentAttendanceOverlay${className}`)" color="red" size="small" class="close-btn" variant="flat">
+          X
+        </v-btn>
         <p class="form-error-message" style="color: red" v-if="formErrorMessage">{{ formErrorMessage }}</p>
-        <v-text-field label="DATE" class="input-field" v-model="attendanceUploadDate"
-          hint="select the date for the class attendance" persistent-hint clearable variant="solo-filled" type="date"
-          density="compact" />
-        <v-select clearable multiple chips v-model="selectedStudents" class="select" label="STUDENTS"
-          :items="students" item-title="name" item-value="st_id" variant="solo-filled" density="comfortable"
-          persistent-hint hint="Select the students who did not attend class for the specified date">
-          <template v-slot:item="{ props, item }">
-            <v-list-item v-bind="props" :subtitle="item.raw.st_id"></v-list-item>
-          </template>
-        </v-select>
-        <v-btn :disabled="checkInput" @click="uploadAttendance" size="small" variant="flat" color="black" class="mb-5"
-          type="submit">UPLOAD</v-btn>
+        <div class="overlay-card-info-container"></div>  
+        <div class="overlay-card-content-container">
+          <v-text-field label="DATE" class="input-field" v-model="attendanceUploadDate" hint="select the date for the class attendance" persistent-hint clearable variant="solo-filled" type="date" density="compact" 
+          />
+          <v-select clearable multiple chips v-model="selectedStudents" class="select" label="STUDENTS ABSENT" :items="students" item-title="user" item-value="st_id" variant="solo-filled" density="comfortable"
+            persistent-hint hint="Select the students who did not attend class for the specified date">
+            <template v-slot:item="{ props, item }">
+              <v-list-item v-bind="props" :subtitle="item.raw.st_id"></v-list-item>
+            </template>
+          </v-select>
+        </div>
+        <div class="overlay-card-action-btn-container">
+          <v-btn :disabled="checkInput" @click="uploadAttendance" size="small" variant="flat" color="black" class="mb-5" type="submit">
+            UPLOAD
+          </v-btn>
+        </div>
       </div>
     </div>
 
     <!-- Analytics overlay -->
     <div :id="`teacherStudentsAttendanceAnalyticsOverlay${className}`" class="overlay" v-if="students.length > 0">
       <div class="overlay-card flex-all-c">
-        <v-btn class="close-btn"
-          @click="hidOverlay(`teacherStudentsAttendanceAnalyticsOverlay${className}`)" size="small"
-          variant="flat" color="red">X</v-btn>
+        <v-btn class="close-btn" @click="hidOverlay(`teacherStudentsAttendanceAnalyticsOverlay${className}`)" size="small" variant="flat" color="red">
+          X
+        </v-btn>
         <div class="chart-info-wrapper flex-all-c">
           <v-list class="info-container">
             <v-list-item class="nav-title nav-link" @click="changeAnalysis('year')">
@@ -329,6 +333,7 @@ const checkInput = computed(() => {
         </div>
       </div>
     </div>
+
     <div class="content-header">
       <span class="content-header-title">{{ className }} STUDENTS ATTENDANCE FOR THE {{ academic_year }} ACADEMIC YEAR</span>
     </div>
@@ -400,8 +405,7 @@ const checkInput = computed(() => {
             </v-list>
           </td>
           <td class="table-data">
-            <v-btn
-              @click="elementsStore.ShowDeletionOverlay(() => deleteAttendance(index, _attendance.date), 'Are you sure you want to delete this attendance data?')"
+            <v-btn v-if="_attendance.academic_term === userAuthStore.activeTerm" @click="elementsStore.ShowDeletionOverlay(() => deleteAttendance(index, _attendance.id), 'Are you sure you want to delete this attendance data?')"
               variant="flat" icon="mdi-delete" size="x-small" color="red"
             />
           </td>

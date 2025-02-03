@@ -912,7 +912,7 @@ class StudentsAttendanceSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = StudentAttendance
-        fields = ('date', 'students_present', 'students_absent')
+        fields = ('date', 'students_present', 'students_absent', 'academic_term', 'id')
 
     # def get_students_class(self, obj):
     #     return obj.students_class.name

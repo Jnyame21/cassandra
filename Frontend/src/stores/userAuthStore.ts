@@ -231,6 +231,8 @@ export interface states {
     studentsAttendance: {
       [class_name: string]: {
         attendances: {
+          id : number;
+          academic_term: number;
           date: string;
           students_present: {
             user: string
@@ -242,7 +244,7 @@ export interface states {
           }[]
         }[];
         students: {
-          name: string
+          user: string
           st_id: string
         }[]
       }
