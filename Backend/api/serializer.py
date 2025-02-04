@@ -234,18 +234,13 @@ class StudentSerializer(serializers.ModelSerializer):
         return data
 
     def get_st_class(self, obj):
-        if obj.st_class:
-            return obj.st_class.name
-        return None
-    
-    def get_current_level(self, obj):
-        return obj.current_level.identifier if obj.current_level else None
+        return obj.st_class.name if obj.st_class else None
     
     def get_levels(self, obj):
-        return [x.identifier for x in obj.levels.all()] 
+        return [x.name for x in obj.levels.all()] 
     
     def get_current_program(self, obj):
-        return obj.current_program.identifier if obj.current_program else None
+        return obj.current_program.name if obj.current_program else None
 
 
 # class SpecificStudentSerializer(serializers.ModelSerializer):
@@ -920,16 +915,12 @@ class StudentsAttendanceSerializer(serializers.ModelSerializer):
 
 # ReleasedResult
 class ReleasedResultsSerializer(serializers.ModelSerializer):
-    students_class = serializers.SerializerMethodField()
     academic_year = serializers.SerializerMethodField()
     released_by = serializers.SerializerMethodField()
     
     class Meta:
         model = ReleasedResult
-        fields = ('students_class', 'date', 'academic_year', 'academic_term', 'released_by', 'id')
-
-    def get_students_class(self, obj):
-        return obj.students_class.name
+        fields = ('students_class_name', 'date', 'academic_year', 'academic_term', 'released_by', 'id')
 
     def get_academic_year(self, obj):
         return obj.academic_year.name

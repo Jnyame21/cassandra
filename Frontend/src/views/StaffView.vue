@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useUserAuthStore } from '@/stores/userAuthStore'
 import { useElementsStore } from '@/stores/elementsStore'
-import { computed, onBeforeMount, ref, watch } from 'vue'
+import { ref, watch } from 'vue'
 import { useHead } from '@vueuse/head';
 import axiosInstance from '@/utils/axiosInstance';
 import { AxiosError } from 'axios';
@@ -36,22 +36,10 @@ useHead({
 
 const userAuthStore = useUserAuthStore()
 const elementsStore = useElementsStore()
-const rozmachAuth: any = ref(null)
-const formErrorMessage = ref('')
-const formSuccessMessage = ref('')
 const password = ref('')
-const contact = ref('')
-const email = ref('')
-const altContact = ref('')
-const loading = ref(false)
-const visible = ref(false)
-
-onBeforeMount(() => {
-  rozmachAuth.value = localStorage.getItem('RozmachAuth')
-  if (rozmachAuth.value) {
-    rozmachAuth.value = JSON.parse(rozmachAuth.value)
-  }
-})
+const repeatPassword = ref('')
+const passwordVisible = ref(false)
+const repeatPasswordVisible = ref(false)
 
 watch(() => userAuthStore.userData, (newValue) => {
   if (newValue && newValue['staff_role'].toLowerCase() === 'administrator') {
@@ -65,27 +53,16 @@ watch(() => userAuthStore.userData, (newValue) => {
   }
 }, { 'once': true, 'immediate': true })
 
-const updateStaffData = async () => {
+const resetUserPassword = async () => {
   elementsStore.ShowLoadingOverlay()
   const formData = new FormData()
   formData.append('password', password.value)
-  formData.append('contact', contact.value)
-  formData.append('altContact', altContact.value)
-  formData.append('email', email.value)
 
   try {
-    await axiosInstance.post('user/data', formData)
-    if (rozmachAuth.value?.reset) {
-      rozmachAuth.value.reset = false
-      localStorage.setItem('RozmachAuth', JSON.stringify(rozmachAuth.value))
-    }
-    await userAuthStore.getUserData()
-    const overlay = document.getElementById('welcomeOverlay')
-    if (overlay) {
-      overlay.style.display = 'none'
-    }
+    await axiosInstance.post('user/reset-password', formData)
+    userAuthStore.additionalLocalStorageData.password_reset = false
+    closeOverlay('StaffWelcomeOverlay')
     elementsStore.HideLoadingOverlay()
-    elementsStore.ShowOverlay('success', 'green', null, null)
   }
   catch (error) {
     elementsStore.HideLoadingOverlay()
@@ -105,52 +82,46 @@ const updateStaffData = async () => {
       }
     }
   }
-
 }
 
-const checkInput = computed(() => {
-  return !(contact.value && password.value)
-})
+const closeOverlay = (element: string)=>{
+  const overlay = document.getElementById(element)
+  if (overlay){
+    overlay.style.display = 'none'
+  }
+}
+
 
 </script>
 
 <template>
+
   <!-- Welcome Overlay-->
-  <div id="welcomeOverlay" class="welcome-overlay"
-    v-if="rozmachAuth?.['reset'] && userAuthStore.userData?.['role'] === 'staff'">
-    <v-card class="card flex-all-c">
-      <v-card-title id="school-name">{{ userAuthStore.userData['school']['name'] }}</v-card-title>
-      <v-card-text style="font-size: .9rem; font-family: sans-serif; text-align: left; line-height: 1.5">
-        <p style="text-align: center" class="mb-5"><strong>Welcome {{ userAuthStore.userData['first_name'] }}
-            {{ userAuthStore.userData['last_name'] }}! Update your information before you begin</strong></p>
-        <h6 class="form-error-message" style="color: yellow" v-if="formSuccessMessage">{{ formSuccessMessage }}</h6>
-        <h6 class="form-error-message" style="color: red" v-if="formErrorMessage">{{ formErrorMessage }}</h6>
-        <div class="field-container flex-all-c">
-          <v-text-field :disabled="loading" class="form-text-field" v-model="contact" label="PHONE NUMBER"
-            hint="Enter you phone number" placeholder="0596021383" prepend-inner-icon="mdi-phone" type="number"
-            variant="outlined" density="compact" clearable />
-
-          <v-text-field :disabled="loading" class="form-text-field" v-model="altContact" label="SECOND PHONE (OPTIONAL)"
-            type="number" placeholder="0556429210" hint="Enter you second phone number" prepend-inner-icon="mdi-phone"
-            density="compact" variant="outlined" clearable />
-        </div>
-        <div class="field-container flex-all-c">
-          <v-text-field :disabled="loading" class="form-text-field" v-model="email" label="EMAIL (OPTIONAL)"
-            hint="Enter your email address" type="email" placeholder="nyamejustice2000@gmail.com" variant="outlined"
-            prepend-inner-icon="mdi-email" density="compact" clearable />
-
-          <v-text-field :append-inner-icon="visible ? 'mdi-eye-off-outline' : 'mdi-eye-outline'"
-            @click:append-inner="visible = !visible" :disabled="loading" :type="visible ? 'text' : 'password'" clearable
-            density="compact" class="form-text-field" variant="outlined" hint="Enter a new password" v-model="password"
-            label="RESET PASSWORD" prepend-inner-icon="mdi-lock-outline" />
-        </div>
-      </v-card-text>
-      <v-card-actions class="flex-all">
-        <v-btn class="overlay-btn" :disabled="checkInput" @click="updateStaffData" :loading="loading"
-          elevation="4">DONE</v-btn>
-      </v-card-actions>
-    </v-card>
+  <div id="StaffWelcomeOverlay" class="overlay" v-if="userAuthStore.userData?.['role'].toLowerCase() === 'staff' && userAuthStore.additionalLocalStorageData.password_reset">
+    <div class="overlay-card">
+      <div class="overlay-card-info-container">
+        <p style="text-align: center" class="mb-5">
+          <strong>Welcome {{ userAuthStore.userData['first_name'] }} {{ userAuthStore.userData['last_name'] }}! Reset your password to continue</strong>
+        </p>
+      </div>
+      <div class="overlay-card-content-container">
+        <v-text-field class="input-field" :append-inner-icon="passwordVisible ? 'mdi-eye-off-outline' : 'mdi-eye-outline'" @click:append-inner="passwordVisible = !passwordVisible"
+          :type="passwordVisible ? 'text' : 'password'" clearable density="comfortable" v-model="password" label="NEW PASSWORD" hint="Enter a new password"  prepend-inner-icon="mdi-lock-outline"
+        />
+        <v-text-field class="input-field" :append-inner-icon="repeatPasswordVisible ? 'mdi-eye-off-outline' : 'mdi-eye-outline'" @click:append-inner="repeatPasswordVisible = !repeatPasswordVisible"
+          :type="repeatPasswordVisible ? 'text' : 'password'" clearable density="comfortable" v-model="repeatPassword" label="REPEAT PASSWORD" hint="Repeat the new password"  prepend-inner-icon="mdi-lock-outline"
+        />
+      </div>
+    </div>
+    <div class="overlay-card-action-btn-container">
+      <v-btn @click="resetUserPassword"
+        :disabled="!(password && repeatPassword && password === repeatPassword)" :ripple="false"
+        variant="flat" type="submit" color="black" size="small" append-icon="mdi-checkbox-marked-circle">
+        SUBMIT
+      </v-btn>
+    </div>
   </div>
+
   <TheHeader v-if="userAuthStore.userData" />
   <main class="main" v-if="userAuthStore.userData">
     <StaffNavContainerMob v-if="!elementsStore.onDesk" />
@@ -189,7 +160,6 @@ const checkInput = computed(() => {
       <div class="component-wrapper" :class="{ 'is-active-component': elementsStore.activePage === 'Help' }">
         <HelpForm v-show="elementsStore.activePage === 'Help'" />
       </div>
-
     </div>
 
     <!-- Head -->
@@ -280,57 +250,13 @@ const checkInput = computed(() => {
 </template>
 
 <style scoped>
-.welcome-overlay {
-  display: flex;
-  position: absolute;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  z-index: 10;
-  width: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
-}
 
-.card {
-  width: 90%;
-  max-width: 800px;
-  display: flex;
-  align-items: center !important;
-  justify-content: center !important;
+.overlay-card{
+  max-width: 600px !important;
 }
-
-.form-error-message {
-  font-size: .7rem;
-  margin-top: 1em;
-  margin-bottom: 1em;
-  text-align: center;
-  border: 1px solid;
-  padding: .1em 1em;
-}
-
-.form-text-field {
-  margin-top: 1em;
-  width: 300px !important;
-  max-width: 300px !important;
+.overlay-card-info-container{
+  margin-top: 3em !important;
 }
 
 
-#school-name {
-  font-size: .7rem;
-  font-family: Verdana, "sans-serif";
-  text-align: center;
-  font-weight: bold;
-  text-transform: uppercase;
-  color: #007bff;
-}
-
-.overlay-btn {
-  background-color: lightseagreen;
-  color: white;
-}
-
-.overlay-btn:hover {
-  background-color: mediumseagreen;
-  color: yellow;
-}
 </style>

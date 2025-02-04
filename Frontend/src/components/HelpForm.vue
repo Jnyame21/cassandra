@@ -2,9 +2,10 @@
 import {ref} from "vue";
 import axiosInstance from "../utils/axiosInstance";
 import { useElementsStore } from '@/stores/elementsStore';
+import { useUserAuthStore } from "@/stores/userAuthStore";
 
 const elementsStore = useElementsStore()
-
+const userAuthStore = useUserAuthStore()
 const message = ref('')
 const problem = ref('')
 const loading = ref(false)
@@ -12,32 +13,48 @@ const loading = ref(false)
 const clearMessage = ()=>{
   setTimeout(()=>{
       message.value = ''
-    },10000)
+  }, 10000)
 }
 
 const submitProblem = async ()=>{
   if (problem.value.length <= 5){
     message.value = 'Your message length must be more than five(5) characters'
     clearMessage()
-  }else {
-    loading.value = true
-    message.value = 'Please wait as your submission is being sent....'
+    return;
+  }
+  loading.value = true
+  message.value = 'Please wait as your submission is being sent....'
 
-    const formData = new FormData
-    formData.append('problem', problem.value)
+  const formData = new FormData
+  formData.append('problem', problem.value)
 
-    await axiosInstance.post('support', formData)
-      .then(() =>{
-        message.value = 'Submission successful! Our team will work on it and notify you.'
-        loading.value = false
-        problem.value = ''
-        clearMessage()
-      })
-      .catch(() =>{
-        message.value = 'Something went wrong! check your internet connection and try again'
-        loading.value = false
-        clearMessage()
-      })
+  if (userAuthStore.userData['role'].toLowerCase() === 'staff'){
+    await axiosInstance.post('staff/support', formData)
+    .then(() =>{
+      message.value = 'Submission successful! Our team will work on it and notify you.'
+      loading.value = false
+      problem.value = ''
+      clearMessage()
+    })
+    .catch(() =>{
+      message.value = 'Something went wrong! check your internet connection and try again'
+      loading.value = false
+      clearMessage()
+    })
+  }
+  else if (userAuthStore.userData['role'].toLowerCase() === 'student'){
+    await axiosInstance.post('students/support', formData)
+    .then(() =>{
+      message.value = 'Submission successful! Our team will work on it and notify you.'
+      loading.value = false
+      problem.value = ''
+      clearMessage()
+    })
+    .catch(() =>{
+      message.value = 'Something went wrong! check your internet connection and try again'
+      loading.value = false
+      clearMessage()
+    })
   }
 }
 

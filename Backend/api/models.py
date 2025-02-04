@@ -428,12 +428,13 @@ class ReleasedResult(models.Model):
     level = models.ForeignKey(EducationalLevel, verbose_name="School", blank=False, on_delete=models.SET_NULL, null=True)
     academic_year = models.ForeignKey(AcademicYear, verbose_name='Academic Year', on_delete=models.SET_NULL, null=True)
     academic_term = models.IntegerField(verbose_name='Term', blank=False, db_index=True)
-    students_class = models.ForeignKey('Classe', verbose_name='Students Class', on_delete=models.SET_NULL, null=True)
+    students_class_name = models.CharField(max_length=50, verbose_name='Students Class Name', blank=False, default='', db_index=True)
+    students = models.ManyToManyField('Student', verbose_name='Students', blank=False)
     date = models.DateField(verbose_name="Results Released Date", default=timezone.now, db_index=True)
     released_by = models.ForeignKey(Staff, verbose_name="Released By", on_delete=models.SET_NULL, null=True)
 
     class Meta:
-        unique_together = ('level', 'academic_year', 'academic_term', 'released_by', 'students_class')
+        unique_together = ('level', 'academic_year', 'academic_term', 'released_by', 'students_class_name')
         
         
 # class Notification(models.Model):

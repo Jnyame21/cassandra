@@ -11,6 +11,10 @@ const headTeacher = computed(()=>{
   return userAuthStore.studentData.headTeacher
 })
 
+const className = computed(()=>{
+  return userAuthStore.studentData.className
+})
+
 const students = computed(()=>{
   return userAuthStore.studentData.students
 })
@@ -44,9 +48,9 @@ const closeBtn = (element:string)=>{
 </script>
 
 <template>
-  <div class="content-wrapper" v-show="elementsStore.activePage === 'StudentClassStudents'"
-  :class="{ 'is-active-page': elementsStore.activePage === 'StudentClassStudents'}">
+  <div class="content-wrapper" v-show="elementsStore.activePage === 'StudentClassStudents'" :class="{ 'is-active-page': elementsStore.activePage === 'StudentClassStudents'}">
     
+    <!-- class head teacher info overlay -->
     <div id="teacherInfoOverlay" class="overlay">
       <div class="info-container">
         <v-btn @click="closeBtn('teacherInfoOverlay')" color="red" size="small" variant="flat" class="close-btn">X</v-btn>
@@ -94,9 +98,9 @@ const closeBtn = (element:string)=>{
         </div>
       </div>
     </div>
-    <TheLoader v-if="!students" />
+    <TheLoader :func="userAuthStore.getStudentData" v-if="!students" />
     <div class="content-header" v-if="students">
-      <h4 class="content-header-title">{{ userAuthStore.userData['st_class'] }}</h4>
+      <h4 class="content-header-title">{{ className }}</h4>
     </div>
     <div class="content-header stats" v-if="students">
       <div class="content-header-text">
@@ -119,8 +123,8 @@ const closeBtn = (element:string)=>{
       </div>
     </div>
     <div class="content-header" v-if="students">
-      <v-btn class="mr-2" :size="elementsStore.btnSize1" @click="showOverlay('teacherInfoOverlay')" color="blue">HEAD TEACHER</v-btn>
-      <v-btn class="ml-2" v-if="subjects.length > 0" :size="elementsStore.btnSize1" @click="showOverlay('SubjectOverlay')" color="blue">SUBJECTS</v-btn>
+      <v-btn class="mr-2" v-if="userAuthStore.userData['st_class']" :size="elementsStore.btnSize1" @click="showOverlay('teacherInfoOverlay')" color="blue">HEAD TEACHER</v-btn>
+      <v-btn class="ml-2" v-if="userAuthStore.userData['st_class'] && subjects.length > 0" :size="elementsStore.btnSize1" @click="showOverlay('SubjectOverlay')" color="blue">SUBJECTS</v-btn>
     </div>
     <v-table fixed-header class="table" v-if="students">
       <thead>
@@ -152,11 +156,9 @@ const closeBtn = (element:string)=>{
   margin-top: 4em;
 }
 .stats{
-  height: 30% !important;
+  height: 35% !important;
 }
-.table{
-  min-height: 50% !important;
-}
+
 .info-container{
   position: relative;
   width: 90%;

@@ -170,7 +170,7 @@ const showOverlay = (element: string) => {
       <tbody>
         <tr v-for="(release, index) in releasedResults" :key="index">
           <td class="table-data">
-            {{ release.students_class }}
+            {{ release.students_class_name }}
           </td>
           <td class="table-data">
             {{ release.academic_year }}

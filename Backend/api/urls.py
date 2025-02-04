@@ -6,7 +6,7 @@ from django.urls import path, include
 
 from api.student import get_student_data, student_transcript
 from api.teacher import get_teacher_data, teacher_assessments, teacher_exams, teacher_students_results, teacher_students_attendance
-from api.views import UserAuthView, keep_server_running, root, user_help, get_user_data, change_staff_role
+from api.views import *
 from api.superuser import *
 from api.school_admin import *
 from api.hod import *
@@ -16,11 +16,12 @@ from api.query import query
 urlpatterns = [
     path('', root, name='root'),
     path('start_up', keep_server_running),
-
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),  # Token refresh
-    path('support', user_help),  # Support/Help
     path('user/data', get_user_data),
+    path('user/reset-password', reset_user_password),
     path('staff/change-role', change_staff_role),
+    path('staff/support', staff_support),
+    path('students/support', students_support),
     # path('notification', notification),
     
     # Superuser
@@ -71,7 +72,5 @@ if settings.DEBUG:
     urlpatterns += path('silk/', include('silk.urls', namespace='silk')),
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
-
-
 
 

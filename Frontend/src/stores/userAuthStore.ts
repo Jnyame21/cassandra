@@ -8,6 +8,10 @@ import { AxiosError } from 'axios'
 export interface states {
   authTokens: any
   userData: any
+  additionalLocalStorageData: {
+    last_login: boolean;
+    password_reset: boolean;
+  }
   message: string
   isAuthenticated: boolean
   activeTerm: number
@@ -141,6 +145,7 @@ export interface states {
     }
   };
   studentData: {
+    className: string;
     headTeacher: {
       user: string
       contact: string
@@ -155,7 +160,6 @@ export interface states {
       teacher_contact: string
       teacher_email: string
       teacher_gender: string
-      teacher_department: string
     }[]
     students: {
       user: string
@@ -437,7 +441,7 @@ export interface states {
     subjects: string[]
     releasedResults: {
       id: number;
-      students_class: string;
+      students_class_name: string;
       academic_year: string;
       academic_term: number;
       released_by: string;
@@ -534,6 +538,10 @@ export const useUserAuthStore = defineStore('userAuthStore', {
     return {
       authTokens: null,
       userData: null,
+      additionalLocalStorageData: {
+        last_login: false,
+        password_reset: false,
+      },
       message: '',
       isAuthenticated: false,
       activeTerm: 0,
@@ -559,6 +567,7 @@ export const useUserAuthStore = defineStore('userAuthStore', {
         assessments: {},
         exams: {},
         headTeacher: null,
+        className: '',
         results: {},
         studentApplications: null,
         universities: null,
@@ -626,26 +635,17 @@ export const useUserAuthStore = defineStore('userAuthStore', {
   },
 
   actions: {
-    setAuthState(value: boolean) {
-      this.isAuthenticated = value
-    },
 
     logoutUser() {
       if (localStorage.getItem('authTokens')) {
         localStorage.removeItem('authTokens')
-      }
-      if (localStorage.getItem('RozmachAuth')) {
-        localStorage.removeItem('RozmachAuth')
       }
       useElementsStore().$reset()
       this.$reset()
     },
 
     async getStudentData() {
-      await axiosInstance
-        .get('student/data', {
-          params: { year: this.activeAcademicYearID, term: this.activeTerm },
-        })
+      await axiosInstance.get('student/data', {params: { year: this.activeAcademicYearID, term: this.activeTerm }})
         .then(response => {
           this.studentData.subjects = response.data['subjects']
           this.studentData.attendances = response.data['year_data']['attendance']
@@ -653,6 +653,7 @@ export const useUserAuthStore = defineStore('userAuthStore', {
           this.studentData.results = response.data['year_data']['results']
           this.studentData.students = response.data['students']
           this.studentData.exams = response.data['year_data']['exams']
+          this.studentData.className = response.data['class_name']
           if (response.data['head_teacher']){
             this.studentData.headTeacher = response.data['head_teacher']
           }
@@ -662,20 +663,8 @@ export const useUserAuthStore = defineStore('userAuthStore', {
         })
     },
 
-    async refreshData() {
-      await axiosInstance
-        .post('refresh/data')
-        .then(() => {
-          return Promise.resolve()
-        })
-        .catch(() => {
-          return Promise.reject()
-        })
-    },
-
     async getSuperUserData() {
-      await axiosInstance
-        .get('superuser/data')
+      await axiosInstance.get('superuser/data')
         .then(response => {
           this.superUserData.schools = response.data['schools']
           this.superUserData.levels = response.data['levels']
@@ -695,8 +684,7 @@ export const useUserAuthStore = defineStore('userAuthStore', {
     },
 
     async getTeacherData() {
-      await axiosInstance
-        .get('teacher/data', {params: { year: this.activeAcademicYearID, term: this.activeTerm },})
+      await axiosInstance.get('teacher/data', {params: { year: this.activeAcademicYearID, term: this.activeTerm },})
         .then(response => {
           this.teacherData.courseWork = response.data['subject_assignments']
           this.teacherData.departmentData = response.data['department_data']
@@ -713,25 +701,8 @@ export const useUserAuthStore = defineStore('userAuthStore', {
         })
     },
 
-    async getHodData() {
-      await axiosInstance
-        .get('hod/data', {
-          params: { year: this.activeAcademicYearID, term: this.activeTerm },
-        })
-        .then(response => {
-          this.hodData.subjectAssignments = response.data['subject_assignments']
-          this.hodData.studentClasses = response.data['student_classes']
-        })
-        .catch(() => {
-          return Promise.reject()
-        })
-    },
-
     async getAdminData() {
-      await axiosInstance
-        .get('school-admin/data', {
-          params: { year: this.activeAcademicYearID, term: this.activeTerm },
-        })
+      await axiosInstance.get('school-admin/data', {params: { year: this.activeAcademicYearID, term: this.activeTerm }})
         .then(response => {
           const data = response.data
           this.adminData.academicYears = data['academic_years']
@@ -750,10 +721,7 @@ export const useUserAuthStore = defineStore('userAuthStore', {
     },
 
     async getHeadData() {
-      await axiosInstance
-        .get('head/data', {
-          params: { year: this.activeAcademicYearID, term: this.activeTerm },
-        })
+      await axiosInstance.get('head/data', {params: { year: this.activeAcademicYearID, term: this.activeTerm }})
         .then(response => {
           this.headData.staff = response.data['staff']
           this.headData.classes = response.data['classes']
@@ -768,39 +736,12 @@ export const useUserAuthStore = defineStore('userAuthStore', {
     },
 
     async getNotifications() {
-      await axiosInstance
-        .get('notification')
+      await axiosInstance.get('notification')
         .then(response => {
           this.newNotification = response.data['new_notification']
           this.notifications = response.data['notifications']
           this.notificationStudentsClasses = response.data['classes']
           this.notificationStaff = response.data['staff']
-        })
-        .catch(() => {
-          return Promise.reject()
-        })
-    },
-
-    async getHodPerformance() {
-      await axiosInstance
-        .get('hod/students_performance', {
-          params: { year: this.activeAcademicYearID },
-        })
-        .then(response => {
-          this.hodPerformance = response.data
-        })
-        .catch(() => {
-          return Promise.reject()
-        })
-    },
-
-    async getHeadStudentsPerformance() {
-      await axiosInstance
-        .get('head/students_performance', {
-          params: { year: this.activeAcademicYearID },
-        })
-        .then(response => {
-          this.headStudentsPerformance = response.data
         })
         .catch(() => {
           return Promise.reject()
@@ -833,11 +774,9 @@ export const useUserAuthStore = defineStore('userAuthStore', {
         localStorage.setItem('authTokens', JSON.stringify(response.data))
         await this.getUserData()
         const userInfo: any = jwtDecode(response.data['access'])
+        this.additionalLocalStorageData.password_reset = userInfo['reset_password']
         if (userInfo['last_login']) {
-          localStorage.setItem('RozmachAuth', JSON.stringify({ last_login: true, reset: userInfo['reset'] }))
-        }
-        else {
-          localStorage.setItem('RozmachAuth', JSON.stringify({ last_login: false, reset: userInfo['reset'] }))
+          this.additionalLocalStorageData.last_login = true
         }
         this.isAuthenticated = true
         this.message = 'Login successful'
@@ -847,12 +786,6 @@ export const useUserAuthStore = defineStore('userAuthStore', {
           const axiosError = error as AxiosError
           if (axiosError.response) {
             if (axiosError.response.status === 401 && axiosError.response.data) {
-              // if (axiosError.response.data && axiosError.response.data.detail){
-              //   this.message = axiosError.response.data.detail as string
-              // }
-              // else{
-              //   this.message = axiosError.response.data as string
-              // }
               this.message = axiosError.response.data as string
             } 
             else if (axiosError.response.status === 401 && !axiosError.response.data) {
@@ -874,8 +807,7 @@ export const useUserAuthStore = defineStore('userAuthStore', {
     },
 
     async UpdateToken() {
-      await defaultAxiosInstance
-        .post('api/token/refresh/', { refresh: this.authTokens['refresh'] })
+      await defaultAxiosInstance.post('api/token/refresh/', { refresh: this.authTokens['refresh'] })
         .then((response: { data: { access: string; refresh: string } }) => {
           this.authTokens = response.data
           // Tokens storage

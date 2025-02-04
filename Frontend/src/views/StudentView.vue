@@ -2,6 +2,8 @@
 import { useUserAuthStore } from '@/stores/userAuthStore'
 import { useElementsStore } from '@/stores/elementsStore'
 import { onBeforeMount, ref } from 'vue'
+import { AxiosError } from 'axios';
+import axiosInstance from '@/utils/axiosInstance';
 import { useHead } from '@vueuse/head';
 import HelpForm from '@/components/HelpForm.vue'
 import TheHeader from '@/components/TheHeader.vue';
@@ -22,23 +24,49 @@ useHead({
 
 const userAuthStore = useUserAuthStore()
 const elementsStore = useElementsStore()
-const rozmachAuth: any = ref(null)
+const password = ref('')
+const repeatPassword = ref('')
+const passwordVisible = ref(false)
+const repeatPasswordVisible = ref(false)
 
 onBeforeMount(()=>{
   elementsStore.activePage = 'StudentClassStudents'
-  rozmachAuth.value = localStorage.getItem('RozmachAuth')
-  if (rozmachAuth.value){
-    rozmachAuth.value = JSON.parse(rozmachAuth.value)
-  }
 })
 
-const hidOverlay = ()=>{
-  const overlay = document.getElementById('welcome')
-  if (overlay){
-    if (rozmachAuth.value && !rozmachAuth.value.last_login){
-      rozmachAuth.value.last_login = true
-      localStorage.setItem('RozmachAuth', JSON.stringify(rozmachAuth.value))
+const resetUserPassword = async () => {
+  elementsStore.ShowLoadingOverlay()
+  const formData = new FormData()
+  formData.append('password', password.value)
+
+  try {
+    await axiosInstance.post('user/reset-password', formData)
+    userAuthStore.additionalLocalStorageData.password_reset = false
+    closeOverlay('StudentsWelcomeOverlay')
+    elementsStore.HideLoadingOverlay()
+  }
+  catch (error) {
+    elementsStore.HideLoadingOverlay()
+    if (error instanceof AxiosError) {
+      if (error.response) {
+        if (error.response.status === 400 && error.response.data.message) {
+          elementsStore.ShowOverlay(error.response.data.message, 'red', null, null)
+        } else {
+          elementsStore.ShowOverlay('Oops! something went wrong. Try again later', 'red', null, null)
+        }
+      }
+      else if (!error.response && (error.code === 'ECONNABORTED' || !navigator.onLine)) {
+        elementsStore.ShowOverlay('A network error occurred! Please check you internet connection', 'red', null, null)
+      }
+      else {
+        elementsStore.ShowOverlay('An unexpected error occurred!', 'red', null, null)
+      }
     }
+  }
+}
+
+const closeOverlay = (element: string)=>{
+  const overlay = document.getElementById(element)
+  if (overlay){
     overlay.style.display = 'none'
   }
 }
@@ -48,21 +76,33 @@ const hidOverlay = ()=>{
 
 
 <template>
-    <!-- Welcome Overlay-->
-  <div id="welcome" class="overlay welcome-overlay" v-if="rozmachAuth && !rozmachAuth['last_login'] && userAuthStore.userData">
-    <v-card class="flex-all-c card">
-      <v-card-title id="company-name">{{userAuthStore.userData['school']['name']}}</v-card-title>
-      <v-card-text style="font-size: .9rem; font-family: sans-serif; text-align: left; line-height: 1.2">
-        <p style="text-align: center">Welcome <strong>{{userAuthStore.userData['first_name']+' '+userAuthStore.userData['last_name']}}!</strong></p>
-        <p>We're excited to have you here. This is your special place to find everything you need for a successful school year.
-        Explore your subjects, get to know your teachers and classmates, and discover valuable resources to help you thrive in your studies.</p>
-        <p>If you face any problem here, go to the help tab and make a submission. We're here for you {{userAuthStore.userData['first_name']}}!</p>
-      </v-card-text>
-      <v-card-actions class="flex-all">
-        <v-btn class="overlay-btn" elevation="4" @click="hidOverlay()">OK</v-btn>
-      </v-card-actions>
-    </v-card>
+   
+  <!-- Welcome Overlay-->
+  <div id="StudentsWelcomeOverlay" class="overlay" v-if="userAuthStore.userData?.['role'].toLowerCase() === 'student' && userAuthStore.additionalLocalStorageData.password_reset">
+    <div class="overlay-card">
+      <div class="overlay-card-info-container">
+        <p style="text-align: center" class="mb-5">
+          <strong>Welcome {{ userAuthStore.userData['first_name'] }} {{ userAuthStore.userData['last_name'] }}! Reset your password to continue</strong>
+        </p>
+      </div>
+      <div class="overlay-card-content-container">
+        <v-text-field class="input-field" :append-inner-icon="passwordVisible ? 'mdi-eye-off-outline' : 'mdi-eye-outline'" @click:append-inner="passwordVisible = !passwordVisible"
+          :type="passwordVisible ? 'text' : 'password'" clearable density="comfortable" v-model="password" label="NEW PASSWORD" hint="Enter a new password"  prepend-inner-icon="mdi-lock-outline"
+        />
+        <v-text-field class="input-field" :append-inner-icon="repeatPasswordVisible ? 'mdi-eye-off-outline' : 'mdi-eye-outline'" @click:append-inner="repeatPasswordVisible = !repeatPasswordVisible"
+          :type="repeatPasswordVisible ? 'text' : 'password'" clearable density="comfortable" v-model="repeatPassword" label="REPEAT PASSWORD" hint="Repeat the new password"  prepend-inner-icon="mdi-lock-outline"
+        />
+      </div>
+    </div>
+    <div class="overlay-card-action-btn-container">
+      <v-btn @click="resetUserPassword"
+        :disabled="!(password && repeatPassword && password === repeatPassword)" :ripple="false"
+        variant="flat" type="submit" color="black" size="small" append-icon="mdi-checkbox-marked-circle">
+        SUBMIT
+      </v-btn>
+    </div>
   </div>
+
   <TheHeader v-if="userAuthStore.userData"/>
   <main class="main" v-if="userAuthStore.userData">
     <StudentNavContainerMob v-if="!elementsStore.onDesk"/>

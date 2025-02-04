@@ -52,7 +52,7 @@ def school_admin_data(request):
     staff = StaffSerializerOne(Staff.objects.select_related('user').prefetch_related('roles', 'departments', 'subjects').filter(school=school).order_by('-date_created'), many=True).data
     subjects = [x.identifier for x in Subject.objects.filter(schools=school, level=current_level)]
 
-    released_results_objs = ReleasedResult.objects.select_related('students_class', 'academic_year', 'released_by__user').filter(school=school, level=current_level).order_by('-date')
+    released_results_objs = ReleasedResult.objects.select_related('academic_year', 'released_by__user').filter(school=school, level=current_level).order_by('-date')
     released_results_data = ReleasedResultsSerializer(released_results_objs, many=True).data
     
     return Response({
@@ -1538,13 +1538,14 @@ def release_results(request):
     school = sch_admin.school
     
     if data['type'] == 'upload':
-        students_class = Classe.objects.prefetch_related('subjects').get(school=school, level=current_level, name=data['studentsClassName'])
+        students_class = Classe.objects.prefetch_related('subjects', 'students').get(school=school, level=current_level, name=data['studentsClassName'])
+        class_name = students_class.name
         class_subjects = students_class.subjects.all()
         academic_year = AcademicYear.objects.get(school=school, level=current_level, name=data['year'])
         term = int(data['term'])
-        existing_released_results = ReleasedResult.objects.filter(school=school, level=current_level, academic_year=academic_year, academic_term=term).exists()
+        existing_released_results = ReleasedResult.objects.filter(school=school, level=current_level, students_class_name=class_name, academic_year=academic_year, academic_term=term).exists()
         if existing_released_results:
-            return Response({'message': f"You have already released the {students_class.name} students results"}, status=400)
+            return Response({'message': f"You have already released the {class_name} students results"}, status=400)
         
         results_subjects_names = set(StudentResult.objects.filter(school=school, level=current_level, subject__in=class_subjects).values_list('subject__name', flat=True))
         for subject in class_subjects:
@@ -1558,8 +1559,9 @@ def release_results(request):
                 academic_year=academic_year,
                 academic_term=term,
                 released_by=sch_admin,
-                students_class=students_class,
+                students_class_name=class_name,
             )
+            released_result_obj.students.set(students_class.students.all())
         
         release_results_data = ReleasedResultsSerializer(released_result_obj).data
         return Response(release_results_data, status=200)
