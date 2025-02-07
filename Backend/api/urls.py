@@ -1,5 +1,4 @@
 from django.urls import path
-from rest_framework_simplejwt.views import TokenRefreshView
 from django.conf.urls.static import static
 from django.conf import settings
 from django.urls import path, include 
@@ -16,7 +15,9 @@ from api.query import query
 urlpatterns = [
     path('', root, name='root'),
     path('start_up', keep_server_running),
-    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),  # Token refresh
+    path('login', UserAuthView.as_view(), name='token_obtain_pair'),
+    path('logout', logout_user),
+    path('api/token/refresh/', CookieTokenRefreshView.as_view(), name='token_refresh'),  # Token refresh
     path('user/data', get_user_data),
     path('user/reset-password', reset_user_password),
     path('staff/change-role', change_staff_role),
@@ -39,7 +40,6 @@ urlpatterns = [
     path('superuser/staff', superuser_staff),
     
     # Student
-    path('login', UserAuthView.as_view(), name='token_obtain_pair'),  # Student token obtain
     path('student/data', get_student_data),   # Student data
     path('student/transcript', student_transcript),  # Student transcript
     

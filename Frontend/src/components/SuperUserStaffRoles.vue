@@ -31,23 +31,23 @@ const createRole = async () => {
     name.value = ''
     levelIdentifier.value = ''
     elementsStore.HideLoadingOverlay()
-    elementsStore.ShowOverlay('Operation successful!', 'green', null, null)
+    elementsStore.ShowOverlay('Operation successful!', 'green')
   }
   catch (error) {
     elementsStore.HideLoadingOverlay()
     if (error instanceof AxiosError) {
       if (error.response) {
         if (error.response.status === 400 && error.response.data.message) {
-          elementsStore.ShowOverlay(error.response.data.message, 'red', null, null)
+          elementsStore.ShowOverlay(error.response.data.message, 'red')
         } else {
-          elementsStore.ShowOverlay('Oops! something went wrong. Try again later', 'red', null, null)
+          elementsStore.ShowOverlay('Oops! something went wrong. Try again later', 'red')
         }
       }
       else if (!error.response && (error.code === 'ECONNABORTED' || !navigator.onLine)) {
-        elementsStore.ShowOverlay('A network error occurred! Please check you internet connection', 'red', null, null)
+        elementsStore.ShowOverlay('A network error occurred! Please check you internet connection', 'red')
       }
       else {
-        elementsStore.ShowOverlay('An unexpected error occurred!', 'red', null, null)
+        elementsStore.ShowOverlay('An unexpected error occurred!', 'red')
       }
     }
   }
@@ -84,16 +84,16 @@ const addRemoveSchool = async () => {
     if (error instanceof AxiosError) {
       if (error.response) {
         if (error.response.status === 400 && error.response.data.message) {
-        elementsStore.ShowOverlay(error.response.data.message, 'red', null, null)
+        elementsStore.ShowOverlay(error.response.data.message, 'red')
         } else {
-        elementsStore.ShowOverlay('Oops! something went wrong. Try again later', 'red', null, null)
+        elementsStore.ShowOverlay('Oops! something went wrong. Try again later', 'red')
         }
       }
       else if (!error.response && (error.code === 'ECONNABORTED' || !navigator.onLine)) {
-        elementsStore.ShowOverlay('A network error occurred! Please check you internet connection', 'red', null, null)
+        elementsStore.ShowOverlay('A network error occurred! Please check you internet connection', 'red')
       }
       else {
-        elementsStore.ShowOverlay('An unexpected error occurred!', 'red', null, null)
+        elementsStore.ShowOverlay('An unexpected error occurred!', 'red')
       }
     }
   }
@@ -116,16 +116,16 @@ const deleteRole = async (index: number, role_id:string) => {
     if (error instanceof AxiosError) {
       if (error.response) {
         if (error.response.status === 400 && error.response.data.message) {
-          elementsStore.ShowOverlay(error.response.data.message, 'red', null, null)
+          elementsStore.ShowOverlay(error.response.data.message, 'red')
         } else {
-          elementsStore.ShowOverlay('Oops! something went wrong. Try again later', 'red', null, null)
+          elementsStore.ShowOverlay('Oops! something went wrong. Try again later', 'red')
         }
       }
       else if (!error.response && (error.code === 'ECONNABORTED' || !navigator.onLine)) {
-        elementsStore.ShowOverlay('A network error occurred! Please check you internet connection', 'red', null, null)
+        elementsStore.ShowOverlay('A network error occurred! Please check you internet connection', 'red')
       }
       else {
-        elementsStore.ShowOverlay('An unexpected error occurred!', 'red', null, null)
+        elementsStore.ShowOverlay('An unexpected error occurred!', 'red')
       }
     }
   }

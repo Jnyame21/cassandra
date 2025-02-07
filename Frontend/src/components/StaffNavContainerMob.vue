@@ -15,11 +15,10 @@ const changePage = (page_name: any) => {
 }
 
 const showOverlay = () => {
-    const logoutOverlay = document.getElementById('logout')
-    if (logoutOverlay) {
-        elementsStore.overlayPath = '/'
-        logoutOverlay.style.display = 'flex'
-    }
+  const overlay = document.getElementById('LogoutOverlay')
+  if (overlay) {
+    overlay.style.display = 'flex'
+  }
 }
 
 const resetStoreData = (staff_role: string) => {
@@ -81,16 +80,16 @@ const changeRole = async () => {
         if (error instanceof AxiosError) {
             if (error.response) {
                 if (error.response.status === 400 && error.response.data.message) {
-                    elementsStore.ShowOverlay(error.response.data.message, 'red', null, null)
+                    elementsStore.ShowOverlay(error.response.data.message, 'red')
                 } else {
-                    elementsStore.ShowOverlay('Oops! something went wrong. Try again later', 'red', null, null)
+                    elementsStore.ShowOverlay('Oops! something went wrong. Try again later', 'red')
                 }
             }
             else if (!error.response && (error.code === 'ECONNABORTED' || !navigator.onLine)) {
-                elementsStore.ShowOverlay('A network error occurred! Please check you internet connection', 'red', null, null)
+                elementsStore.ShowOverlay('A network error occurred! Please check you internet connection', 'red')
             }
             else {
-                elementsStore.ShowOverlay('An unexpected error occurred!', 'red', null, null)
+                elementsStore.ShowOverlay('An unexpected error occurred!', 'red')
             }
         }
     }

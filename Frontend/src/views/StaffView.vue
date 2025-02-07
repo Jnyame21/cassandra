@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useUserAuthStore } from '@/stores/userAuthStore'
 import { useElementsStore } from '@/stores/elementsStore'
-import { ref, watch } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import { useHead } from '@vueuse/head';
 import axiosInstance from '@/utils/axiosInstance';
 import { AxiosError } from 'axios';
@@ -53,6 +53,12 @@ watch(() => userAuthStore.userData, (newValue) => {
   }
 }, { 'once': true, 'immediate': true })
 
+onMounted(()=>{
+  if (userAuthStore.resetPassword){
+    showOverlay('StaffWelcomeOverlay')
+  }
+})
+
 const resetUserPassword = async () => {
   elementsStore.ShowLoadingOverlay()
   const formData = new FormData()
@@ -60,7 +66,7 @@ const resetUserPassword = async () => {
 
   try {
     await axiosInstance.post('user/reset-password', formData)
-    userAuthStore.additionalLocalStorageData.password_reset = false
+    userAuthStore.resetPassword = false
     closeOverlay('StaffWelcomeOverlay')
     elementsStore.HideLoadingOverlay()
   }
@@ -69,16 +75,16 @@ const resetUserPassword = async () => {
     if (error instanceof AxiosError) {
       if (error.response) {
         if (error.response.status === 400 && error.response.data.message) {
-          elementsStore.ShowOverlay(error.response.data.message, 'red', null, null)
+          elementsStore.ShowOverlay(error.response.data.message, 'red')
         } else {
-          elementsStore.ShowOverlay('Oops! something went wrong. Try again later', 'red', null, null)
+          elementsStore.ShowOverlay('Oops! something went wrong. Try again later', 'red')
         }
       }
       else if (!error.response && (error.code === 'ECONNABORTED' || !navigator.onLine)) {
-        elementsStore.ShowOverlay('A network error occurred! Please check you internet connection', 'red', null, null)
+        elementsStore.ShowOverlay('A network error occurred! Please check you internet connection', 'red')
       }
       else {
-        elementsStore.ShowOverlay('An unexpected error occurred!', 'red', null, null)
+        elementsStore.ShowOverlay('An unexpected error occurred!', 'red')
       }
     }
   }
@@ -91,13 +97,20 @@ const closeOverlay = (element: string)=>{
   }
 }
 
+const showOverlay = (element: string)=>{
+  const overlay = document.getElementById(element)
+  if (overlay){
+    overlay.style.display = 'flex'
+  }
+}
+
 
 </script>
 
 <template>
 
   <!-- Welcome Overlay-->
-  <div id="StaffWelcomeOverlay" class="overlay" v-if="userAuthStore.userData?.['role'].toLowerCase() === 'staff' && userAuthStore.additionalLocalStorageData.password_reset">
+  <div id="StaffWelcomeOverlay" class="overlay" v-if="userAuthStore.userData">
     <div class="overlay-card">
       <div class="overlay-card-info-container">
         <p style="text-align: center" class="mb-5">
@@ -112,13 +125,13 @@ const closeOverlay = (element: string)=>{
           :type="repeatPasswordVisible ? 'text' : 'password'" clearable density="comfortable" v-model="repeatPassword" label="REPEAT PASSWORD" hint="Repeat the new password"  prepend-inner-icon="mdi-lock-outline"
         />
       </div>
-    </div>
-    <div class="overlay-card-action-btn-container">
-      <v-btn @click="resetUserPassword"
-        :disabled="!(password && repeatPassword && password === repeatPassword)" :ripple="false"
-        variant="flat" type="submit" color="black" size="small" append-icon="mdi-checkbox-marked-circle">
-        SUBMIT
-      </v-btn>
+      <div class="overlay-card-action-btn-container">
+        <v-btn @click="resetUserPassword"
+          :disabled="!(password && repeatPassword && password === repeatPassword)" :ripple="false"
+          variant="flat" type="submit" color="black" size="small" append-icon="mdi-checkbox-marked-circle">
+          SUBMIT
+        </v-btn>
+      </div>
     </div>
   </div>
 

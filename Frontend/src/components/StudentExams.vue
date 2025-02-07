@@ -24,8 +24,7 @@ const examsData = computed(()=>{
 </script>
 
 <template>
-<div class="content-wrapper" v-show="elementsStore.activePage === `StudentExams,${yearName},${termName}`"
-:class="{ 'is-active-page': elementsStore.activePage === `StudentExams,${yearName},${termName}`}">
+<div class="content-wrapper" v-show="elementsStore.activePage === `StudentExams,${yearName},${termName}`" :class="{ 'is-active-page': elementsStore.activePage === `StudentExams,${yearName},${termName}`}">
   <NoData v-if="examsData.length === 0" message="No exams data yet"/>
   <div v-if="examsData.length > 0" class="content-header">
     {{ yearName }} {{ termName }} EXAMS

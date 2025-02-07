@@ -25,11 +25,10 @@ const assessmentData = computed(()=>{
 <template>
   
   
-<div class="content-wrapper" v-show="elementsStore.activePage === `StudentAssessments,${yearName},${termName}`"
-:class="{ 'is-active-page': elementsStore.activePage === `StudentAssessments,${yearName},${termName}`}">
+<div class="content-wrapper" v-show="elementsStore.activePage === `StudentAssessments,${yearName},${termName}`" :class="{ 'is-active-page': elementsStore.activePage === `StudentAssessments,${yearName},${termName}`}">
   <NoData v-if="assessmentData.length === 0" :message="`No assessment record has been uploaded yet for the ${yearName} academic year ${termName}`"/>
   <div v-if="assessmentData.length > 0" class="content-header">
-    {{ yearName }} academic year {{ termName }} ASSESSMENTS
+    {{ yearName }} {{ termName }} ASSESSMENTS
   </div>
   <v-table v-if="assessmentData.length > 0" fixed-header class="table">
     <thead>

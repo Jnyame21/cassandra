@@ -8,6 +8,7 @@ const userAuthStore = useUserAuthStore()
 const elementsStore = useElementsStore()
 
 const onDesk = ref(false)
+
 const showMessage = ()=>{
   const overlay = document.getElementById('Notification')
   if (overlay){
@@ -16,9 +17,8 @@ const showMessage = ()=>{
 }
 
 const showOverlay = ()=>{
-  const overlay = document.getElementById('logout')
+  const overlay = document.getElementById('LogoutOverlay')
     if (overlay){
-      elementsStore.overlayPath = '/'
       overlay.style.display = 'flex'
     }
 }
@@ -26,7 +26,8 @@ const showOverlay = ()=>{
 window.addEventListener('resize', ()=>{
   if (window.innerWidth > 1000){
     onDesk.value = true;
-  }else{
+  }
+  else{
     onDesk.value = false;
   }
 });

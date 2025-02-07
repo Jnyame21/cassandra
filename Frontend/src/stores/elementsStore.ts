@@ -4,8 +4,6 @@ import { defineStore } from "pinia";
 interface states {
     overlayMessage: string;
     overlayMessageColor: any;
-    overlayPath: any;
-    logout: any;
     isLoading: boolean;
     drawer: boolean;
     navDrawer: boolean;
@@ -22,8 +20,6 @@ export const useElementsStore = defineStore('elementsStore', {
         return{
             overlayMessage: '',
             overlayMessageColor: null,
-            overlayPath: null,
-            logout: null,
             isLoading: true,
             drawer: false,
             navDrawer: false,
@@ -40,7 +36,8 @@ export const useElementsStore = defineStore('elementsStore', {
         getBaseUrl: ()=>{
             if (process.env.NODE_ENV=== 'production'){
                 return "https://cassandra-o5ft.onrender.com"
-            }else{
+            }
+            else{
                 return 'http://localhost:8000'
             }
         },
@@ -48,12 +45,10 @@ export const useElementsStore = defineStore('elementsStore', {
 
     actions: {
 
-        ShowOverlay(message: string, messageColor: any, path: any, logout: any){
-            const overlay = document.getElementById('session-alert')
+        ShowOverlay(message: string, messageColor: any){
+            const overlay = document.getElementById('AlertOverlay')
             if (overlay){
                 this.overlayMessage = message
-                this.overlayPath = path
-                this.logout = logout
                 this.overlayMessageColor = messageColor
                 overlay.style.display = 'flex'
             }

@@ -11,47 +11,46 @@ const elementsStore = useElementsStore()
 const levelSelected = ref('')
 
 const changePage = (page_name:string)=>{
-    elementsStore.activePage = page_name
+  elementsStore.activePage = page_name
 }
 
 const changeLevel = async () => {
-    const formData = new FormData()
-    if (levelSelected.value === userAuthStore.userData['current_level']['name']) {
-        return
-    }
-    formData.append('levelName', levelSelected.value)
-    elementsStore.ShowLoadingOverlay()
-    try {
-        await axiosInstance.post('student/change-level', formData)
-        await userAuthStore.getUserData()
-        await userAuthStore.getStudentData()
-        elementsStore.HideLoadingOverlay()
-    }
-    catch (error) {
-        elementsStore.HideLoadingOverlay()
-        if (error instanceof AxiosError) {
-            if (error.response) {
-                if (error.response.status === 400 && error.response.data.message) {
-                    elementsStore.ShowOverlay(error.response.data.message, 'red', null, null)
-                } else {
-                    elementsStore.ShowOverlay('Oops! something went wrong. Try again later', 'red', null, null)
-                }
+  const formData = new FormData()
+  if (levelSelected.value === userAuthStore.userData['current_level']['name']) {
+      return
+  }
+  formData.append('levelName', levelSelected.value)
+  elementsStore.ShowLoadingOverlay()
+  try {
+      await axiosInstance.post('student/change-level', formData)
+      await userAuthStore.getUserData()
+      await userAuthStore.getStudentData()
+      elementsStore.HideLoadingOverlay()
+  }
+  catch (error) {
+      elementsStore.HideLoadingOverlay()
+      if (error instanceof AxiosError) {
+          if (error.response) {
+            if (error.response.status === 400 && error.response.data.message) {
+                elementsStore.ShowOverlay(error.response.data.message, 'red')
+            } else {
+                elementsStore.ShowOverlay('Oops! something went wrong. Try again later', 'red')
             }
-            else if (!error.response && (error.code === 'ECONNABORTED' || !navigator.onLine)) {
-                elementsStore.ShowOverlay('A network error occurred! Please check you internet connection', 'red', null, null)
-            }
-            else {
-                elementsStore.ShowOverlay('An unexpected error occurred!', 'red', null, null)
-            }
-        }
-    }
+          }
+          else if (!error.response && (error.code === 'ECONNABORTED' || !navigator.onLine)) {
+            elementsStore.ShowOverlay('A network error occurred! Please check you internet connection', 'red')
+          }
+          else {
+            elementsStore.ShowOverlay('An unexpected error occurred!', 'red')
+          }
+      }
+  }
 }
 
 const showOverlay = ()=>{
-  const logoutOverlay = document.getElementById('logout')
-    if (logoutOverlay){
-        elementsStore.overlayPath = '/'
-        logoutOverlay.style.display = 'flex'
+  const overalay = document.getElementById('LogoutOverlay')
+    if (overalay){
+      overalay.style.display = 'flex'
     }
 }
 

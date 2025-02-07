@@ -1,69 +1,43 @@
 import {
   createRouter,
   createWebHistory,
+  useRouter,
   type NavigationGuardNext,
 } from 'vue-router'
 import StaffView from '@/views/StaffView.vue'
 import StudentView from '@/views/StudentView.vue'
 import LoginView from '@/views/LoginView.vue'
 import { useUserAuthStore } from '@/stores/userAuthStore'
+import { useElementsStore } from '@/stores/elementsStore'
 import { headRoles } from '@/utils/util'
 import SuperUserView from '@/views/SuperUserView.vue'
 
 const checkAuth = async () => {
-  let isAuthenticated = false
   const userAuthStore = useUserAuthStore()
+  const router = useRouter()
   if (!userAuthStore.isAuthenticated) {
-    if (userAuthStore.authTokens) {
-      localStorage.setItem(
-        'authTokens',
-        JSON.stringify(userAuthStore.authTokens),
-      )
-      if (!userAuthStore.userData) {
-        try {
-          await userAuthStore.getUserData()
-          userAuthStore.isAuthenticated = true
-          isAuthenticated = true
-        } catch {
-          userAuthStore.logoutUser()
-        }
-      } else {
-        userAuthStore.isAuthenticated = true
-        isAuthenticated = true
+    try {
+      await userAuthStore.UpdateToken()
+      userAuthStore.isAuthenticated = true
+      await userAuthStore.getUserData()
+    } 
+    catch (e:any) {
+      if (e.response.status === 401){
+        useElementsStore().$reset()
+        userAuthStore.$reset()
+        await router.push('/')
+        return;
       }
+      return Promise.reject(e)
     }
-    const authTokens = localStorage.getItem('authTokens')
-    if (authTokens) {
-      userAuthStore.authTokens = JSON.parse(authTokens)
-      if (!userAuthStore.userData) {
-        try {
-          await userAuthStore.getUserData()
-          userAuthStore.isAuthenticated = true
-          isAuthenticated = true
-        } catch {
-          userAuthStore.logoutUser()
-        }
-      } else {
-        userAuthStore.isAuthenticated = true
-        isAuthenticated = true
-      }
-    }
-  } else {
-    isAuthenticated = true
-  }
-  return isAuthenticated
+  } 
 }
 
 const checkSuperuser = async (to: any, from: any, next: NavigationGuardNext) => {
   const userAuthStore = useUserAuthStore()
-  const isAuthenticated = await checkAuth()
-  if (!isAuthenticated) {
-    userAuthStore.logoutUser()
-    if (to.path !== '/') {
-      return next('/')
-    }
-  } 
-  else if (!userAuthStore.superUserData.schools && userAuthStore.userData?.['role'].toLowerCase() === 'superuser') {
+  await checkAuth()
+  
+  if (!userAuthStore.superUserData.schools && userAuthStore.userData?.['role']?.toLowerCase() === 'superuser') {
     userAuthStore.getSuperUserData()
   } 
   else if (userAuthStore.userData?.['role'].toLowerCase() === 'student') {
@@ -73,45 +47,36 @@ const checkSuperuser = async (to: any, from: any, next: NavigationGuardNext) => 
     next('/student')
   } 
   else if (userAuthStore.userData?.['role']?.toLowerCase() === 'staff') {
-    if (!userAuthStore.teacherData.staff &&  ['teacher', 'hod'].includes(userAuthStore.userData['staff_role'].toLowerCase())) {
+    if (!userAuthStore.teacherData.staff && userAuthStore.userData?.['staff_role']?.toLowerCase() === 'teacher') {
       userAuthStore.getTeacherData()
     } 
-    else if (!userAuthStore.adminData.staff && userAuthStore.userData?.['staff_role'].toLowerCase() === 'administrator') {
+    else if (!userAuthStore.adminData.staff && userAuthStore.userData?.['staff_role']?.toLowerCase() === 'administrator') {
       userAuthStore.getAdminData()
     }
-    else if (!userAuthStore.headData.staff && headRoles.includes(userAuthStore.userData?.['staff_role'].toLowerCase())) {
+    else if (!userAuthStore.headData.staff && headRoles.includes(userAuthStore.userData?.['staff_role']?.toLowerCase())) {
       userAuthStore.getHeadData()
     }
     next('/staff')
   } 
-  else {
-    if (to.path !== '/') {
-      return next('/')
-    }
-  }
+  
   next()
 }
 
 const checkStudent = async (to: any, from: any, next: NavigationGuardNext) => {
   const userAuthStore = useUserAuthStore()
-  const isAuthenticated = await checkAuth()
-  if (!isAuthenticated) {
-    userAuthStore.logoutUser()
-    if (to.path !== '/') {
-      return next('/')
-    }
-  } 
-  else if (!userAuthStore.studentData.students && userAuthStore.userData?.['role'].toLowerCase() === 'student') {
+  await checkAuth()
+  
+  if (!userAuthStore.studentData.students && userAuthStore.userData?.['role']?.toLowerCase() === 'student') {
     userAuthStore.getStudentData()
   } 
   else if (userAuthStore.userData?.['role']?.toLowerCase() === 'staff') {
-    if (!userAuthStore.teacherData.staff && ['teacher', 'hod'].includes(userAuthStore.userData['staff_role'].toLowerCase())) {
+    if (!userAuthStore.teacherData.staff && userAuthStore.userData?.['staff_role']?.toLowerCase() === 'teacher') {
       userAuthStore.getTeacherData()
     } 
-    else if (!userAuthStore.adminData.staff && userAuthStore.userData?.['staff_role'].toLowerCase() === 'administrator') {
+    else if (!userAuthStore.adminData.staff && userAuthStore.userData?.['staff_role']?.toLowerCase() === 'administrator') {
       userAuthStore.getAdminData()
     }
-    else if (!userAuthStore.headData.staff && headRoles.includes(userAuthStore.userData?.['staff_role'].toLowerCase())) {
+    else if (!userAuthStore.headData.staff && headRoles.includes(userAuthStore.userData?.['staff_role']?.toLowerCase())) {
       userAuthStore.getHeadData()
     }
     next('/staff')
@@ -122,30 +87,21 @@ const checkStudent = async (to: any, from: any, next: NavigationGuardNext) => {
     }
     return next('/superuser')
   } 
-  else {
-    if (to.path !== '/') {
-      return next('/')
-    }
-  }
+  
   next()
 }
 
 const checkStaff = async (to: any, from: any, next: NavigationGuardNext) => {
   const userAuthStore = useUserAuthStore()
-  const isAuthenticated = await checkAuth()
-  if (!isAuthenticated) {
-    userAuthStore.logoutUser()
-    if (to.path !== '/') {
-      return next('/')
-    }
-  }
-  if (!userAuthStore.teacherData.staff && ['teacher', 'hod'].includes(userAuthStore.userData['staff_role'].toLowerCase())) {
+  await checkAuth()
+  
+  if (!userAuthStore.teacherData.staff && userAuthStore.userData?.['staff_role']?.toLowerCase() === 'teacher') {
     userAuthStore.getTeacherData()
   } 
-  else if (!userAuthStore.adminData.staff && userAuthStore.userData?.['staff_role'].toLowerCase() === 'administrator') {
+  else if (!userAuthStore.adminData.staff && userAuthStore.userData?.['staff_role']?.toLowerCase() === 'administrator') {
     userAuthStore.getAdminData()
   } 
-  else if (!userAuthStore.headData.staff && headRoles.includes(userAuthStore.userData?.['staff_role'].toLowerCase())) {
+  else if (!userAuthStore.headData.staff && headRoles.includes(userAuthStore.userData?.['staff_role']?.toLowerCase())) {
     userAuthStore.getHeadData()
   }
   else if (userAuthStore.userData?.['role'] === 'student') {
@@ -160,24 +116,20 @@ const checkStaff = async (to: any, from: any, next: NavigationGuardNext) => {
     }
     return next('/superuser')
   } 
-  else {
-    if (to.path !== '/') {
-      return next('/')
-    }
-  }
+  
   next()
 }
 
 const checkLogin = async (to: any, from: any, next: NavigationGuardNext) => {
   const userAuthStore = useUserAuthStore()
-  const isAuthenticated = await checkAuth()
-  if (isAuthenticated && userAuthStore.userData?.['role'].toLowerCase() === 'staff') {
+  const isAuthenticated = userAuthStore.isAuthenticated
+  if (isAuthenticated && userAuthStore.userData?.['role']?.toLowerCase() === 'staff') {
     return next('/staff')
   } 
-  else if (isAuthenticated && userAuthStore.userData?.['role'].toLowerCase() === 'student') {
+  else if (isAuthenticated && userAuthStore.userData?.['role']?.toLowerCase() === 'student') {
     return next('/student')
   }
-  else if (isAuthenticated && userAuthStore.userData?.['role'].toLowerCase() === 'superuser') {
+  else if (isAuthenticated && userAuthStore.userData?.['role']?.toLowerCase() === 'superuser') {
     return next('/superuser')
   } 
   next()

@@ -166,8 +166,8 @@ class SubjectsSerializer(serializers.ModelSerializer):
     def get_level(self, obj):
         return obj.level.name if obj.level else None
     
-    def get_school(self, obj):
-        return [x.name for x in obj.school.all()]
+    def get_schools(self, obj):
+        return [x.name for x in obj.schools.all()]
 
 
 # Program Serializer
@@ -830,12 +830,15 @@ class StudentExamsSerializer(serializers.ModelSerializer):
 
     
 class ExamSerializerOne(serializers.ModelSerializer):
-    subject = SubjectsSerializer()
+    subject = serializers.SerializerMethodField()
 
     class Meta:
         model = Exam
         fields = ('subject', 'score', 'total_score')
-        
+    
+    def get_subject(self, obj):
+        return obj.subject.name
+
 
 # Assessment Serializers
 class AssessmentSerializer(serializers.ModelSerializer):

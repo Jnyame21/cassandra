@@ -1,17 +1,17 @@
 import { defineStore } from 'pinia'
-import { jwtDecode } from 'jwt-decode'
+// import { jwtDecode } from 'jwt-decode'
 import { defaultAxiosInstance } from '@/utils/axiosInstance'
 import axiosInstance from '@/utils/axiosInstance'
 import { useElementsStore } from '@/stores/elementsStore'
 import { AxiosError } from 'axios'
+import router from '@/router'
 
 export interface states {
   authTokens: any
   userData: any
-  additionalLocalStorageData: {
-    last_login: boolean;
-    password_reset: boolean;
-  }
+  accessToken: string;
+  lastLogin: string;
+  resetPassword: boolean;
   message: string
   isAuthenticated: boolean
   activeTerm: number
@@ -537,11 +537,10 @@ export const useUserAuthStore = defineStore('userAuthStore', {
   state: (): states => {
     return {
       authTokens: null,
+      accessToken: '',
       userData: null,
-      additionalLocalStorageData: {
-        last_login: false,
-        password_reset: false,
-      },
+      lastLogin: '',
+      resetPassword: false,
       message: '',
       isAuthenticated: false,
       activeTerm: 0,
@@ -636,12 +635,25 @@ export const useUserAuthStore = defineStore('userAuthStore', {
 
   actions: {
 
-    logoutUser() {
-      if (localStorage.getItem('authTokens')) {
-        localStorage.removeItem('authTokens')
+    async logoutUser() {
+      const elementsStore = useElementsStore()
+      try {
+        elementsStore.ShowLoadingOverlay()
+        await axiosInstance.post('logout')
+        useElementsStore().$reset()
+        this.$reset()
+        this.message = 'You have been logged out!'
+        setTimeout(()=>{
+          this.message = ''
+        }, 10000)
+        await router.push('/')
+        elementsStore.HideLoadingOverlay()
+        return;
       }
-      useElementsStore().$reset()
-      this.$reset()
+      catch (e) {
+        elementsStore.HideLoadingOverlay()
+        Promise.reject(e)
+      }
     },
 
     async getStudentData() {
@@ -757,6 +769,8 @@ export const useUserAuthStore = defineStore('userAuthStore', {
             this.activeAcademicYear = userInfo['academic_year']['name']
             this.activeTerm = userInfo['current_term']
             this.activeAcademicYearID = userInfo['academic_year']['id']
+            this.resetPassword = userInfo['reset_password']
+            this.lastLogin = userInfo['last_login']
           }
         })
         .catch(e => {
@@ -770,14 +784,8 @@ export const useUserAuthStore = defineStore('userAuthStore', {
       formData.append('password', password)
       try {
         const response = await defaultAxiosInstance.post('login', formData)
-        this.authTokens = response.data
-        localStorage.setItem('authTokens', JSON.stringify(response.data))
+        this.accessToken = response.data['access']
         await this.getUserData()
-        const userInfo: any = jwtDecode(response.data['access'])
-        this.additionalLocalStorageData.password_reset = userInfo['reset_password']
-        if (userInfo['last_login']) {
-          this.additionalLocalStorageData.last_login = true
-        }
         this.isAuthenticated = true
         this.message = 'Login successful'
       } 
@@ -807,11 +815,9 @@ export const useUserAuthStore = defineStore('userAuthStore', {
     },
 
     async UpdateToken() {
-      await defaultAxiosInstance.post('api/token/refresh/', { refresh: this.authTokens['refresh'] })
-        .then((response: { data: { access: string; refresh: string } }) => {
-          this.authTokens = response.data
-          // Tokens storage
-          localStorage.setItem('authTokens', JSON.stringify(response.data))
+      await defaultAxiosInstance.post('api/token/refresh/')
+        .then((response: { data: { access: string } }) => {
+          this.accessToken = response.data.access
         })
         .catch((error: AxiosError) => {
           return Promise.reject(error)

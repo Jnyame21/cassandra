@@ -94,17 +94,17 @@ const generateFile = async () => {
     if (error instanceof AxiosError) {
       if (error.response) {
         if (error.response.status === 400 && error.response.data.message) {
-          elementsStore.ShowOverlay(error.response.data.message, 'red', null, null)
+          elementsStore.ShowOverlay(error.response.data.message, 'red')
         }
         else {
-          elementsStore.ShowOverlay('Oops! something went wrong. Try again later', 'red', null, null)
+          elementsStore.ShowOverlay('Oops! something went wrong. Try again later', 'red')
         }
       }
       else if (!error.response && (error.code === 'ECONNABORTED' || !navigator.onLine)) {
-        elementsStore.ShowOverlay('A network error occurred! Please check you internet connection', 'red', null, null)
+        elementsStore.ShowOverlay('A network error occurred! Please check you internet connection', 'red')
       }
       else {
-        elementsStore.ShowOverlay('An unexpected error occurred!', 'red', null, null)
+        elementsStore.ShowOverlay('An unexpected error occurred!', 'red')
       }
     }
   }
@@ -164,7 +164,7 @@ const upload = async () => {
       closeOverlay(`teacherStudentsAssessmentUploadOverlay,${className},${subjectName},${assessmentTitle}`)
     }
     else{
-      elementsStore.ShowOverlay('Assessment data uploaded successfully!', 'green', null, null)
+      elementsStore.ShowOverlay('Assessment data uploaded successfully!', 'green')
     }
     elementsStore.HideLoadingOverlay()
   }
@@ -173,21 +173,21 @@ const upload = async () => {
     if (error instanceof AxiosError) {
       if (error.response) {
         if (error.response.status === 400 && error.response.data.message) {
-          elementsStore.ShowOverlay(error.response.data.message, 'red', null, null)
+          elementsStore.ShowOverlay(error.response.data.message, 'red')
         }
         else {
-          elementsStore.ShowOverlay('Oops! something went wrong. Try again later', 'red', null, null)
+          elementsStore.ShowOverlay('Oops! something went wrong. Try again later', 'red')
         }
       }
       else if (!error.response && (error.code === 'ECONNABORTED' || !navigator.onLine)) {
-        elementsStore.ShowOverlay('A network error occurred! Please check you internet connection', 'red', null, null)
+        elementsStore.ShowOverlay('A network error occurred! Please check you internet connection', 'red')
       }
       else if (error.code === 'ERR_NETWORK' && navigator.onLine) {
-        elementsStore.ShowOverlay('The excel file was modified. Please re-select the file before uploading.', 'red', null, null)
+        elementsStore.ShowOverlay('The excel file was modified. Please re-select the file before uploading.', 'red')
         fileToUpload.value = null
       }
       else {
-        elementsStore.ShowOverlay('An unexpected error occurred!', 'red', null, null)
+        elementsStore.ShowOverlay('An unexpected error occurred!', 'red')
       }
     }
   }
@@ -329,16 +329,16 @@ const editAssessment = async () => {
     if (error instanceof AxiosError) {
       if (error.response) {
         if (error.response.status === 400 && error.response.data.message) {
-          elementsStore.ShowOverlay(error.response.data.message, 'red', null, null)
+          elementsStore.ShowOverlay(error.response.data.message, 'red')
         } else {
-          elementsStore.ShowOverlay('Oops! something went wrong. Try again later', 'red', null, null)
+          elementsStore.ShowOverlay('Oops! something went wrong. Try again later', 'red')
         }
       }
       else if (!error.response && (error.code === 'ECONNABORTED' || !navigator.onLine)) {
-        elementsStore.ShowOverlay('A network error occurred! Please check you internet connection', 'red', null, null)
+        elementsStore.ShowOverlay('A network error occurred! Please check you internet connection', 'red')
       }
       else {
-        elementsStore.ShowOverlay('An unexpected error occurred!', 'red', null, null)
+        elementsStore.ShowOverlay('An unexpected error occurred!', 'red')
       }
     }
   }
@@ -346,7 +346,7 @@ const editAssessment = async () => {
 
 const deleteAssessment = async () => {
   if (Object.keys(userAuthStore.teacherData.studentsResults[className][subjectName].student_results || {}).length > 0) {
-    elementsStore.ShowOverlay(`Results for ${subjectName} in this class have already been generated. Please delete the existing results data and try again.`, 'red', null, null)
+    elementsStore.ShowOverlay(`Results for ${subjectName} in this class have already been generated. Please delete the existing results data and try again.`, 'red')
     return;
   }
   elementsStore.ShowLoadingOverlay()
@@ -369,16 +369,16 @@ const deleteAssessment = async () => {
     if (error instanceof AxiosError) {
       if (error.response) {
         if (error.response.status === 400 && error.response.data.message) {
-          elementsStore.ShowOverlay(error.response.data.message, 'red', null, null)
+          elementsStore.ShowOverlay(error.response.data.message, 'red')
         } else {
-          elementsStore.ShowOverlay('Oops! something went wrong. Try again later', 'red', null, null)
+          elementsStore.ShowOverlay('Oops! something went wrong. Try again later', 'red')
         }
       }
       else if (!error.response && (error.code === 'ECONNABORTED' || !navigator.onLine)) {
-        elementsStore.ShowOverlay('A network error occurred! Please check you internet connection', 'red', null, null)
+        elementsStore.ShowOverlay('A network error occurred! Please check you internet connection', 'red')
       }
       else {
-        elementsStore.ShowOverlay('An unexpected error occurred!', 'red', null, null)
+        elementsStore.ShowOverlay('An unexpected error occurred!', 'red')
       }
     }
   }

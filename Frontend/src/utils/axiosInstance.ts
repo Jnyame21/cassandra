@@ -2,19 +2,18 @@ import axios from "axios";
 import { jwtDecode } from "jwt-decode";
 import { useUserAuthStore } from "../stores/userAuthStore";
 
-const baseURL =
-  process.env.NODE_ENV === 'production'
-    ? "https://cassandra-o5ft.onrender.com" // Production base URL
-    : "http://localhost:8000"; // Development base URL
+const baseURL = process.env.NODE_ENV === 'production'
+  ? "https://cassandra-o5ft.onrender.com" // Production base URL
+  : "http://localhost:8000"; // Development base URL
 
 export const defaultAxiosInstance = axios.create({
   baseURL,
-
+  withCredentials: true,
 });
 
 export const axiosInstance = axios.create({
   baseURL,
-
+  withCredentials: true,
 });
 
 
@@ -22,28 +21,26 @@ export const axiosInstance = axios.create({
 axiosInstance.interceptors.request.use(
   async (config) => {
     const userAuthStore = useUserAuthStore();
-    const oldAuthTokens = userAuthStore.authTokens;
+    const accessToken = userAuthStore.accessToken;
 
-    if (oldAuthTokens && oldAuthTokens.access) {
-      const currentTimestamp = Date.now() + 30000;
-      let tokenExpTimestamp: any = jwtDecode(oldAuthTokens.access);
+    if (accessToken) {
+      const bufferTime = 120000
+      const currentTimestamp = Date.now()
+      let tokenExpTimestamp = jwtDecode(accessToken).exp || 0
+      tokenExpTimestamp = tokenExpTimestamp * 1000;
 
-      if (tokenExpTimestamp && tokenExpTimestamp['exp']) {
-        tokenExpTimestamp = tokenExpTimestamp.exp * 1000;
-      }
-
-      if (currentTimestamp >= tokenExpTimestamp) {
-        await userAuthStore.UpdateToken()
-        .then(Response =>{
-          const newAuthTokens:any = userAuthStore.authTokens;
-          config.headers.Authorization = `Bearer ${newAuthTokens.access}`;
-        })
-        .catch(e =>{
-          return Promise.reject(e);
-        })
+      if ((currentTimestamp + bufferTime) >= tokenExpTimestamp) {
         
-      } else {
-        config.headers.Authorization = `Bearer ${oldAuthTokens['access']}`;
+        try {
+          await userAuthStore.UpdateToken()
+          config.headers.Authorization = `Bearer ${userAuthStore.accessToken}`;
+        }
+        catch (e) {
+          return Promise.reject(e);
+        }
+      } 
+      else {
+        config.headers.Authorization = `Bearer ${accessToken}`;
       }
     }
 
@@ -53,6 +50,6 @@ axiosInstance.interceptors.request.use(
     return Promise.reject(error);
   }
 );
- 
+
 
 export default axiosInstance;

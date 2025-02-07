@@ -4,12 +4,14 @@ from django.contrib.auth.models import User
 from django.http import HttpResponse
 from django.db import transaction
 from django.core.mail import send_mail
+from django.contrib.auth.hashers import check_password
 
 # Django Restframework
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
-from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.permissions import IsAuthenticated
 
 # Other
@@ -34,13 +36,69 @@ class UserAuthSerializer(TokenObtainPairSerializer):
     @classmethod
     def get_token(cls, user):
         token = super().get_token(user)
-
-        # Add custom claims
+        
         return token
 
 
 class UserAuthView(TokenObtainPairView):
     serializer_class = UserAuthSerializer
+    
+    def post(self, request, *args, **kwargs):
+        response = super().post(request, *args, **kwargs)
+        refresh_token = response.data.get('refresh')
+        if refresh_token:
+            response.set_cookie(
+                key="refresh_token",
+                value=refresh_token,
+                httponly=True,
+                expires = settings.SIMPLE_JWT['REFRESH_TOKEN_LIFETIME'],
+                secure=settings.DEBUG is False,
+                samesite="Lax",
+                path="/",
+            )
+            del response.data['refresh']
+
+        return response
+
+
+# Refresh Token
+class CookieTokenRefreshView(TokenRefreshView):
+    def post(self, request, *args, **kwargs):
+        refresh_token = request.COOKIES.get("refresh_token")
+
+        if refresh_token is None:
+            raise AuthenticationFailed("You have been logged out")
+
+        request.data["refresh"] = refresh_token
+        response = super().post(request, *args, **kwargs)
+    
+        if response.status_code == 200:
+            new_refresh_token = response.data['refresh']
+            response.set_cookie(
+                key="refresh_token",
+                value=new_refresh_token,
+                httponly=True,
+                secure=settings.DEBUG is False,
+                samesite="Lax",
+                path="/",
+                expires = settings.SIMPLE_JWT['REFRESH_TOKEN_LIFETIME'],
+            )
+            del response.data['refresh']
+
+        return response
+
+
+# Logout
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def logout_user(request):
+    refresh_token = request.COOKIES.get('refresh_token')
+    if not refresh_token:
+        return Response({'message': 'Missing refresh token'}, status=401)
+    
+    response = Response(status=200)
+    response.delete_cookie("refresh_token", path="/")
+    return response
 
 
 # User Data
@@ -53,7 +111,7 @@ def get_user_data(request):
         'first_name': user.first_name,
         'last_name': user.last_name
     }
-    user_data['reset_password'] = True if user.password == user.username else False
+    user_data['reset_password'] = check_password(user.username, user.password) is True
     
     try:
         staff = Staff.objects.select_related('current_role__level', 'school').prefetch_related('roles', 'departments', 'subjects').get(user=user)

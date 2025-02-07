@@ -145,7 +145,7 @@ const createAssessmentAndExam = async () => {
       assessmentDate.value = ''
       assessmentTotalScore.value = null
       elementsStore.HideLoadingOverlay()
-      elementsStore.ShowOverlay(response.data.message, 'green', null, null)
+      elementsStore.ShowOverlay(response.data.message, 'green')
     }
     else if (typeSelected.value === 'exams') {
       const response = await axiosInstance.post('teacher/exams', formData)
@@ -162,7 +162,7 @@ const createAssessmentAndExam = async () => {
       elementsStore.HideLoadingOverlay()
       examsTotalScore.value = null
       subjectSelected.value = ''
-      elementsStore.ShowOverlay(response.data.message, 'green', null, null)
+      elementsStore.ShowOverlay(response.data.message, 'green')
     }
   }
   catch (error) {
@@ -170,16 +170,16 @@ const createAssessmentAndExam = async () => {
     if (error instanceof AxiosError) {
       if (error.response) {
         if (error.response.status === 400 && error.response.data.message) {
-          elementsStore.ShowOverlay(error.response.data.message, 'red', null, null)
+          elementsStore.ShowOverlay(error.response.data.message, 'red')
         } else {
-          elementsStore.ShowOverlay('Oops! something went wrong. Try again later', 'red', null, null)
+          elementsStore.ShowOverlay('Oops! something went wrong. Try again later', 'red')
         }
       }
       else if (!error.response && (error.code === 'ECONNABORTED' || !navigator.onLine)) {
-        elementsStore.ShowOverlay('A network error occurred! Please check you internet connection', 'red', null, null)
+        elementsStore.ShowOverlay('A network error occurred! Please check you internet connection', 'red')
       }
       else {
-        elementsStore.ShowOverlay('An unexpected error occurred!', 'red', null, null)
+        elementsStore.ShowOverlay('An unexpected error occurred!', 'red')
       }
     }
   }
@@ -287,23 +287,23 @@ const generateResults = async () => {
     subjectSelected.value = ''
     examsPercentage.value = 0
     elementsStore.HideLoadingOverlay()
-    elementsStore.ShowOverlay('Results generated successfully', 'green', null, null)
+    elementsStore.ShowOverlay('Results generated successfully', 'green')
   }
   catch (error) {
     elementsStore.HideLoadingOverlay()
     if (error instanceof AxiosError) {
       if (error.response) {
         if (error.response.status === 400 && error.response.data.message) {
-          elementsStore.ShowOverlay(error.response.data.message, 'red', null, null)
+          elementsStore.ShowOverlay(error.response.data.message, 'red')
         } else {
-          elementsStore.ShowOverlay('Oops! something went wrong. Try again later', 'red', null, null)
+          elementsStore.ShowOverlay('Oops! something went wrong. Try again later', 'red')
         }
       }
       else if (!error.response && (error.code === 'ECONNABORTED' || !navigator.onLine)) {
-        elementsStore.ShowOverlay('A network error occurred! Please check you internet connection', 'red', null, null)
+        elementsStore.ShowOverlay('A network error occurred! Please check you internet connection', 'red')
       }
       else {
-        elementsStore.ShowOverlay('An unexpected error occurred!', 'red', null, null)
+        elementsStore.ShowOverlay('An unexpected error occurred!', 'red')
       }
     }
   }

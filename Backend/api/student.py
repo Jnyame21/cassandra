@@ -36,21 +36,21 @@ def get_student_data(request):
         class_name = student_class.name
     
     attendance_year_term_mapping = defaultdict(lambda: defaultdict(list))
-    attendance_objs = StudentAttendance.objects.select_related('academic_year').prefetch_related('students_absent').filter(Q(students_present=student) | Q(students_absent=student), level=current_level).order_by('-date')
+    attendance_objs = StudentAttendance.objects.select_related('academic_year').prefetch_related('students_absent').filter(Q(students_present=student) | Q(students_absent=student), level=current_level).order_by('-date').distinct()
     for _attedance_ in attendance_objs:
         year_name = _attedance_.academic_year.name
         term_name = f"{_attedance_.academic_year.period_division} {_attedance_.academic_term}"
         attendance_year_term_mapping[year_name][term_name].append(_attedance_)
     
     assessments_year_term_mapping = defaultdict(lambda: defaultdict(list))
-    assessment_objs = Assessment.objects.select_related('academic_year').prefetch_related('subjects').filter(level=current_level, student=student)
+    assessment_objs = Assessment.objects.select_related('academic_year', 'subject').filter(level=current_level, student=student)
     for _assessment_ in assessment_objs:
         year_name = _assessment_.academic_year.name
         term_name = f"{_assessment_.academic_year.period_division} {_assessment_.academic_term}"
         assessments_year_term_mapping[year_name][term_name].append(_assessment_)
     
     exams_year_term_mapping = defaultdict(lambda: defaultdict(list))
-    exams_objs = Exam.objects.select_related('academic_year').prefetch_related('subjects').filter(level=current_level, student=student)
+    exams_objs = Exam.objects.select_related('academic_year', 'subject').filter(level=current_level, student=student)
     for _exam_ in exams_objs:
         year_name = _exam_.academic_year.name
         term_name = f"{_exam_.academic_year.period_division} {_exam_.academic_term}"
@@ -64,7 +64,7 @@ def get_student_data(request):
         released_results_year_term_mapping[year_name][term_name] = _released_results_
     
     results_year_term_mapping = defaultdict(lambda: defaultdict(list))
-    results_objs = StudentResult.objects.select_related('academic_year').prefetch_related('subjects').filter(level=current_level, student=student)
+    results_objs = StudentResult.objects.select_related('academic_year', 'subject').filter(level=current_level, student=student)
     for _results_ in results_objs:
         year_name = _results_.academic_year.name
         term_name = f"{_results_.academic_year.period_division} {_results_.academic_term}"
@@ -80,7 +80,7 @@ def get_student_data(request):
         assessments_term_data = {}
         results_term_data = {}
         exams_term_data = {}
-        for __term__ in range(no_divisions+1):
+        for __term__ in range(no_divisions):
             _term = __term__+1
             term_name = f"{period_division} {_term}"
             
@@ -109,10 +109,10 @@ def get_student_data(request):
             else:
                 results_term_data[term_name] = []
                 
-        year_data[year_name]['attendance'] = attendance_term_data
-        year_data[year_name]['assessment'] = assessments_term_data
-        year_data[year_name]['exam'] = exams_term_data
-        year_data[year_name]['result'] = results_term_data
+        year_data['attendance'][year_name] = attendance_term_data
+        year_data['assessments'][year_name] = assessments_term_data
+        year_data['exams'][year_name] = exams_term_data
+        year_data['results'][year_name] = results_term_data
     
     student_subjects = []
     if student.st_class:
@@ -141,8 +141,8 @@ def get_student_data(request):
         'year_data': year_data,
         'class_name': class_name,
         'students': StudentSerializerFour(students, many=True).data, 
-        'head_teacher': StaffSerializerFour(head_teacher).data if head_teacher else ''
-    })
+        'head_teacher': StaffSerializerFour(head_teacher).data if head_teacher else '',
+    }, status=200)
 
 
 @api_view(['POST'])
