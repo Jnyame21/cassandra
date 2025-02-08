@@ -188,6 +188,8 @@ const getStudentFile = async () => {
 const addStudent = async () => {
   const formData = new FormData()
   formData.append('studentsClassName', className);
+  formData.append('year', userAuthStore.activeAcademicYearID.toString());
+  formData.append('term', userAuthStore.activeTerm.toString());
   if (typeSelected.value === 'file') {
     formData.append('type', 'createWithFile')
     formData.append('file', studentsExcelFile.value);

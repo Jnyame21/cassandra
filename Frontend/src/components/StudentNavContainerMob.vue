@@ -17,41 +17,42 @@ const changePage = (page_name:string)=>{
 const changeLevel = async () => {
   const formData = new FormData()
   if (levelSelected.value === userAuthStore.userData['current_level']['name']) {
-      return
+    return
   }
   formData.append('levelName', levelSelected.value)
   elementsStore.ShowLoadingOverlay()
   try {
-      await axiosInstance.post('student/change-level', formData)
-      await userAuthStore.getUserData()
-      await userAuthStore.getStudentData()
-      elementsStore.HideLoadingOverlay()
+    await axiosInstance.post('student/change-level', formData)
+    await userAuthStore.getUserData()
+    await userAuthStore.getStudentData()
+    elementsStore.HideLoadingOverlay()
   }
   catch (error) {
-      elementsStore.HideLoadingOverlay()
-      if (error instanceof AxiosError) {
-          if (error.response) {
-            if (error.response.status === 400 && error.response.data.message) {
-                elementsStore.ShowOverlay(error.response.data.message, 'red')
-            } else {
-                elementsStore.ShowOverlay('Oops! something went wrong. Try again later', 'red')
-            }
-          }
-          else if (!error.response && (error.code === 'ECONNABORTED' || !navigator.onLine)) {
-            elementsStore.ShowOverlay('A network error occurred! Please check you internet connection', 'red')
-          }
-          else {
-            elementsStore.ShowOverlay('An unexpected error occurred!', 'red')
-          }
+    elementsStore.HideLoadingOverlay()
+    if (error instanceof AxiosError) {
+      if (error.response) {
+        if (error.response.status === 400 && error.response.data.message) {
+          elementsStore.ShowOverlay(error.response.data.message, 'red')
+        } 
+        else {
+          elementsStore.ShowOverlay('Oops! something went wrong. Try again later', 'red')
+        }
       }
+      else if (!error.response && (error.code === 'ECONNABORTED' || !navigator.onLine)) {
+        elementsStore.ShowOverlay('A network error occurred! Please check you internet connection', 'red')
+      }
+      else {
+        elementsStore.ShowOverlay('An unexpected error occurred!', 'red')
+      }
+    }
   }
 }
 
 const showOverlay = ()=>{
   const overalay = document.getElementById('LogoutOverlay')
-    if (overalay){
-      overalay.style.display = 'flex'
-    }
+  if (overalay){
+    overalay.style.display = 'flex'
+  }
 }
 
 
@@ -64,9 +65,9 @@ const showOverlay = ()=>{
 
             <v-list-item>
                 <div class="flex-all">
-                    <v-select class="level-select" :items="userAuthStore.userData['levels']"
-                        label="CHANGE LEVEL" v-model="levelSelected" item-title="title" density="compact"
-                        item-value="value" variant="solo-filled" clearable />
+                    <v-select class="level-select" :items="userAuthStore.userData['levels']" label="CHANGE LEVEL" v-model="levelSelected"
+                      item-title="title" density="compact" item-value="value" variant="solo-filled" clearable 
+                    />
                     <v-btn @click="changeLevel()" :disabled="!(levelSelected)" :ripple="false" variant="flat" type="submit" color="white" size="x-small" icon="mdi-swap-horizontal" 
                     />
                 </div>
@@ -81,13 +82,13 @@ const showOverlay = ()=>{
                 </v-list-item-subtitle>
             </v-list-item>
 
-            <v-list-item class="nav-item nav-link" @click="changePage('StudentClassStudents')" prepend-icon="mdi-account-group-outline">
+            <v-list-item class="nav-item nav-link" @click="changePage('StudentClassStudents')" prepend-icon="mdi-google-classroom">
                 MY CLASS
             </v-list-item>
 
             <v-list-group>
                 <template v-slot:activator="{ props }">
-                    <v-list-item v-bind="props" class="nav-item" prepend-icon="mdi-book-open-outline">
+                    <v-list-item v-bind="props" class="nav-item" prepend-icon="mdi-calendar-check-outline">
                         ATTENDANCE
                     </v-list-item>
                 </template>
@@ -105,7 +106,7 @@ const showOverlay = ()=>{
 
             <v-list-group>
                 <template v-slot:activator="{ props }">
-                    <v-list-item v-bind="props" class="nav-item" prepend-icon="mdi-book-open-outline">
+                    <v-list-item v-bind="props" class="nav-item" prepend-icon="mdi-clipboard-text-outline">
                         ASSESSMENTS
                     </v-list-item>
                 </template>
@@ -123,7 +124,7 @@ const showOverlay = ()=>{
 
             <v-list-group>
                 <template v-slot:activator="{ props }">
-                    <v-list-item v-bind="props" class="nav-item" prepend-icon="mdi-book-open-outline">
+                    <v-list-item v-bind="props" class="nav-item" prepend-icon="mdi-file-document-outline">
                         EXAMS
                     </v-list-item>
                 </template>
@@ -141,7 +142,7 @@ const showOverlay = ()=>{
 
             <v-list-group>
                 <template v-slot:activator="{ props }">
-                    <v-list-item v-bind="props" class="nav-item" prepend-icon="mdi-book-open-outline">
+                    <v-list-item v-bind="props" class="nav-item" prepend-icon="mdi-chart-line">
                         RESULTS
                     </v-list-item>
                 </template>
@@ -159,11 +160,9 @@ const showOverlay = ()=>{
 
             <!-- <v-list-item v-if="userAuthStore.userData['level']['name'] === 'SHS' " class="nav-item nav-link" @click="changePage('StudentTranscript')" prepend-icon="mdi-book-outline">
                 TRANSCRIPT
-            </v-list-item>
-            <v-list-item v-if="userAuthStore.userData['level']['name'] === 'JHS' " class="nav-item nav-link" @click="changePage('StudentTranscript')" prepend-icon="mdi-book-outline">
-                TERMINAL REPORT
             </v-list-item> -->
-            <v-list-item @click="changePage('Help')" class="nav-item nav-link" prepend-icon="mdi-help">
+
+            <v-list-item @click="changePage('Help')" class="nav-item nav-link" prepend-icon="mdi-headset">
                 HELP
             </v-list-item>
 
@@ -178,7 +177,7 @@ const showOverlay = ()=>{
 <style scoped>
 
 .level-select {
-    height: 40px !important;
+  height: 40px !important;
 }
 
 </style>

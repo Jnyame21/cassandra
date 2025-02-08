@@ -117,13 +117,6 @@ document.addEventListener('click', (event: MouseEvent)=>{
           </v-list-item-subtitle>
         </v-list-item>
 
-        <v-list-item class="drawer-item" v-if="['teacher', 'hod'].includes(userAuthStore.userData['staff_role'].toLowerCase())" prepend-icon="mdi-book-open-outline">
-          <v-list-item-title class="drawer-title">SUBJECT(S)</v-list-item-title>
-          <v-list-item-subtitle class="drawer-subtitle" v-for="(subject, i) in userAuthStore.userData['subjects']" :key="i">
-            {{ subject.split('|')[0] }} ({{ subject.split('|')[1] }})
-          </v-list-item-subtitle>
-        </v-list-item>
-
         <v-card-title class="drawer-head">ACADEMIC CALENDAR</v-card-title>
         <v-list-item class="drawer-item" prepend-icon="mdi-calendar-outline">
           <v-list-item-title class="drawer-title">

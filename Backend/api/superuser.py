@@ -9,7 +9,7 @@ from api.models import *
 from api.serializer import (
     SchoolSerializer, SuperuserEducationalLevelSerializer, SuperuserProgramSerializer, SuperuserSubjectsSerializer, SuperuserDepartmentSerializer, 
     SuperuserGradingSystemSerializer, SuperuserGradingSystemSerializer, SuperuserClasseSerializer, SuperuserGradingSystemRangeSerializer,
-    AcademicYearSerializer, StaffRoleSerializer, StaffSerializerOne
+    AcademicYearSerializer, StaffRoleSerializer, SuperuserStaffSerializer
 )
 
 import imghdr
@@ -46,7 +46,7 @@ def get_superuser_data(request):
         classes = Classe.objects.select_related('level', 'program', 'head_teacher__user', 'linked_class').prefetch_related('subjects').filter(school=_school)
         class_data[_school.identifier] = SuperuserClasseSerializer(classes, many=True).data
         staff = Staff.objects.select_related('user').prefetch_related('subjects', 'roles', 'departments').filter(school=_school)
-        staff_data[_school.identifier] = StaffSerializerOne(staff, many=True).data
+        staff_data[_school.identifier] = SuperuserStaffSerializer(staff, many=True).data
     
     return Response({
         'schools': schools_data,
@@ -477,7 +477,7 @@ def superuser_classes(request):
         except Exception:
             return Response(status=400)
         
-        staff_data = StaffSerializerOne(head_teacher).data
+        staff_data = SuperuserStaffSerializer(head_teacher).data
         return Response({'user': staff_data['user'], 'staff_id': staff_data['staff_id']}, status=200)
     
     elif data['type'] == 'removeClassHeadTeacher':
@@ -814,7 +814,7 @@ def superuser_staff(request):
                 return Response(status=400)
 
         created_staff = Staff.objects.select_related('user').prefetch_related('subjects', 'departments', 'roles').get(school=school, staff_id=staff_id)
-        staff_data = StaffSerializerOne(created_staff).data
+        staff_data = SuperuserStaffSerializer(created_staff).data
         return Response(staff_data, status=200)
 
     elif data['type'] == 'getFile':
@@ -1027,7 +1027,7 @@ def superuser_staff(request):
                 return Response(status=400)
 
         created_staff = Staff.objects.select_related('user').prefetch_related('subjects', 'departments', 'roles').filter(school=school, staff_id__in=staff_to_create_ids)
-        staff_data = StaffSerializerOne(created_staff, many=True).data
+        staff_data = SuperuserStaffSerializer(created_staff, many=True).data
         return Response(staff_data, status=200)
 
     elif data['type'] == 'edit':
@@ -1059,14 +1059,14 @@ def superuser_staff(request):
                             staff.staff_id = new_username
                             staff.save()
                         return Response(
-                            StaffSerializerOne(Staff.objects.get(school=school, staff_id=staff_id)).data['user'], 
+                            SuperuserStaffSerializer(Staff.objects.get(school=school, staff_id=staff_id)).data['user'], 
                             status=200
                         )
                 elif edit_type == 'title':
                     staff = Staff.objects.get(school=school, staff_id=staff_id)
                     staff.title = new_value.title()
                     staff.save()
-                    return Response(StaffSerializerOne(Staff.objects.get(school=school, staff_id=staff_id)).data['user'], status=200)
+                    return Response(SuperuserStaffSerializer(Staff.objects.get(school=school, staff_id=staff_id)).data['user'], status=200)
                 elif edit_type == 'gender':
                     staff = Staff.objects.get(school=school, staff_id=staff_id)
                     gender = new_value.lower()
@@ -1151,7 +1151,7 @@ def superuser_staff(request):
                     staff = Staff.objects.get(school=school, staff_id=staff_id)
                     staff.img = new_value
                     staff.save()
-                    return Response(StaffSerializerOne(Staff.objects.get(school=school, staff_id=staff_id)).data['img'], status=200)
+                    return Response(SuperuserStaffSerializer(Staff.objects.get(school=school, staff_id=staff_id)).data['img'], status=200)
                 
             except:
                 transaction.set_rollback(True)

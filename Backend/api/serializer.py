@@ -376,6 +376,39 @@ class StaffRoleSerializerOne(serializers.ModelSerializer):
     
     
 # Staff Serializers 
+class SuperuserStaffSerializer(serializers.ModelSerializer):
+    user = serializers.SerializerMethodField()
+    subjects = serializers.SerializerMethodField()
+    departments = serializers.SerializerMethodField()
+    roles = serializers.SerializerMethodField()
+    current_role = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Staff
+        fields = ('staff_id', 'contact', 'alt_contact', 'img', 'current_role', 'gender', 'user', 'subjects', 'departments', 'roles', 'dob', 'nationality', 'pob', 'region', 'religion', 'email', 'address', 'date_enrolled', 'is_active')
+
+    def get_user(self, obj):
+        return f"{obj.title}. {obj.user.get_full_name()}"
+    
+    def get_roles(self, obj):
+        return [x.identifier for x in obj.roles.all()]
+    
+    def get_departments(self, obj):
+        return [x.identifier for x in obj.departments.all()]
+    
+    def get_subjects(self, obj):
+        return [_subject.identifier for _subject in obj.subjects.all()]
+    
+    def get_current_role(self, obj):
+        return obj.current_role.identifier if obj.current_role else None
+    
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data['img'] = get_image(data, 'staff')
+       
+        return data
+    
+    
 class StaffSerializer(serializers.ModelSerializer):
     school = SchoolSerializer()
     subjects = serializers.SerializerMethodField()
@@ -436,11 +469,10 @@ class StaffSerializerOne(serializers.ModelSerializer):
     subjects = serializers.SerializerMethodField()
     departments = serializers.SerializerMethodField()
     roles = serializers.SerializerMethodField()
-    current_role = serializers.SerializerMethodField()
 
     class Meta:
         model = Staff
-        fields = ('staff_id', 'contact', 'alt_contact', 'img', 'current_role', 'gender', 'user', 'subjects', 'departments', 'roles', 'dob', 'nationality', 'pob', 'region', 'religion', 'email', 'address', 'date_enrolled', 'is_active')
+        fields = ('staff_id', 'contact', 'alt_contact', 'img', 'gender', 'user', 'subjects', 'departments', 'roles', 'dob', 'nationality', 'pob', 'region', 'religion', 'email', 'address', 'date_enrolled', 'is_active')
 
     def get_user(self, obj):
         return f"{obj.title}. {obj.user.get_full_name()}"
@@ -453,9 +485,6 @@ class StaffSerializerOne(serializers.ModelSerializer):
     
     def get_subjects(self, obj):
         return [_subject.identifier for _subject in obj.subjects.all()]
-    
-    def get_current_role(self, obj):
-        return obj.current_role.identifier if obj.current_role else None
     
     def to_representation(self, instance):
         data = super().to_representation(instance)

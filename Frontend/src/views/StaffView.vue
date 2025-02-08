@@ -21,12 +21,16 @@ import AdminStudentsClass from '@/components/AdminStudentsClass.vue';
 import AdminStaff from '@/components/AdminStaff.vue';
 import AdminSubjectAssignment from '@/components/AdminSubjectAssignment.vue';
 import { headRoles } from '@/utils/util';
-import HeadOverview from '@/components/HeadOverview.vue';
+// import HeadOverview from '@/components/HeadOverview.vue';
 import HeadStaff from '@/components/HeadStaff.vue';
-import HeadStudents from '@/components/HeadStudents.vue';
 import AdminDepartments from '@/components/AdminDepartments.vue';
 import AdminReleasedResults from '@/components/AdminReleasedResults.vue';
 import TeacherDepartment from '@/components/TeacherDepartment.vue';
+import HeadDepartments from '@/components/HeadDepartments.vue';
+import HeadAcademicYears from '@/components/HeadAcademicYears.vue';
+import HeadStudentsClass from '@/components/HeadStudentsClass.vue';
+import HeadSubjectAssignments from '@/components/HeadSubjectAssignments.vue';
+import HeadReleasedResults from '@/components/HeadReleasedResults.vue';
 
 useHead({
   meta: [
@@ -49,7 +53,7 @@ watch(() => userAuthStore.userData, (newValue) => {
     elementsStore.activePage = 'TeacherStaff'
   }
   else if (newValue && headRoles.includes(userAuthStore.userData?.['staff_role'].toLowerCase())) {
-    elementsStore.activePage = 'HeadOverview'
+    elementsStore.activePage = 'HeadStaff'
   }
 }, { 'once': true, 'immediate': true })
 
@@ -177,18 +181,36 @@ const showOverlay = (element: string)=>{
 
     <!-- Head -->
     <div class="pages-container" v-if="headRoles.includes(userAuthStore.userData['staff_role'].toLowerCase())">
-      <div class="component-wrapper" :class="{ 'is-active-component': elementsStore.activePage === 'HeadOverview' }">
+      <!-- <div class="component-wrapper" :class="{ 'is-active-component': elementsStore.activePage === 'HeadOverview' }">
         <HeadOverview />
-      </div>
+      </div> -->
 
       <div class="component-wrapper" :class="{ 'is-active-component': elementsStore.activePage === 'HeadStaff' }">
         <HeadStaff />
       </div>
 
-      <div class="component-wrapper"
-        :class="{ 'is-active-component': elementsStore.activePage.split(',')[0] === 'HeadStudents' }">
-        <HeadStudents v-for="class_name in Object.keys(userAuthStore.headData.classes || {})" :key="class_name"
-          :className="class_name" />
+      <div class="component-wrapper" :class="{ 'is-active-component': elementsStore.activePage === 'HeadDepartments' }">
+        <HeadDepartments />
+      </div>
+
+      <div class="component-wrapper" :class="{ 'is-active-component': elementsStore.activePage === 'HeadAcademicYears' }">
+        <HeadAcademicYears />
+      </div>
+
+      <div class="component-wrapper" :class="{ 'is-active-component': elementsStore.activePage.split(',')[0] === 'HeadStudentsClass' }">
+        <HeadStudentsClass v-for="(_class, index) in userAuthStore.headData.classes"
+          :key="`${_class['name']}${index}`" :className="_class['name']" :classIndex="index"
+          :subjects="_class['subjects']" :program="_class['program']"
+          :students_year="_class['students_year']" 
+        />
+      </div>
+
+      <div class="component-wrapper" :class="{ 'is-active-component': elementsStore.activePage === 'HeadSubjectAssignments' }">
+        <HeadSubjectAssignments />
+      </div>
+
+      <div class="component-wrapper" :class="{ 'is-active-component': elementsStore.activePage === 'HeadReleasedResults' }">
+        <HeadReleasedResults />
       </div>
 
       <div class="component-wrapper" :class="{ 'is-active-component': elementsStore.activePage === 'Help' }">

@@ -1,15 +1,67 @@
+# Django
+from django.contrib.auth.models import User
+from django.db import IntegrityError, transaction
+from django.core.validators import EmailValidator
+from django.utils import timezone
+from django.http import FileResponse
+from django.forms import DateField
+from django.db.models import Q
 
-# # Django Restframework
-# from rest_framework.decorators import api_view, permission_classes
-# from rest_framework.response import Response
-# from rest_framework.permissions import IsAuthenticated
+# Document Manipulation
+import pandas as pd
 
-# # Other
-# from api.models import AcademicYear, Department, Program, Classe, Staff, SubjectAssignment, Subject
-# from api.serializer import (
-#     AcademicYearSerializer, DepartmentNameSerializer, ProgramNameSerializer, StudentSerializerOne, StaffUserIdImgSerializer, StaffSerializerOne
-# )
-# from collections import defaultdict
+from api.models import *
+from api.serializer import *
+import random
+from datetime import datetime
+import json
+
+# Django Restframework
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+
+
+# Admin
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_head_data(request):
+    head = Staff.objects.select_related('school', 'current_role__level').get(user=request.user)
+    school = head.school
+    current_level = head.current_role.level
+    current_academic_year = AcademicYear.objects.get(id=int(request.GET.get('year')))
+    current_term = int(request.GET.get('term'))
+    academic_years = AcademicYearSerializer(AcademicYear.objects.select_related('level').filter(school=school, level=current_level).order_by('-start_date'), many=True).data
+    student_classes = Classe.objects.select_related('head_teacher__user', 'program').prefetch_related('subjects', 'students__user').filter(school=school, level=current_level).order_by('students_year')
+    student_classes_data = ClassesSerializerOne(student_classes, many=True).data
+    subject_assignments = SubjectAssignment.objects.prefetch_related('subjects').select_related('teacher__user', 'students_class').filter(school=school, level=current_level, academic_year=current_academic_year, academic_term=current_term)
+    subject_assignments_data = SubjectAssignmentSerializerOne(subject_assignments, many=True).data
+    departments_data = []
+    programs = []
+    if current_level.has_departments:
+        department_objs = Department.objects.select_related('hod__user').prefetch_related('subjects', 'teachers__user').filter(school=school, level=current_level)
+        departments_data = DepartmentNameHODSubjectsSerializer(department_objs, many=True).data
+        
+    if current_level.has_programs:
+        programs = [x.identifier for x in Program.objects.filter(schools=school, level=current_level)]
+
+    staff_objs = Staff.objects.select_related('user').prefetch_related('roles', 'departments', 'subjects').filter(school=school).order_by('-date_created')
+    staff_data = StaffSerializerOne(staff_objs, many=True).data
+    subjects = [x.identifier for x in Subject.objects.filter(schools=school, level=current_level)]
+
+    released_results_objs = ReleasedResult.objects.select_related('academic_year', 'released_by__user').filter(school=school, level=current_level).order_by('-date')
+    released_results_data = ReleasedResultsSerializer(released_results_objs, many=True).data
+    
+    return Response({
+        'classes': student_classes_data,
+        'departments': departments_data,
+        'subjects': subjects,
+        'staff': staff_data,
+        'programs': programs,
+        'academic_years': academic_years,
+        'subject_assignments': subject_assignments_data,
+        'released_results': released_results_data,
+    }, status=200)
 
 
 # @api_view(['GET'])

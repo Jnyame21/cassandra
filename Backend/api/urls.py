@@ -10,6 +10,7 @@ from api.superuser import *
 from api.school_admin import *
 from api.hod import *
 from api.query import query
+from api.head import *
 
 
 urlpatterns = [
@@ -55,11 +56,11 @@ urlpatterns = [
     path('hod/subject-assignment', hod_subject_assignment),
 
     # Head
-    # path('head/data', get_head_data),
+    path('head/data', get_head_data),
     # path('head/students_performance', head_students_performance),
 
     # School Administrator
-    path('school-admin/data', school_admin_data),
+    path('school-admin/data', get_school_admin_data),
     path('school-admin/academic_years', school_admin_academic_years),
     path('school-admin/students', school_admin_students),
     path('school-admin/staff', school_admin_staff),

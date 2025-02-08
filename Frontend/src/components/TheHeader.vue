@@ -1,13 +1,10 @@
 <script setup lang="ts">
 import { useUserAuthStore } from '@/stores/userAuthStore'
 import { useElementsStore } from '@/stores/elementsStore'
-import { ref } from 'vue'
 import StaffDrawer from './StaffDrawer.vue'
 import StudentsDrawer from './StudentsDrawer.vue'
 const userAuthStore = useUserAuthStore()
 const elementsStore = useElementsStore()
-
-const onDesk = ref(false)
 
 const showMessage = ()=>{
   const overlay = document.getElementById('Notification')
@@ -23,21 +20,12 @@ const showOverlay = ()=>{
     }
 }
 
-window.addEventListener('resize', ()=>{
-  if (window.innerWidth > 1000){
-    onDesk.value = true;
-  }
-  else{
-    onDesk.value = false;
-  }
-});
-
 
 </script>
 
 <template>
-  <StaffDrawer v-if="userAuthStore.userData['role']==='staff'" />
-  <StudentsDrawer v-if="userAuthStore.userData['role']==='student' " />
+  <StaffDrawer v-if="userAuthStore.userData?.['role'] ==='staff'" />
+  <StudentsDrawer v-if="userAuthStore.userData?.['role']==='student' " />
     
   <header class="header">
     <div class="profile-container" v-if="['staff', 'student'].includes(userAuthStore.userData['role'])">
@@ -51,8 +39,8 @@ window.addEventListener('resize', ()=>{
       <!-- <NoticeOverlay id="Notification" /> -->
     </div>
     <div>
-      <v-icon v-if="!onDesk" @click.stop="elementsStore.navDrawer = !elementsStore.navDrawer" class="menu-icon" icon="mdi-menu" size="x-large" color="yellow" />
-      <v-btn v-if="onDesk" @click="showOverlay()" class="logout-btn" prepend-icon="mdi-logout">LOGOUT</v-btn>
+      <v-icon v-if="!elementsStore.onDesk" @click.stop="elementsStore.navDrawer = !elementsStore.navDrawer" class="menu-icon" icon="mdi-menu" size="x-large" color="yellow" />
+      <v-btn v-if="elementsStore.onDesk" @click="showOverlay()" class="logout-btn" prepend-icon="mdi-logout">LOGOUT</v-btn>
     </div>
   </header>
 </template>

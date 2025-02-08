@@ -1,81 +1,114 @@
 <script setup lang="ts">
-import {ref } from "vue";
+import { computed, ref } from 'vue';
+import { useUserAuthStore } from '@/stores/userAuthStore';
+import { useElementsStore } from '@/stores/elementsStore';
 
-const sectionPage = ref('section1')
 const userAuthStore = useUserAuthStore()
+const elementsStore = useElementsStore()
+const departmentTeachers = ref<{user: string; staff_id: string}[]>([])
+const departmentSubjects = ref<string[]>([])
 
 
-const changeSection = (term: string)=>{
-  sectionPage.value = term
+const departments = computed(() => {
+  return userAuthStore.headData.departments
+})
+
+const showOverlay = (element: string, department_teacher:{user: string; staff_id: string}[], department_subjects:string[]) => {
+  departmentTeachers.value = department_teacher
+  departmentSubjects.value = department_subjects
+  const overlay = document.getElementById(element)
+  if (overlay) {
+    overlay.style.display = 'flex'
+  }
 }
+
+const closeOverlay = (element: string) => {
+  const overlay = document.getElementById(element)
+  if (overlay) {
+    overlay.style.display = 'none'
+  }
+}
+
 
 
 </script>
 
 <template>
-  <div class="sections-container">
-    <TheLoader class="no-data" v-if="!userAuthStore.headDepartments" />
-    <NoData :message="'No data yet'" v-if="userAuthStore.headDepartments && userAuthStore.headDepartments.length ===0 "/>
+  <div class="content-wrapper" v-show="elementsStore.activePage === `HeadDepartments`" :class="{ 'is-active-page': elementsStore.activePage === `HeadDepartments` }">
 
-    <div v-if="userAuthStore.headDepartments && userAuthStore.headDepartments.length >0 " class="section-nav-container">
-      <button v-for="(department, index) in userAuthStore.headDepartments" :key="index" class="nav-btn-1" 
-      @click="changeSection(`section${index+1}`)" :class="{'nav-btn-1-active': sectionPage===`section${index+1}`}"
-      ><v-icon icon="mdi-function-variant" v-if="department['department']['name'] === 'MATHEMATICS' "/>
-      <v-icon icon="mdi-book-open-variant" v-if="department['department']['name'] === 'ENGLISH' "/>
-      <v-icon icon="mdi-book-open-variant" v-if="department['department']['name'] === 'LANGUAGES' "/>
-      <v-icon icon="mdi-history" v-if="department['department']['name'] === 'ARTS' "/>
-      <v-icon icon="mdi-flask" v-if="department['department']['name'] === 'SCIENCE' "/>
-      <v-icon icon="mdi-finance" v-if="department['department']['name'] === 'BUSINESS' "/>
-      <span>{{department['department']['name']}}</span>
-    </button>
-    </div>
-  
-    <div v-if="userAuthStore.headDepartments && userAuthStore.headDepartments.length >0 "  class="sections">
-      <div class="h-100" v-for="(department, index) in userAuthStore.headDepartments" :key="index" :style="sectionPage===`section${index+1}` ? {'display': 'flex'}: {'display': 'none'}">
-        <HeadDepartmentPage :department="department"/>
+    <!-- department teacher overlay -->
+    <div id="HeadDepartmentTeachersOverlay" class="overlay upload">
+      <div class="overlay-card">
+        <v-btn @click="closeOverlay('HeadDepartmentTeachersOverlay')" color="red" size="small" variant="flat" class="close-btn">
+          X
+        </v-btn>
+        <div class="overlay-card-info-container"></div>
+        <div class="overlay-card-content-container">
+          <p class="subject-card" v-for="(teacher, index) in departmentTeachers" :key=index>{{teacher.user}}[ {{ teacher.staff_id }} ]</p>
+          <p class="no-data" v-if="departmentTeachers.length === 0">NO DATA</p>
+        </div>
       </div>
     </div>
+
+    <!-- department subjects overlay -->
+    <div id="HeadDepartmentSubjectsOverlay" class="overlay upload">
+      <div class="overlay-card">
+        <v-btn @click="closeOverlay('HeadDepartmentSubjectsOverlay')" color="red" size="small" variant="flat" class="close-btn">
+          X
+        </v-btn>
+        <div class="overlay-card-info-container"></div>
+        <div class="overlay-card-content-container">
+          <p class="subject-card" v-for="(subject, index) in departmentSubjects" :key=index>{{subject.split('|')[0]}} ({{subject.split('|')[1]}})</p>
+          <p class="no-data" v-if="departmentSubjects.length === 0">NO DATA</p>
+        </div>
+      </div>
+    </div>
+    
+    <div class="content-header"></div>
+    <v-table fixed-header class="table">
+      <thead>
+        <tr>
+          <th class="table-head">NAME</th>
+          <th class="table-head">HOD</th>
+          <th class="table-head">TEACHERS</th>
+          <th class="table-head">SUBJECTS</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="(_department, index) in departments" :key="index">
+          <td class="table-data">
+            {{ _department.name }}
+          </td>
+          <td class="table-data">
+            <v-chip v-if="_department.hod">{{ _department.hod.user }}[ {{ _department.hod.staff_id }} ] </v-chip>
+          </td>
+          <td class="table-data">
+            <v-btn @click="showOverlay('HeadDepartmentTeachersOverlay', _department.teachers, _department.subjects)" color="blue" :size="elementsStore.btnSize1">
+              VIEW TEACHERS
+            </v-btn>
+          </td>
+          <td class="table-data">
+            <v-btn @click="showOverlay('HeadDepartmentSubjectsOverlay', _department.teachers, _department.subjects)" color="blue" :size="elementsStore.btnSize1">
+              VIEW SUBJECTS
+            </v-btn>
+          </td>
+        </tr>
+      </tbody>
+    </v-table>
   </div>
 </template>
 
-
 <style scoped>
 
-.section-nav-container{
-  justify-content: flex-start !important;
+
+.overlay-card-info-container {
+  margin-top: 3em !important;
 }
 
-@media screen and (min-width: 576px) {
-  .nav-btn-1{
-    margin: 0em 1em !important;
-    font-size: .6rem !important;
-  }
+.overlay-card {
+  max-width: 600px !important;
 }
 
-@media screen and (min-width: 767px) {
-  .section-nav-container{
-    justify-content: center !important;
-  }
-
-  .nav-btn-1{
-    margin: 0em 1.5em !important;
-    font-size: .6rem !important;
-  }
-}
-
-@media screen and (min-width: 991px) {
-  .nav-btn-1{
-    margin: 0em 2em !important;
-    font-size: .7rem !important;
-  }
-}
-
-@media screen and (min-width: 2000px) {
-  .nav-btn-1{
-    margin: 0em 3em !important;
-    font-size: .7rem !important;
-  }
-}
 
 
 </style>

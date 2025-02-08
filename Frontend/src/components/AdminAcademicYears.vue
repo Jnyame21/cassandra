@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { useUserAuthStore } from '@/stores/userAuthStore'
-import TheLoader from '@/components/TheLoader.vue'
 import { useElementsStore } from '@/stores/elementsStore'
 import { ref, computed } from 'vue'
 import { AxiosError } from 'axios';
@@ -26,6 +25,10 @@ const term3DivisionSelected = ref('')
 const graduationDate = ref('')
 const selectedClass = ref('')
 const selectedStudents: any = ref([])
+
+const academicYearsData = computed(()=>{
+  return userAuthStore.adminData.academicYears
+})
 
 const academicYearPeriodDivisionOptions = [
   { 'label': 2, 'value': 2 },
@@ -128,6 +131,37 @@ const createAcademicYear = async () => {
   }
 }
 
+const deleteAcademicYear = async () => {
+  formErrorMessage.value = ''
+  const formData = new FormData
+  formData.append('type', 'delete')
+  elementsStore.ShowLoadingOverlay()
+
+  try {
+    await axiosInstance.post("school-admin/academic_years", formData)
+    await userAuthStore.getUserData()
+    await userAuthStore.getAdminData()
+  }
+  catch (error) {
+    elementsStore.HideLoadingOverlay()
+    if (error instanceof AxiosError) {
+      if (error.response) {
+        if (error.response.status === 400 && error.response.data.message) {
+          elementsStore.ShowOverlay(error.response.data.message, 'red')
+        } else {
+          elementsStore.ShowOverlay('Oops! something went wrong. Try again later', 'red')
+        }
+      }
+      else if (!error.response && (error.code === 'ECONNABORTED' || !navigator.onLine)) {
+        elementsStore.ShowOverlay('A network error occurred! Please check you internet connection', 'red')
+      }
+      else {
+        elementsStore.ShowOverlay('An unexpected error occurred!', 'red')
+      }
+    }
+  }
+}
+
 const checkInput = computed(() => {
   if (academicYearPeriodDivisionSelected.value === 2) {
     return !(academicYearSelected.value && startDate.value && endDate.value && term1EndDate.value && term2StartDate.value && term2EndDate.value)
@@ -158,10 +192,11 @@ const closeOverlay = (element: string) => {
 </script>
 
 <template>
-  <div class="content-wrapper" v-show="elementsStore.activePage === 'AdminAcademicYears'"
-    :class="{ 'is-active-page': elementsStore.activePage === 'AdminAcademicYears' }">
+  <div class="content-wrapper" v-show="elementsStore.activePage === 'AdminAcademicYears'" :class="{ 'is-active-page': elementsStore.activePage === 'AdminAcademicYears' }">
+    
+    <!-- admin academic year creation overlay -->
     <div id="AdminAddAcademicYearOverlay" class="overlay"
-      v-if="userAuthStore.adminData.academicYears && userAuthStore.adminData.classes && userAuthStore.adminData.classes.length > 0">
+      v-if="userAuthStore.adminData.classes.length > 0">
       <div class="overlay-card">
         <v-btn @click="closeOverlay('AdminAddAcademicYearOverlay')" color="red" size="small" variant="flat"
           class="close-btn">X</v-btn>
@@ -248,8 +283,7 @@ const closeOverlay = (element: string) => {
         ADD ACADEMIC YEAR
       </v-btn>
     </div>
-    <TheLoader :func="userAuthStore.getAdminData" v-if="!userAuthStore.adminData.academicYears" />
-    <v-table fixed-header class="table" v-if="userAuthStore.adminData.academicYears?.length">
+    <v-table fixed-header class="table" v-if="academicYearsData.length > 0">
       <thead>
         <tr>
           <th class="table-head">NAME</th>
@@ -260,10 +294,11 @@ const closeOverlay = (element: string) => {
           <th class="table-head">{{ userAuthStore.userData['academic_year']['period_division'] }} 2 END DATE</th>
           <th class="table-head" v-if="userAuthStore.userData['academic_year']['no_divisions'] === 3">{{userAuthStore.userData['academic_year']['period_division'] }} 3 START DATE</th>
           <th class="table-head" v-if="userAuthStore.userData['academic_year']['no_divisions'] === 3">{{userAuthStore.userData['academic_year']['period_division'] }} 3 END DATE</th>
+          <th class="table-head">ACTION</th>
         </tr>
       </thead>
       <tbody>
-        <tr v-for="(_year, index) in userAuthStore.adminData.academicYears" :key="index">
+        <tr v-for="(_year, index) in academicYearsData" :key="index">
           <td class="table-data">{{ _year.name }}</td>
           <td class="table-data">{{ _year.start_date }}</td>
           <td class="table-data">{{ _year.end_date }}</td>
@@ -272,6 +307,9 @@ const closeOverlay = (element: string) => {
           <td class="table-data">{{ _year.term_2_end_date }}</td>
           <td class="table-data" v-if="userAuthStore.userData['academic_year']['no_divisions'] === 3 && _year.term_3_start_date">{{ _year.term_3_start_date }}</td>
           <td class="table-data" v-if="userAuthStore.userData['academic_year']['no_divisions'] === 3 && _year.term_3_end_date">{{ _year.term_3_end_date }}</td>
+          <td class="table-data">
+            <v-btn v-if="index == 0 && academicYearsData.length > 1" @click="elementsStore.ShowDeletionOverlay(()=>deleteAcademicYear(), 'Are you sure you want to delete the current academic year?')" icon="mdi-delete" color="red" size="x-small"/>
+          </td>
         </tr>
       </tbody>
     </v-table>
@@ -279,6 +317,7 @@ const closeOverlay = (element: string) => {
 </template>
 
 <style scoped>
+
 .overlay-card {
   max-width: 600px !important;
 }
@@ -286,4 +325,5 @@ const closeOverlay = (element: string) => {
 .overlay-card-info-container {
   margin-top: 3rem;
 }
+
 </style>

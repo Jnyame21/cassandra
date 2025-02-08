@@ -29,27 +29,31 @@ import imghdr
 # Admin
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
-def school_admin_data(request):
+def get_school_admin_data(request):
     sch_admin = Staff.objects.select_related('school', 'current_role__level').get(user=request.user)
     school = sch_admin.school
     current_level = sch_admin.current_role.level
     current_academic_year = AcademicYear.objects.get(id=int(request.GET.get('year')))
     current_term = int(request.GET.get('term'))
-    academic_years = AcademicYearSerializer(AcademicYear.objects.filter(school=school, level=current_level).order_by('-start_date'), many=True).data
+    academic_years = AcademicYearSerializer(AcademicYear.objects.select_related('level').filter(school=school, level=current_level).order_by('-start_date'), many=True).data
     student_classes = Classe.objects.select_related('head_teacher__user', 'program').prefetch_related('subjects', 'students__user').filter(school=school, level=current_level).order_by('students_year')
     student_classes_data = ClassesSerializerOne(student_classes, many=True).data
     staff_roles = [x.identifier for x in StaffRole.objects.filter(schools=school, level=current_level) if x.name.lower() != 'administrator']
-    subject_assignments = SubjectAssignment.objects.prefetch_related('subjects').select_related('teacher__user', 'students_class').filter(school=school, level=current_level, academic_year=current_academic_year, academic_term=current_term)
-    subject_assignments_data = SubjectAssignmentSerializerOne(subject_assignments, many=True).data
-    departments = []
+    subject_assignments_data = []
+    if not current_level.has_departments:
+        subject_assignments = SubjectAssignment.objects.prefetch_related('subjects').select_related('teacher__user', 'students_class').filter(school=school, level=current_level, academic_year=current_academic_year, academic_term=current_term)
+        subject_assignments_data = SubjectAssignmentSerializerOne(subject_assignments, many=True).data
+    departments_data = []
     programs = []
     if current_level.has_departments:
-        departments = DepartmentNameHODSubjectsSerializer(Department.objects.filter(school=school, level=current_level), many=True).data
+        department_objs = Department.objects.select_related('hod__user').prefetch_related('subjects', 'teachers__user').filter(school=school, level=current_level)
+        departments_data = DepartmentNameHODSubjectsSerializer(department_objs, many=True).data
         
     if current_level.has_programs:
         programs = [x.identifier for x in Program.objects.filter(schools=school, level=current_level)]
 
-    staff = StaffSerializerOne(Staff.objects.select_related('user').prefetch_related('roles', 'departments', 'subjects').filter(school=school).order_by('-date_created'), many=True).data
+    staff_objs = Staff.objects.select_related('user').prefetch_related('roles', 'departments', 'subjects').filter(school=school).order_by('-date_created')
+    staff_data = StaffSerializerOne(staff_objs, many=True).data
     subjects = [x.identifier for x in Subject.objects.filter(schools=school, level=current_level)]
 
     released_results_objs = ReleasedResult.objects.select_related('academic_year', 'released_by__user').filter(school=school, level=current_level).order_by('-date')
@@ -57,16 +61,16 @@ def school_admin_data(request):
     
     return Response({
         'classes': student_classes_data,
-        'departments': departments,
+        'departments': departments_data,
         'subjects': subjects,
-        'staff': staff,
+        'staff': staff_data,
         'staff_roles': staff_roles,
         'programs': programs,
         'academic_years': academic_years,
         'subject_assignments': subject_assignments_data,
         'released_results': released_results_data,
     }, status=200)
-        
+
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -158,9 +162,9 @@ def school_admin_academic_years(request):
         except AcademicYear.DoesNotExist:
             with transaction.atomic():
                 try:
-                    repeated_students = Student.objects.filter(school=school, level=current_level, st_id__in=repeated_students_ids).distint()
+                    repeated_students = Student.objects.filter(school=school, level=current_level, st_id__in=repeated_students_ids).distinct()
                     new_academic_year = create_new_academic_year()
-                    classes = Classe.objects.prefetch_related('students').filter(school=school, level=current_level)
+                    classes = Classe.objects.prefetch_related('students__st_class', 'students__academic_years', 'students__repeated_academic_years').filter(school=school, level=current_level)
                     graduated_classes = []
                     promoted_and_graduated_students = []
                     years_to_complete = int(current_level.years_to_complete)
@@ -204,13 +208,11 @@ def school_admin_academic_years(request):
                                     promoted_and_graduated_students.append(_student)
 
                     Student.objects.bulk_update(promoted_and_graduated_students, ['current_year', 'st_class'])
-                    GraduatedClasse.objects.bulk_create([x['class_instance'] for x in graduated_classes])
-                    for _class in graduated_classes:
-                        graduated_class_obj = GraduatedClasse.objects.get(school=school, level=current_level, name=_class['name'])
-                        graduated_class_obj.students.add(*_class['students'])
+                    created_graduated_classes = GraduatedClasse.objects.prefetch_related('students').bulk_create([x['class_instance'] for x in graduated_classes])
+                    for created_class, original_class in zip(created_graduated_classes, graduated_classes):
+                        created_class.students.add(*original_class['students'])
                 except Exception as e:
                     transaction.set_rollback(True)
-                    print(e)
                     return Response(status=400)
 
             new_academic_year_data = AcademicYearSerializer(new_academic_year).data
@@ -219,88 +221,58 @@ def school_admin_academic_years(request):
                 'new_year': new_academic_year_data,
             })
 
-    # elif data['type'] == 'delete':
-    #     all_academic_years = AcademicYear.objects.filter(school=school, level=current_level).order_by('-end_date')
-    #     current_year = all_academic_years[0]
-    #     previous_year = all_academic_years[1]
-    #     existing_assignments = SubjectAssignment.objects.filter(school=school, level=current_level, academic_year=current_year).exists()
-    #     existing_attendance = StudentAttendance.objects.filter(school=school, level=current_level, academic_year=current_year).exists()
-    #     if existing_attendance:
-    #         return Response({'message': "There are students attendance data in this academic year"}, status=400)
-    #     if existing_assignments:
-    #         return Response({'message': "There are teachers coursework data in this academic year"}, status=400)
+    elif data['type'] == 'delete':
+        all_academic_years = AcademicYear.objects.filter(school=school, level=current_level).order_by('-end_date')
+        current_year = all_academic_years[0]
+        previous_year = all_academic_years[1]
+        existing_assignments = SubjectAssignment.objects.filter(school=school, level=current_level, academic_year=current_year).exists()
+        if existing_assignments:
+            return Response({'message': "There are teachers subject assignments in this academic year"}, status=400)
+        existing_attendance = StudentAttendance.objects.filter(school=school, level=current_level, academic_year=current_year).exists()
+        if existing_attendance:
+            return Response({'message': "There are students attendance data in this academic year"}, status=400)
+        
+        with transaction.atomic():
+            try:
+                classes = Classe.objects.select_related('linked_class__students__st_class', 'linked_class__students__academic_years').prefetch_related('students__repeated_academic_years').filter(school=school, level=current_level).order_by('students_year')
+                promoted_graduated_students = []
+                years_to_complete = current_level.years_to_complete
+                graduated_class_objs = GraduatedClasse.objects.select_related('class_graduated_from').prefetch_related('students__st_class', 'students__academic_years').filter(graduated_academic_year=previous_year)
+                graduated_classes_mapping = {x.class_graduated_from.id: x for x in graduated_class_objs}
+                for _class in classes:
+                    class_students = _class.students.all()
+                    for _student in class_students:
+                        _student.academic_years.remove(current_year)
+                        _student.repeated_academic_years.remove(previous_year)
+                    if _class.students_year == years_to_complete:
+                        graduated_class = graduated_classes_mapping[_class.id]
+                        graduated_class_students = graduated_class.students.all()
+                        for _student in graduated_class_students:
+                            _student.current_year -= 1
+                            _student.st_class = _class
+                            _student.academic_years.remove(current_year)
+                            promoted_graduated_students.append(_student)
+                        _class.students.add(*graduated_class_students)
+                    else:
+                        linked_class = _class.linked_class
+                        if not linked_class:
+                            return Response({'message': f"No class has been linked to the {_class.name} class"}, status=400)
+                        promoted_students = linked_class.students.all()
+                        for _student in promoted_students:
+                            _student.current_year -= 1
+                            _student.st_class = _class
+                            _student.academic_years.remove(current_year)
+                            promoted_graduated_students.append(_student)
+                        _class.students.add(*promoted_students)
+                    
+                Student.objects.bulk_update(promoted_graduated_students, ['current_year', 'st_class'])
+                graduated_class_objs.delete()
+            except Exception as e:
+                print(e)
+                transaction.set_rollback(True)
+                return Response(status=400)
 
-    #     with transaction.atomic():
-    #         try:
-    #             classes = Classe.objects.prefetch_related('students').filter(school=school, level=current_level)
-    #             old_classes_to_update = []
-    #             new_classes_to_update = []
-    #             graduated_students_old_classes = []
-    #             graduated_classes_to_delete = []
-    #             undo_graduated_students = []
-    #             undo_promoted_students = []
-    #             undo_repeated_students = []
-    #             years_to_complete = school.level.years_to_complete
-    #             for _class in classes:
-    #                 try:
-    #                     if _class.students_year == years_to_complete:
-    #                         graduated_class = GraduatedClasse.objects.prefetch_related('students', 'subjects').select_related('head_teacher', 'program').get(school=school, graduated_class_name=_class.name, graduation_year=previous_year)
-    #                         students = graduated_class.students.all()
-    #                         for _student in students:
-    #                             _student.current_year -= 1
-    #                             _student.st_class = _class
-    #                             _student.graduation_year = None
-    #                             _student.graduation_date = None
-    #                             _student.has_completed = False
-    #                             undo_graduated_students.append(_student)
-    #                         _class.subjects.set(graduated_class.subjects.all())
-    #                         _class.head_teacher = graduated_class.head_teacher
-    #                         _class.program = graduated_class.program
-    #                         _class.name = graduated_class.graduated_class_name
-    #                         _class.students_year = graduated_class.students_year
-    #                         _class.students.set(students)
-    #                         graduated_students_old_classes.append(_class)
-    #                         graduated_classes_to_delete.append(graduated_class)
-    #                     else:
-    #                         linked_class = LinkedClasse.prefetch_related('to_class__students').objects.get(school=school, level=current_level, from_class=_class)
-    #                         promoted_students_class = linked_class.to_class
-    #                         promoted_students = promoted_students_class.students.all()
-    #                         for _student in promoted_students:
-    #                             if current_year in _student.academic_years.all() and previous_year not in _student.repeated_academic_years.all():
-    #                                 _student.current_year -= 1
-    #                                 _student.linked_classes.remove(linked_class)
-    #                                 _student.academic_years.remove(current_year)
-    #                                 _student.st_class = _class
-    #                                 promoted_students_class.students.remove(_student)
-    #                                 _class.students.add(_student)
-    #                                 undo_promoted_students.append(_student)
-    #                             elif current_year in _student.academic_years.all() and previous_year in _student.repeated_academic_years.all():
-    #                                 _student.repeated_academic_years.remove(previous_year)
-    #                                 _student.academic_years.remove(current_year)
-    #                                 undo_repeated_students.append(_student)
-    #                         old_classes_to_update.append(promoted_students_class)
-    #                     new_classes_to_update.append(_class)
-    #                 except LinkedClasse.DoesNotExist:
-    #                     transaction.set_rollback(True)
-    #                     return Response({'message': f"No class has been linked to the {_class} class"}, status=400)
-    #                 except Exception:
-    #                     transaction.set_rollback(True)
-    #                     return Response(status=400)
-
-    #             Student.objects.bulk_update(undo_graduated_students, ['current_year', 'has_completed', 'graduation_year', 'graduation_date', 'st_class'])
-    #             Student.objects.bulk_update(undo_promoted_students, ['current_year', 'academic_years', 'st_class', 'linked_classes'])
-    #             Student.objects.bulk_update(undo_repeated_students, ['repeated_academic_years', 'academic_years'])
-    #             Classe.objects.bulk_update(graduated_students_old_classes, ['students', 'name', 'students_year', 'head_teacher', 'program', 'subjects'])
-    #             Classe.objects.bulk_update(old_classes_to_update, ['students'])
-    #             Classe.objects.bulk_update(new_classes_to_update, ['students'])
-    #             for _class in graduated_classes_to_delete:
-    #                 _class.delete()
-
-    #         except Exception:
-    #             transaction.set_rollback(True)
-    #             return Response(status=400)
-
-    # return Response()
+        return Response(status=200)
 
 
 @api_view(['POST'])
@@ -962,6 +934,11 @@ def school_admin_students(request):
             return Response({'message': f"Student with ID '{st_id}' already exists"}, status=400)
 
         student_class = Classe.objects.select_related('program', 'level').get(school=school, name=data['studentClassName'])
+        current_academic_year = AcademicYear.objects.get(id=int(data['year']))
+        current_academic_term = int(data['term'])
+        if StudentResult.objects.filter(student_class=students_class, academic_year=current_academic_year, academic_term=current_academic_term).exists():
+            return Response({'message': 'There are students results for this class. Wait for the next academic year or ensure there are no students results'}, status=400)
+        
         students_year = student_class.students_year
         class_level = student_class.level
         student_academic_years = AcademicYear.objects.filter(school=school, level=student_class.level).order_by('-start_date')[:int(students_year)]
@@ -1200,6 +1177,12 @@ def school_admin_students(request):
                 'guardian_address': guardian_address,
             }
 
+        students_class = Classe.objects.prefetch_related('students').select_related('program', 'level').get(school=school, level=current_level, name=data['studentsClassName'])
+        current_academic_year = AcademicYear.objects.get(id=int(data['year']))
+        current_academic_term = int(data['term'])
+        if StudentResult.objects.filter(student_class=students_class, academic_year=current_academic_year, academic_term=current_academic_term).exists():
+            return Response({'message': 'There are students results for this class. Wait for the next academic year or ensure there are no students results'}, status=400)
+        
         with transaction.atomic():
             try:
                 for index, row in df.iterrows():
@@ -1217,7 +1200,6 @@ def school_admin_students(request):
                 User.objects.bulk_create(users_to_create)
                 created_users = User.objects.filter(username__in=[user.username for user in users_to_create])
                 user_mapping = {user.username: user for user in created_users}
-                students_class = Classe.objects.prefetch_related('students').select_related('program', 'level').get(school=school, level=current_level, name=data['studentsClassName'])
                 class_level = students_class.level
                 students_year = students_class.students_year
                 students_academic_years = AcademicYear.objects.filter(school=school).order_by('-start_date')[:int(students_year)]

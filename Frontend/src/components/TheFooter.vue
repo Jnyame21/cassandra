@@ -1,12 +1,13 @@
 <script setup lang="ts">
 
+const year = new Date().getFullYear()
 
 </script>
 
 <template>
     <footer class="footer flex-all">
         <div class="footer-content flex-all">
-            <p class="footer-text">© 2024 Cassandra</p>
+            <p class="footer-text">© {{ year }} Cassandra</p>
         </div>
     </footer>
 </template>

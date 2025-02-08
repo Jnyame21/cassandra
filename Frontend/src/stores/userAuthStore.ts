@@ -449,61 +449,96 @@ export interface states {
     }[]
   }
   headData: {
-    staff: {
-      user: string
-      staff_id: string
+    academicYears: {
+      name: string;
+      id: number;
+      level: string;
+      start_date: string;
+      end_date: string;
+      term_1_end_date: string;
+      term_2_start_date: string;
+      term_2_end_date: string;
+      term_3_start_date: string | null;
+      term_3_end_date: string | null;
+      period_division: string;
+      no_divisions: number;
+      students_graduation_date: string | null;
+    }[]
+    departments: {
+      name: string
+      id: number;
+      identifier: string
+      hod: { user: string; staff_id: string } | null
       subjects: string[]
-      role: string
-      alt_contact: string
-      img: string
-      contact: string
-      gender: string
-      email: string
-      department: string;
-      address: string
-    }[] | null;
+      teachers: { user: string; staff_id: string }[]
+    }[]
+    subjectAssignments: {
+      id: number
+      students_class: string
+      teacher: { user: string; staff_id: string }
+      subjects: string[]
+    }[]
+    heads: any
     classes: {
-      [name: string]: {
-        students: {
-          user: string
-          st_id: string
-          gender: string
-          date_enrolled: string
-          index_no: string | null
-          img: string
-          dob: string
-          region: string
-          religion: string
-          pob: string
-          email: string
-          address: string
-          contact: string
-          nationality: string
-          guardian: string
-          guardian_occupation: string
-          guardian_gender: string
-          guardian_nationality: string
-          guardian_contact: string
-          guardian_email: string
-          guardian_address: string
-        }[]
-        head_teacher: { 
-          user: string;
-          img: string ;
-        } | null
-        students_year: number
-        program: string | null
-        subjects: {
-          name: string;
-          teacher: string;
-          teacher_img: string;
-        }[]
-      }
-    }
-    subjects: string[]
-    departments: string[]
+      name: string
+      students: {
+        user: string
+        st_id: string
+        gender: string
+        date_enrolled: string
+        index_no: string | null
+        img: string
+        dob: string
+        region: string
+        religion: string
+        pob: string
+        email: string
+        address: string
+        contact: string
+        nationality: string
+        guardian: string
+        guardian_occupation: string
+        guardian_gender: string
+        guardian_nationality: string
+        guardian_contact: string
+        guardian_email: string
+        guardian_address: string
+      }[]
+      head_teacher: { user: string; staff_id: string; img: string } | null
+      students_year: number
+      program: string | null
+      subjects: string[]
+      linked_class: string
+    }[]
+    staff:{
+      user: string;
+      staff_id: string;
+      gender: string;
+      contact: string;
+      nationality: string;
+      departments: string[];
+      roles: string[];
+      img: string;
+      dob: string;
+      subjects: string[];
+      address: string;
+      alt_contact: string;
+      pob: string;
+      email: string;
+      date_enrolled: string;
+      region: string;
+      religion: string;
+    }[]| null
     programs: string[]
-    academic_years: any[]
+    subjects: string[]
+    releasedResults: {
+      id: number;
+      students_class_name: string;
+      academic_year: string;
+      academic_term: number;
+      released_by: string;
+      date: string;
+    }[]
   }
   headDepartments: any
   headPrograms: any
@@ -597,12 +632,15 @@ export const useUserAuthStore = defineStore('userAuthStore', {
         releasedResults: [],
       },
       headData: {
-        staff: null,
-        classes: {},
-        subjects: [],
+        academicYears: [],
         departments: [],
+        heads: null,
+        classes: [],
+        staff: null,
         programs: [],
-        academic_years: [],
+        subjects: [],
+        subjectAssignments: [],
+        releasedResults: [],
       },
       headDepartments: null,
       headPrograms: null,
@@ -735,12 +773,15 @@ export const useUserAuthStore = defineStore('userAuthStore', {
     async getHeadData() {
       await axiosInstance.get('head/data', {params: { year: this.activeAcademicYearID, term: this.activeTerm }})
         .then(response => {
-          this.headData.staff = response.data['staff']
-          this.headData.classes = response.data['classes']
-          this.headData.subjects = response.data['subjects']
-          this.headData.departments = response.data['departments']
-          this.headData.programs = response.data['programs']
-          this.headData.academic_years = response.data['academic_years']
+          const data = response.data
+          this.headData.academicYears = data['academic_years']
+          this.headData.classes = data['classes']
+          this.headData.departments = data['departments']
+          this.headData.staff = data['staff']
+          this.headData.programs = data['programs']
+          this.headData.subjects = data['subjects']
+          this.headData.subjectAssignments = data['subject_assignments']
+          this.headData.releasedResults = data['released_results']
         })
         .catch(() => {
           return Promise.reject()
