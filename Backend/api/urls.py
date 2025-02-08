@@ -11,6 +11,7 @@ from api.school_admin import *
 from api.hod import *
 from api.query import query
 from api.head import *
+from api.other_roles import *
 
 
 urlpatterns = [
@@ -66,7 +67,14 @@ urlpatterns = [
     path('school-admin/staff', school_admin_staff),
     path('school-admin/subject-assignment', school_admin_subject_assignment),
     path('school-admin/released_results', release_results),
+    
+    # Other Roles
+    path('other_roles/data', get_other_roles_data),
+    # path('head/students_performance', head_students_performance),
+    
+    
     path('query', query),
+    
 ]
 
 if settings.DEBUG:

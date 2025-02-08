@@ -75,7 +75,7 @@ const deleteResults = async () => {
   <div class="content-wrapper" v-show="elementsStore.activePage === `TeacherStudentsResults,${className},${subjectName}`" :class="{ 'is-active-page': elementsStore.activePage === `TeacherStudentsResults,${className},${subjectName}` }">
     <NoData message="You have not generated students results yet" v-if="Object.keys(resultData.student_results).length === 0"/>
     <div class="content-header" v-if="Object.keys(resultData.student_results).length > 0">
-      <span class="content-header-title">{{ className }} {{ subjectName }} STUDENT RESULTS</span>
+      <span class="content-header-title">{{ className }} STUDENT RESULTS ({{ subjectName }})</span>
     </div>
     <div class="content-header btn-container" v-if="Object.keys(resultData.student_results).length > 0">
       <v-btn

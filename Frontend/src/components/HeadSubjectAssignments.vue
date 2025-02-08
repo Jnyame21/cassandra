@@ -15,7 +15,7 @@ const subjectAssignments = computed(() => {
 <template>
   <div class="content-wrapper" v-show="elementsStore.activePage === 'HeadSubjectAssignments'" :class="{ 'is-active-page': elementsStore.activePage === 'HeadSubjectAssignments' }">
    
-    <div class="content-header"></div>
+    <div class="content-header" v-if="subjectAssignments.length > 0"></div>
     <div class="no-data" v-if="subjectAssignments.length === 0">
       <p>NO DATA</p>
     </div>

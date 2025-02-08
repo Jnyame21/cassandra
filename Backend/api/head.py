@@ -6,6 +6,7 @@ from django.utils import timezone
 from django.http import FileResponse
 from django.forms import DateField
 from django.db.models import Q
+from collections import defaultdict
 
 # Document Manipulation
 import pandas as pd
@@ -34,8 +35,8 @@ def get_head_data(request):
     academic_years = AcademicYearSerializer(AcademicYear.objects.select_related('level').filter(school=school, level=current_level).order_by('-start_date'), many=True).data
     student_classes = Classe.objects.select_related('head_teacher__user', 'program').prefetch_related('subjects', 'students__user').filter(school=school, level=current_level).order_by('students_year')
     student_classes_data = ClassesSerializerOne(student_classes, many=True).data
-    subject_assignments = SubjectAssignment.objects.prefetch_related('subjects').select_related('teacher__user', 'students_class').filter(school=school, level=current_level, academic_year=current_academic_year, academic_term=current_term)
-    subject_assignments_data = SubjectAssignmentSerializerOne(subject_assignments, many=True).data
+    subject_assignments = SubjectAssignment.objects.prefetch_related('subjects', 'students_class__students__user').select_related('teacher__user').filter(school=school, level=current_level, academic_year=current_academic_year, academic_term=current_term)
+    all_subject_assignments_data = SubjectAssignmentSerializerOne(subject_assignments, many=True).data
     departments_data = []
     programs = []
     if current_level.has_departments:
@@ -49,9 +50,157 @@ def get_head_data(request):
     staff_data = StaffSerializerOne(staff_objs, many=True).data
     subjects = [x.identifier for x in Subject.objects.filter(schools=school, level=current_level)]
 
+    subject_assignments_data = {}
+    all_students_assessments_data = {}
+    all_students_exams_data = {}
+    all_students_results_data = {}
+    all_students_assessments_objs = Assessment.objects.select_related('student__user', 'student_class', 'subject').filter(school=school, level=current_level, academic_year=current_academic_year, academic_term=current_term).order_by('-score')
+    assessment_by_class_subject = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
+    for _assessment in all_students_assessments_objs:
+        assessment_by_class_subject[_assessment.student_class.name][_assessment.subject.name][_assessment.title].append(_assessment)
+    
+    all_students_exams_objs = Exam.objects.select_related('student__user', 'student_class', 'subject').filter(school=school, level=current_level, academic_year=current_academic_year, academic_term=current_term).order_by('-score')
+    exams_by_class_subject = defaultdict(lambda: defaultdict(list))
+    for _exam in all_students_exams_objs:
+        exams_by_class_subject[_exam.student_class.name][_exam.subject.name].append(_exam)
+    
+    all_students_results_objs = StudentResult.objects.select_related('student__user', 'student_class', 'subject').filter(school=school, level=current_level, academic_year=current_academic_year, academic_term=current_term).order_by('-result')
+    results_by_class_subject = defaultdict(lambda: defaultdict(list))
+    for _result in all_students_results_objs:
+        results_by_class_subject[_result.student_class.name][_result.subject.name].append(_result)
+    
+    for assign in subject_assignments:
+        students_class = assign.students_class
+        students_class_name = students_class.name
+        class_students = students_class.students.all()
+        subject_assignments_data[students_class_name] = SubjectAssignmentSerializerTwo(assign).data
+        
+        assessment_class_data = {}
+        exams_class_data = {}
+        results_class_data = {}
+        assignment_subjects = assign.subjects.all()
+        for _subject in assignment_subjects:
+            
+            ## Students Assessments
+            assessment_subject_data = {}
+            assessment_titles = set(assessment_by_class_subject[students_class_name][_subject.name].keys())
+            for _title in assessment_titles:
+                assessments_with_title = assessment_by_class_subject[students_class_name][_subject.name][_title]
+                first_assessment = assessments_with_title[0]
+                assessment_title_data = {
+                    'title': _title, 
+                    'total_score': first_assessment.total_score, 
+                    'description': first_assessment.description, 
+                    'percentage': first_assessment.percentage, 
+                    'assessment_date': first_assessment.assessment_date, 
+                    'students_with_assessment': {}, 
+                    'students_without_assessment': {}
+                }
+                students_with_assessments = set()
+                for _assessment in assessments_with_title:
+                    assessment_student = _assessment.student
+                    if assessment_student:
+                        students_with_assessments.add(assessment_student.st_id)
+                        student_data = {
+                            'name': f"{assessment_student.user.first_name} {assessment_student.user.last_name}",
+                            'st_id': assessment_student.st_id,
+                            'score': _assessment.score,
+                            'comment': _assessment.comment,
+                        }
+                        assessment_title_data['students_with_assessment'][assessment_student.st_id] = student_data
+                        
+                for _student in class_students:
+                    st_id = _student.st_id
+                    if st_id not in students_with_assessments:
+                        st_data = {
+                            'name': f"{_student.user.first_name} {_student.user.last_name}",
+                            'st_id': st_id,
+                        }
+                        assessment_title_data['students_without_assessment'][st_id] = st_data
+                assessment_subject_data[_title] = assessment_title_data
+            assessment_class_data[_subject.name] = assessment_subject_data
+            
+            # Students Exams
+            exams_subject_data = {'students_with_exams': {}, 'students_without_exams': {}}
+            all_subject_exams_objs = exams_by_class_subject[students_class_name][_subject.name]
+            students_with_exams = set()
+            if len(all_subject_exams_objs) > 0:
+                first_exams_objs = all_subject_exams_objs[0]
+                exams_subject_data['percentage'] = first_exams_objs.percentage
+                exams_subject_data['total_score'] = first_exams_objs.total_score
+                for _exams in all_subject_exams_objs:
+                    exams_student = _exams.student
+                    if exams_student:
+                        student_data = {
+                            'name': f"{exams_student.user.first_name} {exams_student.user.last_name}",
+                            'st_id': exams_student.st_id,
+                            'score': _exams.score,
+                        }
+                        exams_subject_data['students_with_exams'][exams_student.st_id] = student_data
+                        students_with_exams.add(exams_student.st_id)
+            
+                for _student in class_students:
+                    st_id = _student.st_id
+                    if st_id not in students_with_exams:
+                        student_data = {
+                            'name': f"{_student.user.first_name} {_student.user.last_name}",
+                            'st_id': st_id,
+                        }
+                        exams_subject_data['students_without_exams'][st_id] = student_data
+            else:
+                exams_subject_data['percentage'] = 0
+                exams_subject_data['total_score'] = 0
+                
+            exams_class_data[_subject.name] = exams_subject_data
+            
+            # Students Results
+            results_subject_data = {}
+            all_subject_results_objs = results_by_class_subject[students_class_name][_subject.name]
+            if len(all_subject_results_objs) > 0:
+                first_result_obj = all_subject_results_objs[0]
+                results_subject_data['total_assessment_percentage'] = first_result_obj.total_assessment_percentage
+                results_subject_data['exam_percentage'] = first_result_obj.exam_percentage
+                all_results = {}
+                for _result in all_subject_results_objs:
+                    result_student = _result.student
+                    student_data = {
+                        'result': _result.result,
+                        'total_assessment_score': _result.total_assessment_score,
+                        'exam_score': _result.exam_score,
+                        'student': {'name': f"{_result.student.user.first_name} {_result.student.user.last_name}", 'st_id': result_student.st_id},
+                        'remark': _result.remark,
+                        'grade': _result.grade,
+                        'position': _result.position,
+                    }
+                    all_results[result_student.st_id] = student_data
+                results_subject_data['student_results'] = all_results
+            
+            else:
+                results_subject_data['total_assessment_percentage'] = 0
+                results_subject_data['exam_percentage'] = 0
+                results_subject_data['student_results'] = {}
+                
+            results_class_data[_subject.name] = results_subject_data
+            
+        # All(assessments, exams, results) data for the class
+        all_students_assessments_data[students_class_name] = assessment_class_data
+        all_students_exams_data[students_class_name] = exams_class_data
+        all_students_results_data[students_class_name] = results_class_data
+        
     released_results_objs = ReleasedResult.objects.select_related('academic_year', 'released_by__user').filter(school=school, level=current_level).order_by('-date')
     released_results_data = ReleasedResultsSerializer(released_results_objs, many=True).data
     
+    attendance_mappings = defaultdict(list)
+    attendance_objs = StudentAttendance.objects.select_related('students_class').prefetch_related('students_present__user', 'students_absent__user').filter(school=school, level=current_level, academic_year=current_academic_year, academic_term=current_term).order_by('-date')
+    for _attendance_ in attendance_objs:
+        attendance_mappings[_attendance_.students_class.id].append(_attendance_)
+        
+    atttendance_data = {}
+    for _class in student_classes:
+        students_class_name = _class.name
+        attendances = StudentsAttendanceSerializer(attendance_mappings[_class.id], many=True).data
+        atttendance_data[students_class_name] = attendances
+        
     return Response({
         'classes': student_classes_data,
         'departments': departments_data,
@@ -59,7 +208,11 @@ def get_head_data(request):
         'staff': staff_data,
         'programs': programs,
         'academic_years': academic_years,
-        'subject_assignments': subject_assignments_data,
+        'students_attendance': atttendance_data,
+        'students_assessments': all_students_assessments_data,
+        'students_exams': all_students_exams_data,
+        'students_results': all_students_results_data,
+        'subject_assignments': all_subject_assignments_data,
         'released_results': released_results_data,
     }, status=200)
 

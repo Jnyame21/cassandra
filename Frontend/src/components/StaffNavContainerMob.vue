@@ -53,11 +53,20 @@ const resetStoreData = (staff_role: string) => {
       departments: [],
       heads: null,
       classes: [],
+      studentsAttendance: {},
+      studentsAssessments: {},
+      studentsExams: {},
+      studentsResults: {},
       staff: null,
       programs: [],
       subjects: [],
       subjectAssignments: [],
       releasedResults: [],
+    }
+  }
+  else if (staff_role === 'other') {
+    userAuthStore.otherRolesData = {
+      staff: null,
     }
   }
 }
@@ -77,18 +86,28 @@ const changeRole = async () => {
       await userAuthStore.getAdminData()
       resetStoreData('teacher')
       resetStoreData('head')
+      resetStoreData('other')
     }
     else if (userAuthStore.userData['staff_role'].toLowerCase() === 'teacher') {
       elementsStore.activePage = 'TeacherStaff'
       await userAuthStore.getTeacherData()
       resetStoreData('administrator')
       resetStoreData('head')
+      resetStoreData('other')
     }
     else if (headRoles.includes(userAuthStore.userData['staff_role'].toLowerCase())) {
       elementsStore.activePage = 'HeadStaff'
       await userAuthStore.getHeadData()
       resetStoreData('administrator')
       resetStoreData('teacher')
+      resetStoreData('other')
+    }
+    else if (!headRoles.includes(userAuthStore.userData['staff_role'].toLowerCase() && !['teacher', 'administrator'].includes(userAuthStore.userData['staff_role'].toLowerCase()))) {
+      elementsStore.activePage = 'HeadStaff'
+      await userAuthStore.getHeadData()
+      resetStoreData('administrator')
+      resetStoreData('teacher')
+      resetStoreData('head')
     }
     elementsStore.HideLoadingOverlay()
   }
@@ -231,10 +250,95 @@ const changeRole = async () => {
               {{ _class['name'] }}
             </v-list-item>
           </v-list-group>
+          
+          <v-list-group v-if="Object.keys(userAuthStore.headData.studentsAttendance).length > 0">
+            <template v-slot:activator="{ props }">
+                <v-list-item v-bind="props" prepend-icon="mdi-clipboard-text-outline" class="nav-item">
+                    STUDENT ATTENDANCE
+                </v-list-item>
+            </template>
+            <v-list-item class="nav-title nav-link"
+                v-for="class_name in Object.keys(userAuthStore.headData.studentsAttendance)" :key="class_name"
+                @click="changePage(`HeadStudentsAttendance,${class_name}`)">
+                {{ class_name }}
+            </v-list-item>
+        </v-list-group>
 
           <v-list-item @click="changePage('HeadSubjectAssignments')" class="nav-item nav-link" prepend-icon="mdi-book-multiple">
             SUBJECT ASSIGNMENTS
           </v-list-item>
+
+          <v-list-group>
+                <template v-slot:activator="{ props }">
+                    <v-list-item v-bind="props" class="nav-item" prepend-icon="mdi-book-open-outline">
+                        STUDENT ASSESSMENTS
+                    </v-list-item>
+                </template>
+                <v-list-group
+                    v-for="[class_name, class_data] in Object.entries(userAuthStore.headData.studentsAssessments)"
+                    :key="class_name">
+                    <template v-slot:activator="{ props }">
+                        <v-list-item v-bind="props" class="nav-item">
+                            {{ class_name }}
+                        </v-list-item>
+                    </template>
+                    <v-list-group v-for="[subject_name, subject_data] in Object.entries(class_data)"
+                        :key="subject_name">
+                        <template v-slot:activator="{ props }">
+                            <v-list-item v-bind="props" class="nav-item">
+                                {{ subject_name }}
+                            </v-list-item>
+                        </template>
+                        <h4 class="nav-title nav-link" v-for="assessment_title in Object.keys(subject_data)"
+                            :key="assessment_title"
+                            @click="changePage(`HeadStudentsAssessments,${class_name},${subject_name},${assessment_title}`)">
+                            {{ assessment_title }}
+                        </h4>
+                    </v-list-group>
+                </v-list-group>
+            </v-list-group>
+
+            <v-list-group>
+                <template v-slot:activator="{ props }">
+                    <v-list-item v-bind="props" class="nav-item" prepend-icon="mdi-file-check-outline">
+                        STUDENT EXAMS
+                    </v-list-item>
+                </template>
+                <v-list-group
+                    v-for="[class_name, class_exams_data] in Object.entries(userAuthStore.headData.studentsExams)"
+                    :key="class_name">
+                    <template v-slot:activator="{ props }">
+                        <v-list-item v-bind="props" class="nav-item">
+                            {{ class_name }}
+                        </v-list-item>
+                    </template>
+                    <h4 class="nav-title nav-link" v-for="subject_name in Object.keys(class_exams_data)"
+                        :key="subject_name" @click="changePage(`HeadStudentsExams,${class_name},${subject_name}`)">
+                        {{ subject_name }}
+                    </h4>
+                </v-list-group>
+            </v-list-group>
+
+            <v-list-group>
+                <template v-slot:activator="{ props }">
+                    <v-list-item v-bind="props" class="nav-item" prepend-icon="mdi-trophy-outline">
+                        STUDENT RESULTS
+                    </v-list-item>
+                </template>
+                <v-list-group
+                    v-for="[class_name, class_student_exams_data] in Object.entries(userAuthStore.headData.studentsResults)"
+                    :key="class_name">
+                    <template v-slot:activator="{ props }">
+                        <v-list-item v-bind="props" class="nav-item">
+                            {{ class_name }}
+                        </v-list-item>
+                    </template>
+                    <h4 class="nav-title nav-link" v-for="subject_name in Object.keys(class_student_exams_data)"
+                        :key="subject_name" @click="changePage(`HeadStudentsResults,${class_name},${subject_name}`)">
+                        {{ subject_name }}
+                    </h4>
+                </v-list-group>
+            </v-list-group>
 
           <v-list-item @click="changePage('HeadReleasedResults')" class="nav-item nav-link" prepend-icon="mdi-chart-bar">
             RELEASED RESULTS
@@ -386,6 +490,42 @@ const changeRole = async () => {
             <div class="flex-all mt-15">
               <v-btn @click="showOverlay()" size="small" color="red" variant="flat" prepend-icon="mdi-logout">LOGOUT</v-btn>
             </div>
+        </v-list>
+
+        <!-- Head -->
+        <v-list class="nav-list-container" v-if="!['teacher', 'administrator'].includes(userAuthStore.userData?.['staff_role']?.toLowerCase()) && !headRoles.includes(userAuthStore.userData?.['staff_role']?.toLowerCase())">
+
+          <v-list-item>
+            <div class="flex-all">
+              <v-select class="role-select"
+                :items="userAuthStore.userData['roles'].map((item: any) => ({ 'title': `${item.split('|')[1]} ${item.split('|')[0]}`, 'value': item }))"
+                label="CHANGE ROLE" v-model="roleSelected" item-title="title" density="compact" item-value="value" variant="solo-filled" clearable 
+              />
+              <v-btn @click="changeRole()" :disabled="!(roleSelected)" :ripple="false" variant="flat" type="submit" color="white" size="x-small" icon="mdi-swap-horizontal" 
+              />
+            </div>
+          </v-list-item>
+
+          <v-list-item style="color: yellow" prepend-icon="mdi-account">
+            <v-list-item-title style="color: yellow; font-weight: bold; font-size:.8rem">
+              CURRENT ROLE
+            </v-list-item-title>
+            <v-list-item-subtitle style="color: yellow; font-weight: bold; font-size:.7rem">
+              {{ userAuthStore.userData['current_role']['level']['name'].toUpperCase() }} {{ userAuthStore.userData['staff_role'].toUpperCase() }}
+            </v-list-item-subtitle>
+          </v-list-item>
+
+          <v-list-item @click="changePage('OtherRolesStaff')" class="nav-item nav-link" prepend-icon="mdi-account-group">
+            STAFF
+          </v-list-item>
+
+          <v-list-item @click="changePage('Help')" class="nav-item nav-link" prepend-icon="mdi-headset">
+            SUPPORT
+          </v-list-item>
+
+          <div class="flex-all mt-15">
+              <v-btn @click="showOverlay()" color="red" size="small" prepend-icon="mdi-logout">LOGOUT</v-btn>
+          </div>
         </v-list>
     </div>
 </template>

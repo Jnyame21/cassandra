@@ -181,12 +181,15 @@ def get_teacher_data(request):
             head_classes.append(_class)
         students_class_names.append(_class.name)
         
+    attendance_mappings = defaultdict(list)
+    attendance_objs = StudentAttendance.objects.select_related('students_class').prefetch_related('students_present__user', 'students_absent__user').filter(school=school, level=current_level, students_class__in=head_classes, academic_year=current_academic_year, academic_term=current_term).order_by('-date')
+    for _attendance_ in attendance_objs:
+        attendance_mappings[_attendance_.students_class.id].append(_attendance_)
     atttendance_data = defaultdict(dict)
     for _class in head_classes:
         students_class_name = _class.name
         students = StudentUserIdSerializer(_class.students.all(), many=True).data
-        attendance_objs = StudentAttendance.objects.prefetch_related('students_present__user', 'students_absent__user').filter(school=school, level=current_level, students_class=_class, academic_year=current_academic_year, academic_term=current_term).order_by('-date')
-        attendances = StudentsAttendanceSerializer(attendance_objs, many=True).data
+        attendances = StudentsAttendanceSerializer(attendance_mappings[_class.id], many=True).data
         atttendance_data[students_class_name]['students'] = students
         atttendance_data[students_class_name]['attendances'] = attendances
     

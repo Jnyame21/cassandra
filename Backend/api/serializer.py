@@ -939,12 +939,18 @@ class StudentsAttendanceSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = StudentAttendance
-        fields = ('date', 'students_present', 'students_absent', 'academic_term', 'id')
-
-    # def get_students_class(self, obj):
-    #     return obj.students_class.name
+        fields = ('date', 'students_present', 'students_absent', 'id')
 
 
+class StudentsAttendanceSerializerOne(serializers.ModelSerializer):
+    students_present = StudentUserIdSerializer(many=True)
+    students_absent = StudentUserIdSerializer(many=True)
+
+    class Meta:
+        model = StudentAttendance
+        fields = ('date', 'students_present', 'students_absent')
+        
+        
 # ReleasedResult
 class ReleasedResultsSerializer(serializers.ModelSerializer):
     academic_year = serializers.SerializerMethodField()

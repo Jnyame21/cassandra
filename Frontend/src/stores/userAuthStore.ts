@@ -236,7 +236,6 @@ export interface states {
       [class_name: string]: {
         attendances: {
           id : number;
-          academic_term: number;
           date: string;
           students_present: {
             user: string
@@ -539,29 +538,110 @@ export interface states {
       released_by: string;
       date: string;
     }[]
+    studentsAttendance: {
+      [class_name: string]: {
+        date: string;
+        students_present: {
+          user: string
+          st_id: string
+        }[];
+        students_absent: {
+          user: string
+          st_id: string
+        }[]
+      }[];
+    }
+    studentsAssessments: {
+      [className: string]: {
+        [subject: string]: {
+          [assessmentTitle: string]: {
+            id: number;
+            title: string;
+            description: string;
+            percentage: number;
+            assessment_date: string;
+            total_score: number;
+            students_with_assessment: {
+              [studentId: string]: {
+                name: string;
+                st_id: string;
+                score: number;
+                comment: string;
+              }
+            };
+            students_without_assessment: {
+              [studentId: string]: {
+                name: string;
+                st_id: string;
+              }
+            }
+          }
+        }
+      }
+    }
+    studentsExams: {
+      [class_name: string]: {
+        [subject_name: string]: {
+          percentage: number
+          total_score: number
+          students_with_exams: {
+            [st_id: string]: {
+              name: string
+              st_id: string
+              score: number
+            }
+          }
+          students_without_exams: {
+            [st_id: string]: {
+              name: string
+              st_id: string
+            }
+          }
+        }
+      }
+    }
+    studentsResults: {
+      [class_name: string]: {
+        [subject_name: string]: {
+          total_assessment_percentage: number
+          exam_percentage: number
+          student_results: {
+            [st_id: string]: {
+              result: number;
+              total_assessment_score: number;
+              exam_score: number;
+              student: {
+                name: string
+                st_id: string
+              };
+              remark: string;
+              grade: string;
+              position: string;
+            }
+          }
+        }
+      }
+    }
   }
-  headDepartments: any
-  headPrograms: any
-  notifications: any
-  headNotificationsStaff: any
-  hodPerformance: any
-  headStudentsPerformance: any
-  adminClasses: {
-    yearOne: any
-    yearTwo: any
-    yearThree: any
-    names: any
-    subjects: any
-    programs: any
+  otherRolesData: {
+    staff: {
+      user: string;
+      staff_id: string;
+      subjects: string[];
+      roles: string[];
+      alt_contact: string;
+      img: string;
+      nationality: string;
+      contact: string;
+      gender: string;
+      email: string;
+      departments: string[];
+      address: string;
+    }[] | null
   }
-  adminStaff: {
-    departmentNames: any
-    subjects: any
-    departments: any
-    academicYears: any
-  }
-  adminHeads: any
+  
   // Notification
+  notifications: [] | null
   newNotification: boolean
   notificationStudentsClasses: any
   notificationStudents: any
@@ -639,29 +719,17 @@ export const useUserAuthStore = defineStore('userAuthStore', {
         staff: null,
         programs: [],
         subjects: [],
+        studentsAssessments: {},
+        studentsExams: {},
+        studentsResults:{},
+        studentsAttendance: {},
         subjectAssignments: [],
         releasedResults: [],
       },
-      headDepartments: null,
-      headPrograms: null,
-      headNotificationsStaff: null,
-      hodPerformance: null,
-      headStudentsPerformance: null,
-      adminClasses: {
-        yearOne: null,
-        yearTwo: null,
-        yearThree: null,
-        names: null,
-        subjects: null,
-        programs: null,
+      otherRolesData: {
+        staff: null,
       },
-      adminStaff: {
-        departmentNames: null,
-        subjects: null,
-        departments: null,
-        academicYears: null,
-      },
-      adminHeads: null,
+      
       // Notification
       notifications: null,
       newNotification: false,
@@ -781,7 +849,22 @@ export const useUserAuthStore = defineStore('userAuthStore', {
           this.headData.programs = data['programs']
           this.headData.subjects = data['subjects']
           this.headData.subjectAssignments = data['subject_assignments']
+          this.headData.studentsAssessments = response.data['students_assessments']
+          this.headData.studentsExams = response.data['students_exams']
+          this.headData.studentsResults = response.data['students_results']
           this.headData.releasedResults = data['released_results']
+          this.headData.studentsAttendance = data['students_attendance']
+        })
+        .catch(() => {
+          return Promise.reject()
+        })
+    },
+
+    async getOtherRolesData() {
+      await axiosInstance.get('other_roles/data', {params: { year: this.activeAcademicYearID, term: this.activeTerm }})
+        .then(response => {
+          const data = response.data
+          this.otherRolesData.staff = data['staff']
         })
         .catch(() => {
           return Promise.reject()
