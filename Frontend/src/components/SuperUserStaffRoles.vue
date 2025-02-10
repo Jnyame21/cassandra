@@ -84,9 +84,9 @@ const addRemoveSchool = async () => {
     if (error instanceof AxiosError) {
       if (error.response) {
         if (error.response.status === 400 && error.response.data.message) {
-        elementsStore.ShowOverlay(error.response.data.message, 'red')
+          elementsStore.ShowOverlay(error.response.data.message, 'red')
         } else {
-        elementsStore.ShowOverlay('Oops! something went wrong. Try again later', 'red')
+          elementsStore.ShowOverlay('Oops! something went wrong. Try again later', 'red')
         }
       }
       else if (!error.response && (error.code === 'ECONNABORTED' || !navigator.onLine)) {
@@ -99,7 +99,7 @@ const addRemoveSchool = async () => {
   }
 }
 
-const deleteRole = async (index: number, role_id:string) => {
+const deleteRole = async (index: number, role_id: string) => {
   elementsStore.ShowLoadingOverlay()
   const formData = new FormData()
   formData.append('type', 'delete')
@@ -138,7 +138,7 @@ const closeOverlay = (element: string) => {
   }
 }
 
-const showOverlay = (element: string, type_option:string='', role_index:number=0, role_id:string='', school_options:string[]=[]) => {
+const showOverlay = (element: string, type_option: string = '', role_index: number = 0, role_id: string = '', school_options: string[] = []) => {
   addRemoveType.value = type_option
   roleId.value = role_id
   roleIndex.value = role_index
@@ -153,36 +153,37 @@ const showOverlay = (element: string, type_option:string='', role_index:number=0
 </script>
 
 <template>
-  <div class="content-wrapper" v-show="elementsStore.activePage === 'SuperUserStaffRoles'" :class="{ 'is-active-page': elementsStore.activePage === 'SuperUserStaffRoles' }">
+  <div class="content-wrapper" v-show="elementsStore.activePage === 'SuperUserStaffRoles'"
+    :class="{ 'is-active-page': elementsStore.activePage === 'SuperUserStaffRoles' }">
     <!-- subject schools overlay -->
     <div id="SuperUserSchoolsUnderStaffRoleOverlay" class="overlay upload">
-        <div class="overlay-card">
-          <v-btn @click="closeOverlay('SuperUserSchoolsUnderStaffRoleOverlay')" color="red" size="small" variant="flat" class="close-btn">
-            X
-          </v-btn>
-          <div class="overlay-card-content-container">
-            <p class="subject-card" v-for="(school, index) in schoolOptions" :key=index>{{school}}</p>
-          </div>
+      <div class="overlay-card">
+        <v-btn @click="closeOverlay('SuperUserSchoolsUnderStaffRoleOverlay')" color="red" size="small" variant="flat"
+          class="close-btn">
+          X
+        </v-btn>
+        <div class="overlay-card-content-container">
+          <p class="subject-card" v-for="(school, index) in schoolOptions" :key=index>{{ school }}</p>
         </div>
+      </div>
     </div>
 
     <!-- role creation overlay -->
     <div id="SuperUserCreateStaffRoleOverlay" class="overlay upload">
       <div class="overlay-card">
-        <v-btn @click="closeOverlay('SuperUserCreateStaffRoleOverlay')" color="red" size="small" variant="flat" class="close-btn">
+        <v-btn @click="closeOverlay('SuperUserCreateStaffRoleOverlay')" color="red" size="small" variant="flat"
+          class="close-btn">
           X
         </v-btn>
         <div class="overlay-card-content-container">
-          <v-text-field class="input-field" v-model="name" label="NAME" clearable
-          />
-          <v-select class="select" :items="userAuthStore.superUserData.levels.map(item=> item.identifier)" label="LEVEL" v-model="levelIdentifier" variant="solo-filled"
-            density="comfortable" persistent-hint hint="Select the level for the role" clearable
-            />
+          <v-text-field class="input-field" v-model="name" label="NAME" clearable />
+          <v-select class="select" :items="userAuthStore.superUserData.levels.map(item => item.identifier)" label="LEVEL"
+            v-model="levelIdentifier" variant="solo-filled" density="comfortable" persistent-hint
+            hint="Select the level for the role" clearable />
         </div>
         <div class="overlay-card-action-btn-container">
-          <v-btn @click="createRole()"
-            :disabled="!(name && levelIdentifier)" :ripple="false"
-            variant="flat" type="submit" color="black" size="small" append-icon="mdi-checkbox-marked-circle">
+          <v-btn @click="createRole()" :disabled="!(name && levelIdentifier)" :ripple="false" variant="flat"
+            type="submit" color="black" size="small" append-icon="mdi-checkbox-marked-circle">
             SUBMIT
           </v-btn>
         </div>
@@ -191,30 +192,29 @@ const showOverlay = (element: string, type_option:string='', role_index:number=0
 
     <!-- add/remove school from staf role overlay -->
     <div id="SuperUserAddRemoveSchoolFromStaffRoleOverlay" class="overlay upload">
-        <div class="overlay-card">
-          <v-btn @click="closeOverlay('SuperUserAddRemoveSchoolFromStaffRoleOverlay')" color="red" size="small" variant="flat" class="close-btn">
-            X
-          </v-btn>
-          <div class="overlay-card-content-container">
-            <v-select class="select" v-if="addRemoveType === 'addSchool'" :items="schoolOptions" label="SCHOOLS" v-model="schoolIdentifiers" variant="solo-filled"
-            density="comfortable" persistent-hint hint="Select the school(s) you want to add" clearable multiple
-            />
-            <v-select class="select" v-if="addRemoveType === 'removeSchool'" :items="schoolOptions" label="SCHOOLS" v-model="schoolIdentifiers" variant="solo-filled"
-            density="comfortable" persistent-hint hint="Select the school(s) you want to remove" clearable multiple
-            />
-          </div>
-          <div class="overlay-card-action-btn-container">
-            <v-btn @click="addRemoveSchool()"
-              :disabled="!(schoolIdentifiers.length > 0)" :ripple="false"
-              variant="flat" type="submit" color="black" size="small" append-icon="mdi-checkbox-marked-circle">
-              SUBMIT
-            </v-btn>
-          </div>
+      <div class="overlay-card">
+        <v-btn @click="closeOverlay('SuperUserAddRemoveSchoolFromStaffRoleOverlay')" color="red" size="small"
+          variant="flat" class="close-btn">
+          X
+        </v-btn>
+        <div class="overlay-card-content-container">
+          <v-select class="select" v-if="addRemoveType === 'addSchool'" :items="schoolOptions" label="SCHOOLS"
+            v-model="schoolIdentifiers" variant="solo-filled" density="comfortable" persistent-hint
+            hint="Select the school(s) you want to add" clearable multiple />
+          <v-select class="select" v-if="addRemoveType === 'removeSchool'" :items="schoolOptions" label="SCHOOLS"
+            v-model="schoolIdentifiers" variant="solo-filled" density="comfortable" persistent-hint
+            hint="Select the school(s) you want to remove" clearable multiple />
         </div>
+        <div class="overlay-card-action-btn-container">
+          <v-btn @click="addRemoveSchool()" :disabled="!(schoolIdentifiers.length > 0)" :ripple="false" variant="flat"
+            type="submit" color="black" size="small" append-icon="mdi-checkbox-marked-circle">
+            SUBMIT
+          </v-btn>
+        </div>
+      </div>
     </div>
     <div class="content-header">
-      <v-btn @click="showOverlay('SuperUserCreateStaffRoleOverlay')" color="blue"
-        :size="elementsStore.btnSize1">
+      <v-btn @click="showOverlay('SuperUserCreateStaffRoleOverlay')" color="blue" :size="elementsStore.btnSize1">
         CREATE ROLE
       </v-btn>
     </div>
@@ -242,17 +242,24 @@ const showOverlay = (element: string, type_option:string='', role_index:number=0
             <v-chip :text="role.identifier" :size="elementsStore.btnSize1" />
           </td>
           <td class="table-data">
-            <v-chip :text="role.level.split('|')[0]" :size="elementsStore.btnSize1" />
+            <v-chip :text="role.level?.split('|')[0]" :size="elementsStore.btnSize1" />
           </td>
           <td class="table-data flex-all">
-            <v-btn @click="showOverlay('SuperUserSchoolsUnderStaffRoleOverlay', '', 0, '', role.schools)" variant="flat" size="x-small" color="blue">
+            <v-btn @click="showOverlay('SuperUserSchoolsUnderStaffRoleOverlay', '', 0, '', role.schools)" variant="flat"
+              size="x-small" color="blue">
               VIEW SCHOOLS
             </v-btn>
-            <v-icon class="ml-2" v-if="userAuthStore.superUserData.schools" @click="showOverlay('SuperUserAddRemoveSchoolFromStaffRoleOverlay', 'addSchool', index, role.id.toString(), userAuthStore.superUserData.schools.map(item=> item.identifier).filter(item=> !role.schools.includes(item)))" icon="mdi-plus" color="blue" />
-            <v-icon class="ma-2" @click="showOverlay('SuperUserAddRemoveSchoolFromStaffRoleOverlay', 'removeSchool', index, role.id.toString(), role.schools)" icon="mdi-minus" color="blue" />
+            <v-icon class="ml-2" v-if="userAuthStore.superUserData.schools"
+              @click="showOverlay('SuperUserAddRemoveSchoolFromStaffRoleOverlay', 'addSchool', index, role.id.toString(), userAuthStore.superUserData.schools.map(item => item.identifier).filter(item => !role.schools.includes(item)))"
+              icon="mdi-plus" color="blue" />
+            <v-icon class="ma-2"
+              @click="showOverlay('SuperUserAddRemoveSchoolFromStaffRoleOverlay', 'removeSchool', index, role.id.toString(), role.schools)"
+              icon="mdi-minus" color="blue" />
           </td>
           <td class="table-data">
-            <v-btn class="ma-2" @click="elementsStore.ShowDeletionOverlay(()=>deleteRole(index, role.id.toString()), 'Are you sure you want to delete this role. The process cannot be reversed')" variant="flat" icon="mdi-delete" size="x-small" color="red" />
+            <v-btn class="ma-2"
+              @click="elementsStore.ShowDeletionOverlay(() => deleteRole(index, role.id.toString()), 'Are you sure you want to delete this role. The process cannot be reversed')"
+              variant="flat" icon="mdi-delete" size="x-small" color="red" />
           </td>
         </tr>
       </tbody>
@@ -261,14 +268,11 @@ const showOverlay = (element: string, type_option:string='', role_index:number=0
 </template>
 
 <style scoped>
-
-.overlay-card{
+.overlay-card {
   max-width: 600px !important;
 }
 
-.overlay-card-content-container{
+.overlay-card-content-container {
   margin-top: 3em !important;
 }
-
-
 </style>

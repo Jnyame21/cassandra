@@ -102,7 +102,7 @@ const showOverlay = (element: string, teacher_subjects:string[]) => {
             {{ _staff.gender }}
           </td>
           <td class="table-data">
-            <v-chip v-for="(role, ind) in _staff.roles" :key="ind">{{ role.split('|')[1] }} {{ role.split('|')[0] }}</v-chip>
+            <v-chip v-for="(role, ind) in _staff.roles" :key="ind" :size="elementsStore.btnSize1" >{{ role.split('|')[1] }} {{ role.split('|')[0] }}</v-chip>
           </td>
           <td class="table-data">
             <v-btn @click="showOverlay('TeacherTeachersSubjectsOverlay', _staff.subjects)" color="blue" :size="elementsStore.btnSize1">
@@ -110,7 +110,7 @@ const showOverlay = (element: string, teacher_subjects:string[]) => {
             </v-btn>
           </td>
           <td class="table-data">
-            <v-chip v-for="(department, ind) in _staff.departments" :key="ind">{{ department.split('|')[0] }}({{ department.split('|')[1] }})</v-chip>
+            <v-chip v-for="(department, ind) in _staff.departments" :key="ind" :size="elementsStore.btnSize1">{{ department.split('|')[0] }}({{ department.split('|')[1] }})</v-chip>
           </td>
           <td class="table-data">
             {{ _staff.contact }}

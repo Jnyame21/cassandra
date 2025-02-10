@@ -80,6 +80,7 @@ def delete_file(sender, instance, **kwargs):
 
 class School(models.Model):
     name = models.CharField(max_length=100, verbose_name="School Name", blank=False, unique=False, null=False)
+    levels = models.ManyToManyField('EducationalLevel', verbose_name="Levels")
     identifier = models.CharField(max_length=100, verbose_name="School Identifier", blank=False, unique=False, null=False, default="", db_index=True)
     code = models.CharField(max_length=10, verbose_name="School Code", blank=True, null=True, default="")
     logo = models.ImageField(verbose_name='School Logo', upload_to=school_image_path, blank=True, null=True, max_length=255)
@@ -116,7 +117,6 @@ class GradingSystem(models.Model):
     
 
 class EducationalLevel(models.Model):
-    schools = models.ManyToManyField(School, verbose_name="Schools", blank=True)
     name = models.CharField(max_length=50, verbose_name="Level name", blank=False, null=True)
     identifier = models.CharField(max_length=100, verbose_name="Level identifier", blank=False, null=False, default="", db_index=True)
     years_to_complete = models.IntegerField(verbose_name="Years to complete this level", default=0)

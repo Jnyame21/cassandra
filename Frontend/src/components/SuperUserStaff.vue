@@ -508,7 +508,7 @@ const closeOverlay = (element: string) => {
             label="ROLE" v-model="staffRoleSelected" item-title="title" item-value="value" variant="solo-filled" @update:model-value="()=> staffDepartmentSelected = ''" density="comfortable" persistent-hint
             hint="Select the staff role you want to add" clearable 
           />
-          <v-select class="select" v-if="userAuthStore.superUserData.levels.find(item=> item.schools.includes(schoolIdentifier) && item.identifier===staffRoleSelected?.split(' | ').slice(1).join(' | '))?.has_departments && staffRoleSelected?.split(' | ')[0].toLowerCase() === 'teacher'" 
+          <v-select class="select" v-if="userAuthStore.superUserData.levels.find(item=> userAuthStore.superUserData.schools?.find(item=> item.identifier === schoolIdentifier)?.levels.includes(item.identifier) && item.identifier===staffRoleSelected?.split(' | ').slice(1).join(' | '))?.has_departments && staffRoleSelected?.split(' | ')[0].toLowerCase() === 'teacher'" 
             :items="userAuthStore.superUserData.departments[schoolIdentifier].filter(item=> item.level=staffRoleSelected?.split(' | ').slice(1).join(' | ')).map(item=> ({'title': `${item.identifier.split('|')[1]} ${item.name}`, 'value': item.identifier}))"
             label="DEPARTMENT" v-model="staffDepartmentSelected" item-title="title" item-value="value" variant="solo-filled" density="comfortable" persistent-hint
             hint="Select the department the staff is in" clearable 

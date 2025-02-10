@@ -60,6 +60,9 @@ watch(() => userAuthStore.userData, (newValue) => {
   else if (newValue && headRoles.includes(userAuthStore.userData?.['staff_role'].toLowerCase())) {
     elementsStore.activePage = 'HeadStaff'
   }
+  else if (newValue && !['teacher', 'administrator'].includes(userAuthStore.userData?.['staff_role'].toLowerCase()) && !headRoles.includes(userAuthStore.userData?.['staff_role'].toLowerCase())) {
+    elementsStore.activePage = 'OtherRolesStaff'
+  }
 }, { 'once': true, 'immediate': true })
 
 onMounted(()=>{

@@ -24,7 +24,7 @@ export const useElementsStore = defineStore('elementsStore', {
             drawer: false,
             navDrawer: false,
             onDesk: false,
-            activePage: 'page1',
+            activePage: '',
             errorMessage: false,
             deleteFunction: null,
             deleteOverlayMessage: '',

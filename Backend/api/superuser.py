@@ -7,7 +7,7 @@ from django.core.validators import EmailValidator
 from api.utils import get_staff_creation_file, get_students_creation_file, ErrorMessageException, valid_phone_number, valid_email, staff_title_options, religion_options
 from api.models import *
 from api.serializer import (
-    SchoolSerializer, SuperuserEducationalLevelSerializer, SuperuserProgramSerializer, SuperuserSubjectsSerializer, SuperuserDepartmentSerializer, 
+    SchoolSerializer, EducationalLevelSerializer, SuperuserProgramSerializer, SuperuserSubjectsSerializer, SuperuserDepartmentSerializer, 
     SuperuserGradingSystemSerializer, SuperuserGradingSystemSerializer, SuperuserClasseSerializer, SuperuserGradingSystemRangeSerializer,
     AcademicYearSerializer, StaffRoleSerializer, SuperuserStaffSerializer
 )
@@ -26,8 +26,8 @@ from django.forms import DateField
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_superuser_data(request):
-    schools_data = SchoolSerializer(School.objects.all().order_by('-date_created'), many=True).data
-    levels = SuperuserEducationalLevelSerializer(EducationalLevel.objects.prefetch_related('schools').all(), many=True).data
+    schools_data = SchoolSerializer(School.objects.prefetch_related('levels').all().order_by('-date_created'), many=True).data
+    levels = EducationalLevelSerializer(EducationalLevel.objects.all(), many=True).data
     programs = SuperuserProgramSerializer(Program.objects.prefetch_related('subjects', 'schools').select_related('level').all(), many=True).data
     subjects = SuperuserSubjectsSerializer(Subject.objects.select_related('level').prefetch_related('schools').all(), many=True).data
     grading_system_ranges = SuperuserGradingSystemRangeSerializer(GradingSystemRange.objects.all(), many=True).data
@@ -83,9 +83,10 @@ def superuser_schools(request):
         email = data['email'].strip()
         staff_id = json.loads(data['staffId'])
         identifier = f"{name} | {city_town} | {contact}"
+        school_levels = EducationalLevel.objects.filter(identifier__in=json.loads(data['levelIds']))
         
         with transaction.atomic():
-            School.objects.create(
+            school_obj = School.objects.create(
                 name=name,
                 short_name=short_name,
                 identifier=identifier,
@@ -100,36 +101,45 @@ def superuser_schools(request):
                 city_town=city_town,
                 staff_id=staff_id,
             )
+            school_obj.levels.set(school_levels)
         
         school_data = SchoolSerializer(School.objects.get(identifier=identifier)).data
         
         return Response(school_data, status=200)  
     
+    elif data['type'].split('L')[-1] == 'evel':
+        level = EducationalLevel.objects.get(identifier=data['levelIdentifier'])
+        school = School.objects.get(id=int(data['schoolId']))
+        try:
+            school.levels.add(level) if data['type'].split('L')[0] == 'add' else school.levels.remove(level)
+        except Exception:
+            return Response(status=400)         
+        
+        return Response(status=200)
+    
     elif data['type'] == 'delete':
-        identifier = data['identifier']
-        school = School.objects.get(identifier=identifier)
-        if Student.objects.filter(school=school).exists():
-            return Response({'message': f'There are students in this school [{school.name}]. Delete the students before'}, status=400)
-        elif Classe.objects.filter(school=school).exists():
+        school = School.objects.get(id=data['schoolId'])
+        
+        if Classe.objects.filter(school=school).exists():
             return Response({'message': f'There are classes in this school [{school.name}]. Delete the classes before'}, status=400)
         elif AcademicYear.objects.filter(school=school).exists():
             return Response({'message': f'There are academic year data in this school [{school.name}]. Delete those data before'}, status=400)
+        elif Student.objects.filter(school=school).exists():
+            return Response({'message': f'There are students in this school [{school.name}]. Delete the students before'}, status=400)
         elif Department.objects.filter(school=school).exists():
             return Response({'message': f'There are department data in this school [{school.name}]. Delete those data before'}, status=400)
-        elif GraduatedClasse.objects.filter(school=school).exists():
-            return Response({'message': f'There are graduated classes data in this school [{school.name}]. Delete those data before'}, status=400)
-        elif LinkedClasse.objects.filter(school=school).exists():
-            return Response({'message': f'There are linked classes data in this school [{school.name}]. Delete those data before'}, status=400)
         elif SubjectAssignment.objects.filter(school=school).exists():
             return Response({'message': f'There are subject assignments data in this school [{school.name}]. Delete those data before'}, status=400)
+        elif StudentAttendance.objects.filter(school=school).exists():
+            return Response({'message': f'There are students attendance data in this school [{school.name}]. Delete those data before'}, status=400)
         elif Assessment.objects.filter(school=school).exists():
             return Response({'message': f'There are assessments data in this school [{school.name}]. Delete those data before'}, status=400)
         elif Exam.objects.filter(school=school).exists():
             return Response({'message': f'There are exams data in this school [{school.name}]. Delete those data before'}, status=400)
         elif StudentResult.objects.filter(school=school).exists():
             return Response({'message': f'There are student results data in this school [{school.name}]. Delete those data before'}, status=400)
-        elif StudentAttendance.objects.filter(school=school).exists():
-            return Response({'message': f'There are students attendance data in this school [{school.name}]. Delete those data before'}, status=400)
+        elif GraduatedClasse.objects.filter(school=school).exists():
+            return Response({'message': f'There are graduated classes data in this school [{school.name}]. Delete those data before'}, status=400)
         
         with transaction.atomic():
             school.delete()
@@ -166,7 +176,7 @@ def superuser_levels(request):
             except Exception:
                 return Response(status=400)
         
-        level_data = SuperuserEducationalLevelSerializer(EducationalLevel.objects.get(identifier=identifier)).data
+        level_data = EducationalLevelSerializer(EducationalLevel.objects.get(identifier=identifier)).data
         
         return Response(level_data, status=200)  
     
@@ -185,24 +195,26 @@ def superuser_levels(request):
     elif data['type'] == 'delete':
         identifier = data['identifier']
         level = EducationalLevel.objects.get(identifier=identifier)
-        if Student.objects.filter(levels=level).exists():
-            return Response({'message': f'There are students in this level. Delete the students before'}, status=400)
-        elif Classe.objects.filter(level=level).exists():
+        if StaffRole.objects.filter(level=level).exists():
+            return Response({'message': f'There are staff role under this level. Delete the roles before'}, status=400)
+        if Classe.objects.filter(level=level).exists():
             return Response({'message': f'There are classes in this level. Delete the classes before'}, status=400)
         elif AcademicYear.objects.filter(level=level).exists():
             return Response({'message': f'There are academic year data in this level. Delete those data before'}, status=400)
+        elif Student.objects.filter(levels=level).exists():
+            return Response({'message': f'There are students in this level. Delete the students before'}, status=400)
         elif Department.objects.filter(level=level).exists():
             return Response({'message': f'There are department data in this level. Delete those data before'}, status=400)
         elif SubjectAssignment.objects.filter(level=level).exists():
             return Response({'message': f'There are subject assignments data in this level. Delete those data before'}, status=400)
+        elif StudentAttendance.objects.filter(level=level).exists():
+            return Response({'message': f'There are students attendance data in this level. Delete those data before'}, status=400)
         elif Assessment.objects.filter(level=level).exists():
             return Response({'message': f'There are assessments data in this level. Delete those data before'}, status=400)
         elif Exam.objects.filter(level=level).exists():
             return Response({'message': f'There are exams data in this level. Delete those data before'}, status=400)
         elif StudentResult.objects.filter(level=level).exists():
             return Response({'message': f'There are student results data in this level. Delete those data before'}, status=400)
-        elif StudentAttendance.objects.filter(level=level).exists():
-            return Response({'message': f'There are students attendance data in this level. Delete those data before'}, status=400)
         
         with transaction.atomic():
             level.delete()
@@ -251,7 +263,6 @@ def superuser_subjects(request):
     elif data['type'] == 'delete':
         identifier = data['identifier']
         subject = Subject.objects.get(identifier=identifier)
-        
         if Assessment.objects.filter(subject=subject).exists():
             return Response({'message': f'There are assessments data for this subject. Delete those data before'}, status=400)
         elif Exam.objects.filter(subject=subject).exists():
@@ -294,10 +305,8 @@ def superuser_programs(request):
         return Response(program_data, status=200)  
     
     elif data['type'].split('S')[-1] == 'chool':
-        program_identifier = data['programIdentifier']
-        school_identifier = data['schoolIdentifier']
-        program = Program.objects.prefetch_related('schools').get(identifier=program_identifier)
-        school = School.objects.get(identifier=school_identifier)
+        program = Program.objects.prefetch_related('schools').get(identifier=data['programIdentifier'])
+        school = School.objects.get(identifier=data['schoolIdentifier'])
         try:
             program.schools.add(school) if data['type'].split('S')[0] == 'add' else program.schools.remove(school)
         except Exception:
@@ -306,10 +315,8 @@ def superuser_programs(request):
         return Response(status=200)
     
     elif data['type'].split('S')[-1] == 'ubject':
-        program_identifier = data['programIdentifier']
-        subject_identifier = data['subjectIdentifier']
-        program = Program.objects.prefetch_related('subjects').get(identifier=program_identifier)
-        subject = Subject.objects.get(identifier=subject_identifier)
+        program = Program.objects.prefetch_related('subjects').get(identifier=data['programIdentifier'])
+        subject = Subject.objects.get(identifier=data['subjectIdentifier'])
         try:
             program.subjects.add(subject) if data['type'].split('S')[0] == 'add' else program.subjects.remove(subject)
         except Exception:
@@ -361,9 +368,8 @@ def superuser_departments(request):
         return Response(department_data, status=200)  
     
     elif data['type'].split('S')[-1] == 'ubject':
-        subject_identifiers = json.loads(data['subjectIdentifiers'])
         department = Department.objects.prefetch_related('subjects').get(id=int(data['departmentId']))
-        subject = Subject.objects.filter(identifier__in=subject_identifiers)
+        subject = Subject.objects.filter(identifier__in=json.loads(data['subjectIdentifiers']))
         try:
             department.subjects.add(*subject) if data['type'].split('S')[0] == 'add' else department.subjects.remove(*subject)
         except Exception as e:
@@ -580,7 +586,12 @@ def superuser_grading_systems(request):
     
     elif data['type'].split('S')[-1] == 'chool':
         school = School.objects.get(identifier=data['schoolIdentifier'])
-        grading_system = GradingSystem.objects.prefetch_related('schools').get(id=int(data['gradingSystemId']))
+        grading_system = GradingSystem.objects.prefetch_related('schools', 'ranges').get(id=int(data['gradingSystemId']))
+        if data['type'].split('S')[0] == 'add' and not grading_system.ranges.all().exists():
+            return Response({'message': f"The grading system has no ranges, add ranges before adding a school"}, status=400)
+        if data['type'].split('S')[0] == 'add' and GradingSystem.objects.filter(schools=school, level__name=grading_system.level.name).exists():
+            return Response({'message': f"The selected school has already been added to a grading system with level name of '{grading_system.level.name}'"}, status=400)
+        
         try:
             grading_system.schools.add(school) if data['type'].split('S')[0] == 'add' else grading_system.schools.remove(school)
         except Exception as e:
@@ -684,6 +695,8 @@ def superuser_staff_roles(request):
         name = data['name'].strip().upper()
         level = EducationalLevel.objects.get(identifier=data['levelIdentifier'])
         identifier = f"{name} | {level.identifier}"
+        if StaffRole.objects.filter(name=name, level=level).exists():
+            return Response({'message': "This role already exists"}, status=400)
         
         staff_role = StaffRole.objects.create(
             name=name,
@@ -695,8 +708,13 @@ def superuser_staff_roles(request):
         return Response(staff_role_data, status=200)  
     
     elif data['type'].split('S')[-1] == 'chool':
-        staff_role = StaffRole.objects.get(id=int(data['id']))
+        staff_role = StaffRole.objects.select_related('level').prefetch_related('schools').get(id=int(data['id']))
         schools = School.objects.filter(identifier__in=json.loads(data['schoolIdentifiers']))
+        if data['type'].split('S')[0] == 'add':
+            for _school_ in schools:
+                existing_staff_role_with_same_level_name = StaffRole.objects.filter(schools=_school_, name=staff_role.name, level__name=staff_role.level.name).first()
+                if existing_staff_role_with_same_level_name:
+                    return Response({'message': f"The school '{_school_.name}' has already been added to a role with name '{staff_role.name}' and level name '{staff_role.level.name}'"}, status=400)
         try:
             staff_role.schools.add(*schools) if data['type'].split('S')[0] == 'add' else staff_role.schools.remove(*schools)
         except Exception:

@@ -19,7 +19,9 @@ export interface states {
   activeAcademicYearID: number;
   superUserData: {
     schools: {
+      id: number;
       name: string;
+      levels: string[];
       identifier: string;
       code: string;
       logo: string;
@@ -43,7 +45,6 @@ export interface states {
       has_programs: boolean;
       students_id: boolean;
       students_index_no: boolean;
-      schools: string[]
     }[]
     subjects: {
       name: string;
@@ -746,7 +747,6 @@ export const useUserAuthStore = defineStore('userAuthStore', {
       try {
         elementsStore.ShowLoadingOverlay()
         await axiosInstance.post('logout')
-        useElementsStore().$reset()
         this.$reset()
         this.message = 'You have been logged out!'
         setTimeout(()=>{

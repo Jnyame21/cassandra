@@ -193,7 +193,7 @@ const showOverlay = (element: string, type_option:string='', program_index:numbe
           <p class="subject-card" v-for="(subject, index) in subjectOptions" :key=index>{{subject}}</p>
         </div>
       </div>
-  </div>
+    </div>
 
     <!-- program creation overlay -->
     <div id="SuperUserCreateProgramOverlay" class="overlay upload">
@@ -246,7 +246,8 @@ const showOverlay = (element: string, type_option:string='', program_index:numbe
             </v-btn>
           </div>
         </div>
-    </div>
+      </div>
+
     <div class="content-header">
       <v-btn @click="showOverlay('SuperUserCreateProgramOverlay')" color="blue"
         :size="elementsStore.btnSize1">

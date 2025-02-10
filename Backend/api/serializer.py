@@ -43,6 +43,7 @@ class UserSerializer(serializers.ModelSerializer):
 
 # School Serializers
 class SchoolSerializer(serializers.ModelSerializer):
+    levels = serializers.SerializerMethodField()
     class Meta:
         model = School
         fields = "__all__"
@@ -52,33 +53,16 @@ class SchoolSerializer(serializers.ModelSerializer):
         data['logo'] = get_image(data, 'school_logo')
 
         return data
-        
-
-# Educational Level Serializers
-class SuperuserEducationalLevelSerializer(serializers.ModelSerializer):
-    schools = serializers.SerializerMethodField()
-    class Meta:
-        model = EducationalLevel
-        fields = '__all__'
-        
-    def get_schools(self, obj):
-        return [x.identifier for x in obj.schools.all()]
     
-     
+    def get_levels(self, obj):
+        return [x.identifier for x in obj.levels.all()]
+    
+
+# Educational Level Serializers  
 class EducationalLevelSerializer(serializers.ModelSerializer):
-    schools = serializers.SerializerMethodField()
     class Meta:
         model = EducationalLevel
         fields = '__all__'
-        
-    def get_schools(self, obj):
-        return [x.name for x in obj.schools.all()]
-
-
-class EducationalLevelWithoutSchoolSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = EducationalLevel
-        fields = ('name', 'identifier', 'has_programs', 'has_departments', 'students_id', 'students_index_no', 'years_to_complete')
         
         
 class EducationalLevelNameSerializer(serializers.ModelSerializer):
@@ -218,7 +202,7 @@ class ProgramNameSerializer(serializers.ModelSerializer):
 #  Student Serializers
 class StudentSerializer(serializers.ModelSerializer):
     school = SchoolSerializer()
-    current_level = EducationalLevelWithoutSchoolSerializer()
+    current_level = EducationalLevelSerializer()
     current_program = serializers.SerializerMethodField()
     st_class = serializers.SerializerMethodField()
     levels = serializers.SerializerMethodField()
@@ -368,7 +352,7 @@ class StaffRoleSerializer(serializers.ModelSerializer):
 
 
 class StaffRoleSerializerOne(serializers.ModelSerializer):
-    level = EducationalLevelWithoutSchoolSerializer()
+    level = EducationalLevelSerializer()
     
     class Meta:
         model = StaffRole

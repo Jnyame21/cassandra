@@ -776,10 +776,10 @@ const closeOverlay = (element: string) => {
           <td class="table-data">
             <v-chip class="ma-2" v-for="(role, ind) in _staff.roles" :key="ind"
               :text="`${role.split('|')[1]} ${role.split('|')[0]}`" :size="elementsStore.btnSize1" />
-            <v-icon class="ma-2"
+            <v-icon class="ma-2" v-if="_staff.staff_id !== userAuthStore.userData['staff_id']"
               @click="showStaffRoleEditOverlay('addRole', index, _staff.staff_id, userAuthStore.adminData.staffRoles.filter(item => !_staff.roles.includes(item) && item.split('|')[0].trim().toLowerCase() !== 'administrator'))"
               icon="mdi-plus" color="blue" />
-            <v-icon class="ma-2" v-if="_staff.roles.length > 0"
+            <v-icon class="ma-2" v-if="_staff.roles.length > 0 && _staff.staff_id !== userAuthStore.userData['staff_id']"
               @click="showStaffRoleEditOverlay('removeRole', index, _staff.staff_id, _staff.roles.filter(item => item.split('|')[0].trim().toLowerCase() !== 'administrator'))"
               icon="mdi-minus" color="blue" />
           </td>

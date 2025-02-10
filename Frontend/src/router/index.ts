@@ -8,7 +8,6 @@ import StaffView from '@/views/StaffView.vue'
 import StudentView from '@/views/StudentView.vue'
 import LoginView from '@/views/LoginView.vue'
 import { useUserAuthStore } from '@/stores/userAuthStore'
-import { useElementsStore } from '@/stores/elementsStore'
 import { headRoles } from '@/utils/util'
 import SuperUserView from '@/views/SuperUserView.vue'
 
@@ -23,7 +22,6 @@ const checkAuth = async () => {
     } 
     catch (e:any) {
       if (e.response.status === 401){
-        useElementsStore().$reset()
         userAuthStore.$reset()
         await router.push('/')
         return;
@@ -56,6 +54,10 @@ const checkSuperuser = async (to: any, from: any, next: NavigationGuardNext) => 
     else if (!userAuthStore.headData.staff && headRoles.includes(userAuthStore.userData?.['staff_role']?.toLowerCase())) {
       userAuthStore.getHeadData()
     }
+    else if (!userAuthStore.otherRolesData.staff && !['teacher', 'administrator'].includes(userAuthStore.userData?.['staff_role']?.toLowerCase()) && !headRoles.includes(userAuthStore.userData?.['staff_role']?.toLowerCase())) {
+      userAuthStore.getOtherRolesData()
+    }
+
     next('/staff')
   } 
   
@@ -79,6 +81,10 @@ const checkStudent = async (to: any, from: any, next: NavigationGuardNext) => {
     else if (!userAuthStore.headData.staff && headRoles.includes(userAuthStore.userData?.['staff_role']?.toLowerCase())) {
       userAuthStore.getHeadData()
     }
+    else if (!userAuthStore.otherRolesData.staff && !['teacher', 'administrator'].includes(userAuthStore.userData?.['staff_role']?.toLowerCase()) && !headRoles.includes(userAuthStore.userData?.['staff_role']?.toLowerCase())) {
+      userAuthStore.getOtherRolesData()
+    }
+
     next('/staff')
   } 
   else if (userAuthStore.userData?.['role'].toLowerCase() === 'superuser') {
@@ -95,14 +101,19 @@ const checkStaff = async (to: any, from: any, next: NavigationGuardNext) => {
   const userAuthStore = useUserAuthStore()
   await checkAuth()
   
-  if (!userAuthStore.teacherData.staff && userAuthStore.userData?.['staff_role']?.toLowerCase() === 'teacher') {
-    userAuthStore.getTeacherData()
-  } 
-  else if (!userAuthStore.adminData.staff && userAuthStore.userData?.['staff_role']?.toLowerCase() === 'administrator') {
-    userAuthStore.getAdminData()
-  } 
-  else if (!userAuthStore.headData.staff && headRoles.includes(userAuthStore.userData?.['staff_role']?.toLowerCase())) {
-    userAuthStore.getHeadData()
+  if (userAuthStore.userData?.['role'] === 'staff'){
+    if (!userAuthStore.teacherData.staff && userAuthStore.userData?.['staff_role']?.toLowerCase() === 'teacher') {
+      userAuthStore.getTeacherData()
+    } 
+    else if (!userAuthStore.adminData.staff && userAuthStore.userData?.['staff_role']?.toLowerCase() === 'administrator') {
+      userAuthStore.getAdminData()
+    } 
+    else if (!userAuthStore.headData.staff && headRoles.includes(userAuthStore.userData?.['staff_role']?.toLowerCase())) {
+      userAuthStore.getHeadData()
+    }
+    else if (!userAuthStore.otherRolesData.staff && !['teacher', 'administrator'].includes(userAuthStore.userData?.['staff_role']?.toLowerCase()) && !headRoles.includes(userAuthStore.userData?.['staff_role']?.toLowerCase())) {
+      userAuthStore.getOtherRolesData()
+    }
   }
   else if (userAuthStore.userData?.['role'] === 'student') {
     if (!userAuthStore.studentData.students) {

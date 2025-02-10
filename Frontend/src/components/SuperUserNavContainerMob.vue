@@ -10,11 +10,10 @@ const changePage = (page_name: string) => {
 }
 
 const showOverlay = () => {
-    const logoutOverlay = document.getElementById('logout')
-    if (logoutOverlay) {
-        elementsStore.overlayPath = '/'
-        logoutOverlay.style.display = 'flex'
-    }
+  const overlay = document.getElementById('LogoutOverlay')
+  if (overlay) {
+    overlay.style.display = 'flex'
+  }
 }
 
 </script>

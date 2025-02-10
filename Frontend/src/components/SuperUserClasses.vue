@@ -280,7 +280,7 @@ const showOverlay = (element: string, type_option: string = '', class_index: num
           <v-text-field class="input-field" v-model.number="classStudentsYear" label="STUDENTS YEAR" type="number"
             clearable />
           <v-select class="select"
-            :items="userAuthStore.superUserData.levels.filter(item => item.schools.includes(schoolIdentifer)).map(item => item.identifier)"
+            :items="userAuthStore.superUserData.schools.find(item=> item.identifier === schoolIdentifer)?.levels"
             label="LEVEL" v-model="classLevelIdentifer" density="comfortable" persistent-hint hint="Select the level"
             variant="solo-filled" clearable />
           <v-select class="select" v-if="userAuthStore.superUserData.levels.find(item=> item.identifier === classLevelIdentifer)?.has_programs"

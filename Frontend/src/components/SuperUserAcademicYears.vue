@@ -18,7 +18,7 @@ const termTwoEndDate = ref('')
 const termThreeStartDate = ref('')
 const termThreeEndDate = ref('')
 const studentsGraduationDate = ref('')
-const academicYearLevelIdentifer = ref('')
+const academicYearLevelIdentifier = ref('')
 
 interface Props {
   schoolIdentifier: string;
@@ -35,7 +35,7 @@ const createAcademicYear = async () => {
   const formData = new FormData()
   formData.append('type', 'create')
   formData.append('name', academicYearName.value);
-  formData.append('levelIdentifier', academicYearLevelIdentifer.value);
+  formData.append('levelIdentifier', academicYearLevelIdentifier.value);
   formData.append('schoolIdentifier', schoolIdentifier);
   formData.append('startDate', startDate.value);
   formData.append('endDate', endDate.value);
@@ -153,8 +153,8 @@ const showOverlay = (element: string) => {
             hint="Select the name of the academic year" variant="solo-filled" clearable 
           />
           <v-select class="select"
-            :items="userAuthStore.superUserData.levels.filter(item => item.schools.includes(schoolIdentifier)).map(item => item.identifier)"
-            label="LEVEL" v-model="academicYearLevelIdentifer" density="comfortable" persistent-hint
+            :items="userAuthStore.superUserData.schools.find(item=> item.identifier === schoolIdentifier)?.levels"
+            label="LEVEL" v-model="academicYearLevelIdentifier" density="comfortable" persistent-hint
             hint="Select the level" variant="solo-filled" clearable 
           />
           <v-text-field class="input-field" v-model="startDate" type="date" label="START DATE" clearable />
